@@ -1,1 +1,1 @@
-# NLPSolver
+# FletcherPenaltyNLPSolver
