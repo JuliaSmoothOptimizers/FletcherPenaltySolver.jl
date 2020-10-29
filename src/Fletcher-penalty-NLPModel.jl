@@ -22,23 +22,24 @@ TODO:
 Example:
 fp_sos  = FletcherPenaltyNLP(NLPModelMeta(n), Counters(), nlp, 0.1, _solve_with_linear_operator)
 """
-mutable struct FletcherPenaltyNLP <: AbstractNLPModel
+mutable struct FletcherPenaltyNLP{S <: AbstractFloat, T <: AbstractVector{S}} <: AbstractNLPModel
 
     meta     :: AbstractNLPModelMeta
     counters :: Counters
     nlp      :: AbstractNLPModel
 
     #Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
-    fx  :: Union{Number, AbstractVector, Nothing}
-    cx  :: Union{AbstractVector, Nothing}
-    gx  :: Union{AbstractVector, Nothing}
-    ys  :: Union{AbstractVector, Nothing}
+    fx  :: Union{S, T, Nothing}
+    cx  :: Union{T, Nothing}
+    gx  :: Union{T, Nothing}
+    ys  :: Union{T, Nothing}
 
     sigma :: Number
     linear_system_solver :: Function
 
     function FletcherPenaltyNLP(meta, counters, nlp, sigma, linear_system_solver)
-        return new(meta, counters, nlp, nothing, nothing, nothing, nothing, sigma, linear_system_solver)
+        S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
+        return new{S,T}(meta, counters, nlp, nothing, nothing, nothing, nothing, sigma, linear_system_solver)
     end
 end
 
@@ -57,7 +58,7 @@ function FletcherPenaltyNLP(nlp :: AbstractNLPModel; sigma_0 :: Number = 1.0, li
  return FletcherPenaltyNLP(nlp.meta, nlp.counters, nlp, sigma_0, linear_system_solver)
 end
 
-function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector, gx :: AbstractVector)
+function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: AbstractVector{T}) where {T <: AbstractFloat}
 
     c     = cons(nlp.nlp, x); nlp.cx = c;
     g     = grad(nlp.nlp, x); nlp.gx = g;
@@ -80,7 +81,7 @@ function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector, gx :: AbstractVe
  return gx
 end
 
-function obj(nlp ::  FletcherPenaltyNLP, x :: AbstractVector)
+function obj(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}) where {T <: AbstractFloat}
 
     f     = obj(nlp.nlp, x);  nlp.fx = f;
     c     = cons(nlp.nlp, x); nlp.cx = c;
@@ -97,7 +98,7 @@ function obj(nlp ::  FletcherPenaltyNLP, x :: AbstractVector)
     return fx
 end
 
-function objgrad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector, gx :: AbstractVector)
+function objgrad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: AbstractVector{T}) where {T <: AbstractFloat}
 
     f     = obj(nlp.nlp, x);  nlp.fx = f;
     c     = cons(nlp.nlp, x); nlp.cx = c;

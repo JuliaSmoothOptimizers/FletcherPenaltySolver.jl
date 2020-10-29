@@ -1,5 +1,5 @@
 import JSOSolvers.lbfgs
-function lbfgs(stp :: NLPStopping; x0 :: AbstractVector{T} = stp.current_state.x, atol = 1e-3, mem = 5, lsfunc = SolverTools.armijo_wolfe) where T
+function lbfgs(stp :: NLPStopping; x0 :: AbstractVector{T} = stp.current_state.x, atol :: Number = 1e-3, mem :: Int = 5, lsfunc :: Function = SolverTools.armijo_wolfe) where T <: AbstractFloat
 
  (x, f, ∇f, H) = lbfgs(stp.pb, x0, atol = atol, mem = mem, lsfunc = lsfunc)
  Stopping.update!(stp.current_state, x = x, fx = f, gx = ∇f, Hx = H)
@@ -16,7 +16,7 @@ https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl/blob/master/src/lbfgs.jl
 - adapt output
 - remove stats and info-log (maybe put it back)
 """
-function lbfgs(nlp ::  FletcherPenaltyNLP, x0 :: AbstractVector{T}; atol = 1e-3, mem = 5, lsfunc = armijo_og) where T
+function lbfgs(nlp ::  FletcherPenaltyNLP, x0 :: AbstractVector{T}; atol :: Number = 1e-3, mem :: Int = 5, lsfunc :: Function = armijo_og) where T <: AbstractFloat
 
      n = nlp.meta.nvar
 

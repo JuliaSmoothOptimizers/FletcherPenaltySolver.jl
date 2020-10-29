@@ -51,11 +51,11 @@ iii) \\_solve\\_system\\_factorization\\_eigenvalue
 iv)  \\_solve\\_system\\_factorization\\_lu
 
 TODO:
+- une façon robuste de mettre à jour le paramètre de pénalité. [Convergence to infeasible stationary points]
 - Extend to bounds and inequality constraints.
 - Handle the tol_check from the paper !
 - Use Hessian (approximation) from FletcherPenaltyNLP
 - Continue to explore the paper.
-- une façon robuste de mettre à jour le paramètre de pénalité. [Rates ? Convergence to infeasible stationary points]
 - [Long term] Complemetarity constraints
 """
 function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel,

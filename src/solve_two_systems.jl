@@ -1,4 +1,8 @@
-function _solve_system_dense(nlp  ::  FletcherPenaltyNLP, x :: AbstractVector{T}, rhs1, rhs2; kwargs...)  where T
+function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
+                             x    :: AbstractVector{T},
+                             rhs1 :: AbstractVector{T},
+                             rhs2 :: Union{AbstractVector{T},Nothing};
+                             kwargs...)  where T <: AbstractFloat
 
   A =  NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
   I = diagm(0 => ones(nlp.meta.nvar)) #Matrix(I, nlp.meta.nvar, nlp.meta.nvar) or spdiagm(0 => ones(nlp.meta.nvar))
@@ -15,7 +19,12 @@ function _solve_system_dense(nlp  ::  FletcherPenaltyNLP, x :: AbstractVector{T}
   return sol1, sol2
 end
 
-function _solve_with_linear_operator(nlp  ::  FletcherPenaltyNLP, x :: AbstractVector{T}, rhs1, rhs2; _linear_system_solver :: Function = cg,  kwargs...)  where T
+function _solve_with_linear_operator(nlp  :: FletcherPenaltyNLP,
+                                     x    :: AbstractVector{T},
+                                     rhs1 :: AbstractVector{T},
+                                     rhs2 :: Union{AbstractVector{T},Nothing};
+                                     _linear_system_solver :: Function = cg,
+                                     kwargs...)  where T <: AbstractFloat
 
     #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
     n = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
@@ -36,7 +45,11 @@ function _solve_with_linear_operator(nlp  ::  FletcherPenaltyNLP, x :: AbstractV
     return sol1, sol2
 end
 
-function _solve_system_factorization_eigenvalue(nlp, x :: AbstractVector{T}, rhs1, rhs2; kwargs...)  where T
+function _solve_system_factorization_eigenvalue(nlp  :: FletcherPenaltyNLP,
+                                                x    :: AbstractVector{T},
+                                                rhs1 :: AbstractVector{T},
+                                                rhs2 :: Union{AbstractVector{T},Nothing};
+                                                kwargs...)  where T <: AbstractFloat
 
         A =  NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
         I = diagm(0 => ones(nlp.meta.nvar))
@@ -56,7 +69,11 @@ function _solve_system_factorization_eigenvalue(nlp, x :: AbstractVector{T}, rhs
   return sol1, sol2
 end
 
-function _solve_system_factorization_lu(nlp, x :: AbstractVector{T}, rhs1, rhs2; kwargs...) where T
+function _solve_system_factorization_lu(nlp  :: FletcherPenaltyNLP,
+                                        x    :: AbstractVector{T},
+                                        rhs1 :: AbstractVector{T},
+                                        rhs2 :: Union{AbstractVector{T},Nothing};
+                                        kwargs...) where T <: AbstractFloat
 
         n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
         A = NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
