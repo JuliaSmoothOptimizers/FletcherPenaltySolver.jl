@@ -93,7 +93,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping,
   #Initialize parameters
   x0, σ = stp.current_state.x, σ_0
   #Initialize the unconstrained NLP with Fletcher's penalty function.
-  nlp = FletcherPenaltyNLP(stp.pb.meta, stp.pb.counters, stp.pb, sigma_0, linear_system_solver)
+  nlp = FletcherPenaltyNLP(stp.pb.meta, stp.pb.counters, stp.pb, σ_0, linear_system_solver)
 
   #First call to the stopping
   OK = start!(stp)

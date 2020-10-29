@@ -1,8 +1,8 @@
 #copy paste from https://abelsiqueira.github.io/blog/nlpmodelsjl-and-cutestjl-constrained-optimization/
 #M. Lalee, J. Nocedal, and T. Plantenga. On the implementation of an algorithm for large-scale equality constrained optimization. SIAM J. Optim., Vol. 8, No. 3, pp. 682-706, 1998.
 #Let’s implement a “simple” solver for constrained optimization. Our solver will loosely follow the Byrd-Omojokun implementation of
-
-function solver(nlp :: AbstractNLPModel)
+using NLPModels, Krylov
+function solver_eq(nlp :: AbstractNLPModel)
   if !equality_constrained(nlp)
     error("This solver is for equality constrained problems")
   elseif has_bounds(nlp)
