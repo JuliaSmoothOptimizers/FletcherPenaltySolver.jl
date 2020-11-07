@@ -13,6 +13,8 @@ using Stopping #> 0.2.1
 
 include("Fletcher-penalty-NLPModel.jl")
 
+export obj, objgrad, objgrad!, grad!, grad, hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
+
 function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPAtX)
     #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
     #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \sigma  (x 0 )\|  \infty  )
@@ -86,7 +88,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping,
                                  σ_0                   :: Number    = one(T),
                                  σ_min                 :: Number    = eps(T),
                                  σ_update              :: Number    = T(0.95),
-                                 linear_system_solver :: Function  = _solve_with_linear_operator,
+                                 linear_system_solver  :: Function  = _solve_with_linear_operator,
                                  unconstrained_solver  :: Function  = lbfgs) where T <: AbstractFloat
 
   if !(typeof(stp.pb) <: AbstractNLPModel) return stp end #This algorithm is designed for NLPModels

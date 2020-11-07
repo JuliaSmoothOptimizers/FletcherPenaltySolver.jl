@@ -39,3 +39,15 @@ fp_sos_stp = NLPStopping(fp_sos, optimality_check = unconstrained_check, atol = 
 
 #sos_stp = NLPStopping(sos, optimality_check = unconstrained_check)
 stats = Fletcher_penalty_solver(sos, x0)
+
+#Test de compilation:
+hprod(fp_sos, rand(nlp.meta.nvar),rand(nlp.meta.nvar))
+hess(fp_sos, rand(fp_sos.meta.nvar))
+@test hprod(fp_sos, rand(fp_sos.meta.nvar),zeros(fp_sos.meta.nvar)) == zeros(fp_sos.meta.nvar)
+
+using NLPModelsIpopt
+@warn "Bad idea, it is very slow" 
+ipopt(fp_sos)
+
+
+nothing
