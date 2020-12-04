@@ -1,9 +1,3 @@
-using Test
-
-#include("../src/FletcherPenaltyNLPSolver.jl")
-#using Main.FletcherPenaltyNLPSolver
-include("../src/large-scale-Newton.jl")
-
 using CUTEst
 
 function runcutest()
@@ -14,7 +8,7 @@ function runcutest()
   for p in problems
     nlp = CUTEstModel(p)
     try
-      x, fx, nlx, ncx = solver(nlp)
+      x, fx, nlx, ncx = Fletcher_penalty_solver(nlp)
       @printf("%-7s  %15.8e  %15.8e  %15.8e\n", p, fx, nlx, ncx)
     catch
       @printf("%-7s  %s\n", p, "failure")
@@ -24,8 +18,6 @@ function runcutest()
   end
 end
 
-clp = CUTEstModel("BT1")
-cons(clp, clp.meta.x0)
-jac(clp, clp.meta.x0)
-hess(clp, clp.meta.x0, y=clp.meta.y0)
-finalize(clp)
+nlp = CUTEstModel("BT1")
+Fletcher_penalty_solver(nlp, nlp.meta.x0)
+finalize(nlp)

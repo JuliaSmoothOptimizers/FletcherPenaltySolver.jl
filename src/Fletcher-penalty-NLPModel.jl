@@ -2,26 +2,36 @@ import NLPModels: increment!, obj, objgrad, objgrad!, grad!, grad, hess, hprod, 
 """
 We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
+
 min\\_x f(x) s.t. c(x) = 0
 
-ys = argmin\\_y 0.5 ||A(x)y - g(x)||^2\\_2 + σ c(x)^T y
-and we denote Ys its gradient.
+using Fletcher penalty function:
+    
+min\\_x f(x) - dot(c(x),ys(x))
 
-`FletcherPenaltyNLP(:: AbstractNLPModelMeta, :: Counters, :: AbstractNLPModel, :: Number, :: Function)`
+where
+
+ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||^2\\_2 + σ c(x)^T y
+
+and denote Ys the gradient of ys(x).
+
+`FletcherPenaltyNLP(:: AbstractNLPModel, :: Number, :: Function)`
 or
-`FletcherPenaltyNLP(:: AbstractNLPModel; sigma_0 :: Number = 1.0, linear_system_solver :: Function = _solve_with_linear_operator)`
+`FletcherPenaltyNLP(:: AbstractNLPModel; sigma_0 :: Real = 1.0, linear_system_solver :: Function = _solve_with_linear_operator)`
 
 Notes:
 - Evaluation of the obj, grad, objgrad functions evaluate functions from the orginial nlp.
 These values are stored in *fx*, *cx*, *gx*.
 - The value of the penalty vector *ys* is also stored.
+- `linear_system_solver(nlp, x, rhs1, Union{rhs2,nothing})` is a function that successively solve
+the two linear systems and returns the two solutions.
 
 TODO:
 - hprod
 - write objgrad
 
 Example:
-fp_sos  = FletcherPenaltyNLP(NLPModelMeta(n), Counters(), nlp, 0.1, _solve_with_linear_operator)
+fp_sos  = FletcherPenaltyNLP(nlp, 0.1, _solve_with_linear_operator)
 """
 mutable struct FletcherPenaltyNLP{S <: AbstractFloat, T <: AbstractVector{S}} <: AbstractNLPModel
 
@@ -30,21 +40,34 @@ mutable struct FletcherPenaltyNLP{S <: AbstractFloat, T <: AbstractVector{S}} <:
     nlp      :: AbstractNLPModel
 
     #Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
-    fx  :: Union{S, T, Nothing}
-    cx  :: Union{T, Nothing}
-    gx  :: Union{T, Nothing}
-    ys  :: Union{T, Nothing}
+    fx  :: Union{S}
+    cx  :: Union{T}
+    gx  :: Union{T}
+    ys  :: Union{T}
 
     sigma :: Number
     linear_system_solver :: Function
 
     hessian_approx :: Int
+    
+end
 
-    function FletcherPenaltyNLP(meta, counters, nlp, sigma, linear_system_solver)
-        S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
-        hessian_approx = 2
-        return new{S,T}(meta, counters, nlp, nothing, nothing, nothing, nothing, sigma, linear_system_solver, hessian_approx)
-    end
+function FletcherPenaltyNLP(nlp, sigma, linear_system_solver)
+    x0=nlp.meta.x0
+    S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
+    hessian_approx = 2
+    
+    nvar = nlp.meta.nvar
+
+    nnzh = nvar * (nvar + 1) / 2
+
+    meta = NLPModelMeta(nvar, x0 = x0, nnzh = nnzh, 
+                              minimize = true, islp = false, 
+                              name = "Fletcher penalization of $(nlp.meta.name)")
+    counters = Counters()
+    return FletcherPenaltyNLP(meta, counters, nlp, 
+                              NaN, S[], S[], S[], 
+                              sigma, linear_system_solver, hessian_approx)
 end
 
 #Set of functions solving two linear systems with different rhs.
@@ -58,8 +81,27 @@ include("solve_two_systems.jl")
 
 include("linesearch.jl")
 
-function FletcherPenaltyNLP(nlp :: AbstractNLPModel; sigma_0 :: Number = 1.0, linear_system_solver :: Function = _solve_with_linear_operator)
- return FletcherPenaltyNLP(nlp.meta, nlp.counters, nlp, sigma_0, linear_system_solver)
+function FletcherPenaltyNLP(nlp                  :: AbstractNLPModel; 
+                            sigma_0              :: Real = one(eltype(nlp.meta.x0)), 
+                            linear_system_solver :: Function = _solve_with_linear_operator)
+ return FletcherPenaltyNLP(nlp, sigma_0, linear_system_solver)
+end
+
+function obj(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}) where {T <: AbstractFloat}
+
+    f     = obj(nlp.nlp, x);  nlp.fx = f;
+    c     = cons(nlp.nlp, x); nlp.cx = c;
+    g     = grad(nlp.nlp, x); nlp.gx = g;
+    sigma = nlp.sigma
+    rhs1  = vcat(g, sigma * c)
+
+    _sol1, _  = nlp.linear_system_solver(nlp, x, rhs1, nothing)
+
+    gs, ys = _sol1[1:nlp.meta.nvar], _sol1[nlp.meta.nvar+1:nlp.meta.nvar+nlp.nlp.meta.ncon]
+    nlp.ys = ys
+    fx     = f - dot(c, ys)
+
+    return fx
 end
 
 function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: AbstractVector{T}) where {T <: AbstractFloat}
@@ -74,7 +116,7 @@ function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: Abstrac
     _sol1, _sol2  = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
 
     gs, ys = _sol1[1:nlp.meta.nvar], _sol1[nlp.meta.nvar+1:nlp.meta.nvar+nlp.nlp.meta.ncon]
-    nlp.ys = ys;
+    nlp.ys = ys
     v, w   = _sol2[1:nlp.meta.nvar], _sol2[nlp.meta.nvar+1:nlp.meta.nvar+nlp.nlp.meta.ncon]
     Hsv    = hprod(nlp.nlp, x, ys, v, obj_weight = 1.0)
     Sstw   = hprod(nlp.nlp, x, w, gs; obj_weight = 0.0)
@@ -83,23 +125,6 @@ function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: Abstrac
     gx .= gs - Ysc
 
  return gx
-end
-
-function obj(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}) where {T <: AbstractFloat}
-
-    f     = obj(nlp.nlp, x);  nlp.fx = f;
-    c     = cons(nlp.nlp, x); nlp.cx = c;
-    g     = grad(nlp.nlp, x); nlp.gx = g;
-    sigma = nlp.sigma
-    rhs1  = vcat(g, sigma * c)
-
-    _sol1, _sol2  = nlp.linear_system_solver(nlp, x, rhs1, nothing)
-
-    gs, ys = _sol1[1:nlp.meta.nvar], _sol1[nlp.meta.nvar+1:nlp.meta.nvar+nlp.nlp.meta.ncon]
-    nlp.ys = ys
-    fx     = f - dot(c, ys)
-
-    return fx
 end
 
 function objgrad!(nlp :: FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: AbstractVector{T}) where {T <: AbstractFloat}

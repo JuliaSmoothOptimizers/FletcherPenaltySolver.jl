@@ -1,19 +1,41 @@
-#module FletcherPenaltyNLPSolver
+module FletcherPenaltyNLPSolver
 
 using LinearAlgebra, Logging, Printf
 
 # JSO packages
-using Krylov, LinearOperators, NLPModels
+using Krylov, LinearOperators, NLPModels, SolverTools
 
-@warn "Depends on my version of SolverTools.jl (the one with objgrad) - https://github.com/JuliaSmoothOptimizers/SolverTools.jl/pull/148"
-@warn "Depends on the last version of Stopping.jl - https://github.com/vepiteski/Stopping.jl"
+@warn "Depends on the last versions of Stopping.jl (≥ 0.2.4) - https://github.com/vepiteski/Stopping.jl"
 
-using SolverTools
 using Stopping #> 0.2.1
 
 include("Fletcher-penalty-NLPModel.jl")
 
-export obj, objgrad, objgrad!, grad!, grad, hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
+export FletcherPenaltyNLP
+export obj, objgrad, objgrad!, grad!, grad
+export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
+
+"""
+Move this function to Stopping.jl
+"""
+function status_stopping_to_stats(stp :: AbstractStopping)
+ stp_status = status(stp)
+ convert = Dict([(:Optimal, :first_order),
+                 (:SubProblemFailure, :unknown),
+                 (:SubOptimal, :acceptable),
+                 (:Unbounded, :unbounded),
+                 (:UnboundedPb, :unbounded),
+                 (:Stalled, :stalled),
+                 (:IterationLimit, :max_iter),
+                 (:Tired, :max_time),
+                 (:ResourcesExhausted, :max_eval),
+                 (:ResourcesOfMainProblemExhausted, :max_eval),
+                 (:Infeasible, :infeasible),
+                 (:DomainError, :exception),
+                 (:Unknown, :unknown)
+                 ])
+ return convert[stp_status]
+end
 
 function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPAtX)
     #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
@@ -28,8 +50,14 @@ function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPA
  return vcat(cx, res)
 end
 
+mutable struct AlgoData{T} where T <: Real
+    σ_min    :: Number#    = eps(T),
+    σ_update :: Number#    = T(0.95),
+end
+
 include("lbfgs.jl")
 
+export Fletcher_penalty_solver
 """
 Solver for equality constrained non-linear programs based on Fletcher's penalty function.
 
@@ -91,11 +119,10 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping,
                                  linear_system_solver  :: Function  = _solve_with_linear_operator,
                                  unconstrained_solver  :: Function  = lbfgs) where T <: AbstractFloat
 
-  if !(typeof(stp.pb) <: AbstractNLPModel) return stp end #This algorithm is designed for NLPModels
   #Initialize parameters
   x0, σ = stp.current_state.x, σ_0
   #Initialize the unconstrained NLP with Fletcher's penalty function.
-  nlp = FletcherPenaltyNLP(stp.pb.meta, stp.pb.counters, stp.pb, σ_0, linear_system_solver)
+  nlp = FletcherPenaltyNLP(stp.pb, σ_0, linear_system_solver)
 
   #First call to the stopping
   OK = start!(stp)
@@ -135,10 +162,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping,
    end
   end #end of main loop
 
-  @show status(stp)
-
-@warn "Incompatible status between Stopping and SolverTools. returns :unknown"
-  return GenericExecutionStats(:unknown, stp.pb,
+  return GenericExecutionStats(status_stopping_to_stats(stp), stp.pb,
                                solution=stp.current_state.x,
                                objective=stp.current_state.fx,
                                dual_feas=norm(stp.current_state.current_score,Inf),
@@ -147,4 +171,4 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping,
                                elapsed_time=stp.current_state.current_time - stp.meta.start_time)
 end
 
-#end #end of module
+end #end of module

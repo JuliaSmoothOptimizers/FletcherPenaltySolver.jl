@@ -1,6 +1,6 @@
 # FletcherPenaltyNLPSolver
 
-The algorithm depends on Stopping (version > 0.2.3)
+The algorithm depends on Stopping (version > 0.2.4)
 ```julia
 pkg> add https://github.com/vepiteski/Stopping.jl
 pkg> test Stopping
