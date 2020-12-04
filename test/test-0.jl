@@ -1,6 +1,6 @@
 @testset "simple problem" begin
     
-    @show n = 2^11
+    @show n = 2^4
     c(x) = [sum(x[findall( x->mod(x,2)==0, 1:n)]) ] #c(x) = [x[2] + x[4] + x[6]]
     lcon, ucon = zeros(1), zeros(1)
     sos = ADNLPModel(x->sum((x .- 1).^2), zeros(n), c, lcon, ucon)
@@ -35,7 +35,7 @@
     @test norm(fp_sos_stp.current_state.x - x2) <= sqrt(eps(Float64))
 
     #sos_stp = NLPStopping(sos, optimality_check = unconstrained_check)
-    stats = Fletcher_penalty_solver(sos, x0)
+    stats = Fletcher_penalty_solver(sos)
 
     #Test de compilation:
     hprod(fp_sos, rand(fp_sos.meta.nvar),rand(fp_sos.meta.nvar))

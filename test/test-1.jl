@@ -35,6 +35,6 @@ using OptimizationProblems, NLPModelsJuMP
     @test norm(fp_sos_stp.current_state.x - x2) <= sqrt(eps(Float64))
 
     #sos_stp = NLPStopping(sos, optimality_check = unconstrained_check)
-    stats = Fletcher_penalty_solver(nlp, x0) #status(stp) = :ResourcesExhausted
+    stats = Fletcher_penalty_solver(nlp, max_iter = 10) #status(stp) = :ResourcesExhausted
 
 end

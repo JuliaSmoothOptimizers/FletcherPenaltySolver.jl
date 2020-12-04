@@ -1,7 +1,7 @@
 using LinearAlgebra, LinearOperators, SparseArrays
 
 #JSO packages
-using CUTEst, JSOSolvers, NLPModels, SolverTools
+using CUTEst, JSOSolvers, Logging, NLPModels, NLPModelsKnitro, NLPModelsIpopt, SolverTools
 
 using Stopping
 
@@ -17,5 +17,5 @@ include("unit-test.jl")
 include("test-0.jl")
 #On a problem from the package OptimizationProblems
 include("test-1.jl")
-#On a problem from the package CUTEst
+#On problems using KNITRO
 #include("test-2.jl")

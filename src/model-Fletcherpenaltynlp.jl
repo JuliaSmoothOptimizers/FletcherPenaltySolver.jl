@@ -27,8 +27,8 @@ These values are stored in *fx*, *cx*, *gx*.
 the two linear systems and returns the two solutions.
 
 TODO:
-- hprod
-- write objgrad
+- sparse structure of the hessian?
+- avoid reevaluation fx, cx, gs, ys?
 
 Example:
 fp_sos  = FletcherPenaltyNLP(nlp, 0.1, _solve_with_linear_operator)
@@ -187,7 +187,7 @@ function hess_coord!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, vals :: Abs
   Hs = hess(nlp.nlp, x, ys)
   In = Matrix(I, nlp.meta.nvar, nlp.meta.nvar)
   Im = Matrix(I, nlp.nlp.meta.ncon, nlp.nlp.meta.ncon)
-  Pt = A' * inv(Matrix(A*A') + 1e-3 * Im) * A
+  Pt = A' * inv(Matrix(A*A') + 1e-14 * Im) * A
   Hx = (In - Pt) * Hs - Hs * Pt + 2 * sigma * Pt
 
   k = 1

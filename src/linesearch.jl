@@ -51,7 +51,5 @@ function armijo_og(h :: LineModel,
     nbk += 1
   end
 
-  verbose && @printf("  %4d %4d\n", nbk, nbW);
-
   return (t, good_grad, ht, nbk, nbW)
 end
