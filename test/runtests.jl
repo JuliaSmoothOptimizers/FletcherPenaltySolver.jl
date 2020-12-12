@@ -18,4 +18,4 @@ include("test-0.jl")
 #On a problem from the package OptimizationProblems
 include("test-1.jl")
 #On problems using KNITRO
-#include("test-2.jl")
+include("test-2.jl")

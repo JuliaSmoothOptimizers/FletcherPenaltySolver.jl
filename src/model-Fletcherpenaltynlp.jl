@@ -7,11 +7,11 @@ min\\_x f(x) s.t. c(x) = 0
 
 using Fletcher penalty function:
     
-min\\_x f(x) - dot(c(x),ys(x))
+min\\_x f(x) - dot(c(x),ys(x)) + ρ/2 dot(c(x),c(x))
 
 where
 
-ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||^2\\_2 + σ c(x)^T y
+ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||²\\_2 + σ c(x)^T y + 0.5 δ ||y||²
 
 and denote Ys the gradient of ys(x).
 
@@ -45,7 +45,9 @@ mutable struct FletcherPenaltyNLP{S <: AbstractFloat, T <: AbstractVector{S}} <:
     gx  :: Union{T}
     ys  :: Union{T}
 
-    sigma :: Number
+    sigma :: Real
+    ρ     :: Real
+    δ     :: Real
     linear_system_solver :: Function
 
     hessian_approx :: Int
@@ -67,7 +69,25 @@ function FletcherPenaltyNLP(nlp, sigma, linear_system_solver)
     counters = Counters()
     return FletcherPenaltyNLP(meta, counters, nlp, 
                               NaN, S[], S[], S[], 
-                              sigma, linear_system_solver, hessian_approx)
+                              sigma, 0.0, 0.0, linear_system_solver, hessian_approx)
+end
+
+function FletcherPenaltyNLP(nlp, sigma, ρ, δ, linear_system_solver)
+    x0=nlp.meta.x0
+    S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
+    hessian_approx = 2
+    
+    nvar = nlp.meta.nvar
+
+    nnzh = nvar * (nvar + 1) / 2
+
+    meta = NLPModelMeta(nvar, x0 = x0, nnzh = nnzh, 
+                              minimize = true, islp = false, 
+                              name = "Fletcher penalization of $(nlp.meta.name)")
+    counters = Counters()
+    return FletcherPenaltyNLP(meta, counters, nlp, 
+                              NaN, S[], S[], S[], 
+                              sigma, ρ, δ, linear_system_solver, hessian_approx)
 end
 
 #Set of functions solving two linear systems with different rhs.
@@ -82,9 +102,11 @@ include("solve_two_systems.jl")
 include("linesearch.jl")
 
 function FletcherPenaltyNLP(nlp                  :: AbstractNLPModel; 
-                            sigma_0              :: Real = one(eltype(nlp.meta.x0)), 
+                            sigma_0              :: Real = one(eltype(nlp.meta.x0)),
+                            rho_0                :: Real = zero(eltype(nlp.meta.x0)),
+                            delta_0              :: Real = zero(eltype(nlp.meta.x0)),
                             linear_system_solver :: Function = _solve_with_linear_operator)
- return FletcherPenaltyNLP(nlp, sigma_0, linear_system_solver)
+ return FletcherPenaltyNLP(nlp, sigma_0, rho_0, delta_0, linear_system_solver)
 end
 
 function obj(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}) where {T <: AbstractFloat}
@@ -92,14 +114,14 @@ function obj(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}) where {T <: Abs
     f     = obj(nlp.nlp, x);  nlp.fx = f;
     c     = cons(nlp.nlp, x); nlp.cx = c;
     g     = grad(nlp.nlp, x); nlp.gx = g;
-    sigma = nlp.sigma
+    sigma, ρ, δ  = nlp.sigma, nlp.ρ, nlp.δ
     rhs1  = vcat(g, sigma * c)
 
     _sol1, _  = nlp.linear_system_solver(nlp, x, rhs1, nothing)
 
     gs, ys = _sol1[1:nlp.meta.nvar], _sol1[nlp.meta.nvar+1:nlp.meta.nvar+nlp.nlp.meta.ncon]
     nlp.ys = ys
-    fx     = f - dot(c, ys)
+    fx     = f - dot(c, ys) + ρ / 2 * dot(c, c)
 
     return fx
 end
@@ -108,7 +130,7 @@ function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: Abstrac
 
     c     = cons(nlp.nlp, x); nlp.cx = c;
     g     = grad(nlp.nlp, x); nlp.gx = g;
-    sigma = nlp.sigma
+    sigma, ρ, δ  = nlp.sigma, nlp.ρ, nlp.δ
 
     rhs1  = vcat(g, sigma * c)
     rhs2  = vcat(zeros(nlp.meta.nvar), c)
@@ -121,8 +143,10 @@ function grad!(nlp ::  FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: Abstrac
     Hsv    = hprod(nlp.nlp, x, ys, v, obj_weight = 1.0)
     Sstw   = hprod(nlp.nlp, x, w, gs; obj_weight = 0.0)
     Ysc    = Hsv - nlp.sigma * v - Sstw
+    
+    Jc     = jtprod(nlp.nlp, x, c * ρ)
 
-    gx .= gs - Ysc
+    gx .= gs - Ysc +  Jc
 
  return gx
 end
@@ -132,7 +156,7 @@ function objgrad!(nlp :: FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: Abstr
     f     = obj(nlp.nlp, x);  nlp.fx = f;
     c     = cons(nlp.nlp, x); nlp.cx = c;
     g     = grad(nlp.nlp, x); nlp.gx = g;
-    sigma = nlp.sigma
+    sigma, ρ, δ  = nlp.sigma, nlp.ρ, nlp.δ
 
     rhs1  = vcat(g, sigma * c)
     rhs2  = vcat(zeros(nlp.meta.nvar), c)
@@ -145,9 +169,11 @@ function objgrad!(nlp :: FletcherPenaltyNLP, x :: AbstractVector{T}, gx :: Abstr
     Hsv    = hprod(nlp.nlp, x, ys, v, obj_weight = 1.0)
     Sstw   = hprod(nlp.nlp, x, w, gs; obj_weight = 0.0)
     Ysc    = Hsv - nlp.sigma * v - Sstw
+    
+    Jc     = jtprod(nlp.nlp, x, c * ρ)
 
     fx  = f - dot(c, ys)
-    gx .= gs - Ysc
+    gx .= gs - Ysc + Jc
 
  return fx, gx
 end
@@ -175,7 +201,7 @@ function hess_coord!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, vals :: Abs
   c     = cons(nlp.nlp, x); nlp.cx = c;
   g     = grad(nlp.nlp, x); nlp.gx = g;
   A     = jac(nlp.nlp, x)
-  sigma = nlp.sigma
+  sigma, ρ, δ  = nlp.sigma, nlp.ρ, nlp.δ
 
   rhs1  = vcat(g, sigma * c)
   rhs2  = vcat(zeros(nlp.meta.nvar), c)
@@ -184,11 +210,20 @@ function hess_coord!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, vals :: Abs
 
   gs, ys = _sol1[1:nlp.meta.nvar], _sol1[nlp.meta.nvar+1:nlp.meta.nvar+nlp.nlp.meta.ncon]
 
-  Hs = hess(nlp.nlp, x, ys)
+  Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
   In = Matrix(I, nlp.meta.nvar, nlp.meta.nvar)
   Im = Matrix(I, nlp.nlp.meta.ncon, nlp.nlp.meta.ncon)
   Pt = A' * inv(Matrix(A*A') + 1e-14 * Im) * A
-  Hx = (In - Pt) * Hs - Hs * Pt + 2 * sigma * Pt
+  
+  #regularization term
+  if ρ > 0.0
+      J = jac(nlp.nlp, x)
+      Hc = hess(nlp.nlp, x, c * ρ, obj_weight = 0.)
+      Hcrho = Hc + ρ * J'*J
+      Hx = (In - Pt) * Hs - Hs * Pt + 2 * sigma * Pt + Hcrho
+  else
+      Hx = (In - Pt) * Hs - Hs * Pt + 2 * sigma * Pt
+  end
 
   k = 1
   for j = 1 : nlp.meta.nvar
@@ -221,7 +256,7 @@ function hprod!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, v :: AbstractVec
  f     = obj(nlp.nlp, x);  nlp.fx = f;
  c     = cons(nlp.nlp, x); nlp.cx = c;
  g     = grad(nlp.nlp, x); nlp.gx = g;
- sigma = nlp.sigma
+ sigma, ρ, δ  = nlp.sigma, nlp.ρ, nlp.δ
 
  rhs1  = vcat(g, sigma * c)
  rhs2  = vcat(zeros(nlp.meta.nvar), c)
@@ -238,8 +273,16 @@ function hprod!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, v :: AbstractVec
  Ptv   = v   - pt_sol1[1:nlp.meta.nvar]
  PtHsv = Hsv - pt_sol2[1:nlp.meta.nvar]
  HsPtv = hprod(nlp.nlp, x, ys, Ptv, obj_weight = 1.0)
+ 
+ if ρ > 0.
+     Jv    = jprod(nlp.nlp, x, v)
+     JtJv  = jtprod(nlp.nlp, x, Jv)
+     Hcv   = hprod(nlp.nlp, x, c, v, obj_weight = 0.)
 
- Hv .= Hsv - PtHsv - HsPtv + 2 * sigma * Ptv
+     Hv .= Hsv - PtHsv - HsPtv + 2 * sigma * Ptv + ρ * (Hcv + JtJv)
+ else
+     Hv .= Hsv - PtHsv - HsPtv + 2 * sigma * Ptv
+ end
 
  return Hv
 end

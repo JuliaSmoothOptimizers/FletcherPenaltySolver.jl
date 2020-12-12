@@ -68,20 +68,37 @@ end
 include("algo.jl")
 
 import NLPModelsKnitro: knitro
+#Check https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl/blob/master/src/NLPModelsKnitro.jl
 function knitro(stp :: NLPStopping)
     
     nlp = stp.pb #FletcherPenaltyNLP
     stats = knitro(nlp, x0 = stp.current_state.x)
     
-    if stats.status == :first_order
-    stp.current_state.x = stats.solution
-    stp.current_state.fx = stats.objective
-    stp.current_state.gx = grad(nlp, stats.solution)
-    stp.current_state.current_score  = norm(stp.current_state.gx, Inf)#TODO
-    else
-        #Do something?
-        stp.meta.fail_sub_pb = true
+    if stats.status ∈ (:first_order, :acceptable) 
+       stp.meta.optimal = true
+       
+       stp.current_state.x  = stats.solution
+       stp.current_state.fx = stats.objective
+       stp.current_state.gx = grad(nlp, stats.solution)#stats.dual_feas
+       stp.current_state.current_score  = norm(stp.current_state.gx, Inf)#stats.dual_feas
+       
+    elseif stats.status == :infeasible
+        stp.meta.infeasible = true #euhhhh, wait ... isn't it unconstrained?
+    elseif stats.status == :unbounded
+        #grrrrr
+        stp.meta.unbounded = true
+    elseif stats.status == :max_iter
+        stp.meta.iteration_limit = true
+    elseif stats.status == :max_time
+        stp.meta.tired = true
+    elseif stats.status == :max_eval  
+        stp.meta.resources = true
+    else #stats.status ∈ (:exception, :unknown)  
+        #Ouch...
+        @show stats.status
+        stp.meta.fail_sub_pb
     end
+    
     return stp
 end
 
