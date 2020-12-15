@@ -46,9 +46,9 @@ mutable struct FletcherPenaltyNLP{S <: AbstractFloat,
     gx  :: Union{T}
     ys  :: Union{T}
 
-    σ :: Real
-    ρ     :: Real
-    δ     :: Real
+    σ   :: Real
+    ρ   :: Real
+    δ   :: Real
     linear_system_solver :: Function
 
     hessian_approx :: Int

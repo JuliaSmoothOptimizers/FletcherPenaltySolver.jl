@@ -19,3 +19,6 @@ include("test-0.jl")
 include("test-1.jl")
 #On problems using KNITRO
 include("test-2.jl")
+
+#Rank-deficient problems
+include("rank-deficient.jl")

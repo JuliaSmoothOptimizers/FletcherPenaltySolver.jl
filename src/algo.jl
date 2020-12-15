@@ -94,6 +94,7 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
                                  ρ_0                   :: Number    = 1.,
                                  ρ_max                 :: Number    = 1/eps(),
                                  ρ_update              :: Number    = 1.15,
+                                 δ_0                   :: Number    = 0.,
                                  linear_system_solver  :: Function  = _solve_with_linear_operator,
                                  unconstrained_solver  :: Function  = knitro,
                                  kwargs...)
@@ -113,6 +114,7 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
  return Fletcher_penalty_solver(stp,
                                 σ_0 = σ_0, σ_max = σ_max, σ_update = σ_update,
                                 ρ_0 = ρ_0, ρ_max = ρ_max, ρ_update = ρ_update,
+                                δ_0 = δ_0,
                                 linear_system_solver = linear_system_solver,
                                 unconstrained_solver = unconstrained_solver)
 end
