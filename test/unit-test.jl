@@ -4,13 +4,13 @@
                      x->[sum(x) - 1.], zeros(1), zeros(1)) #ne second derivatives of the constraints
     demo_func = FletcherPenaltyNLPSolver._solve_system_dense
     fpnlp = FletcherPenaltyNLP(nlp)
-    fpnlp = FletcherPenaltyNLP(nlp, sigma_0 = 0.5)
+    fpnlp = FletcherPenaltyNLP(nlp, σ_0 = 0.5)
     fpnlp = FletcherPenaltyNLP(nlp, linear_system_solver = demo_func)
     fpnlp = FletcherPenaltyNLP(nlp, 0.5, demo_func)
     
-    sigma = 0.5
-    ys(x) = [(2-sigma)/n*sum(x) + sigma/n]
-    Ys(x) = (2-sigma)/n * ones(n)
+    σ = 0.5
+    ys(x) = [(2-σ)/n*sum(x) + σ/n]
+    Ys(x) = (2-σ)/n * ones(n)
     
     @test fpnlp.meta.ncon == 0
     @test fpnlp.meta.nvar == 10
@@ -54,4 +54,66 @@
     @test length(Vs) == nnz
     _H = sparse(Is, Js, Vs)
     @test _H == hess(fpnlp, xfeas)
+end
+
+@testset "Unit test: FletcherPenaltyNLP with regularization" begin
+    nlp = ADNLPModel(x->(x[1]-1)^2+100*(x[2]-x[1]^2)^2, zeros(2),
+                     x->[x[1]^2 + x[2]^2 - 1], zeros(1), zeros(1))
+    @test equality_constrained(nlp)
+             
+    demo_func = FletcherPenaltyNLPSolver._solve_system_dense
+    fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, demo_func)
+    
+    @test fpnlp.meta.ncon == 0
+    @test fpnlp.meta.nvar == 2
+    
+    @test fpnlp.σ == 0.5 
+    @test fpnlp.ρ == 0.1
+    @test fpnlp.δ == 0.25
+    σ, ρ, δ = fpnlp.σ, fpnlp.ρ, fpnlp.δ
+    
+    xr = [sqrt(6)/3; sqrt(3)/3]
+    
+    D(x)   = -(4*x[1]^2 + 4*x[2]^2 + δ)
+    ys(x)  = (2*x[1]*(-2*(x[1]-1) + 400*x[1]*(x[2]-x[1]^2)) 
+              - 400*x[2]*(x[2]-x[1]^2) 
+              + σ * (x[1]^2+x[2]^2-1) )/D(x)
+    Ys(x)  = ForwardDiff.gradient(ys, x)
+    DYs(x) = ForwardDiff.hessian(ys, x)
+    
+    @test isnan(fpnlp.fx)
+    @test fpnlp.gx == Float64[]
+    @test fpnlp.ys == Float64[]
+    @test fpnlp.cx == Float64[]
+    
+    @test obj(fpnlp, xr) ≈ (sqrt(6)-3)^2/9 + 100*(sqrt(3)-2)^2/9 atol = 1e-14
+
+    @test fpnlp.fx  ≈ (sqrt(6)-3)^2/9 + 100*(sqrt(3)-2)^2/9 atol = 1e-14
+    @test fpnlp.gx ≈ [2*(sqrt(6)/3-1)-400*sqrt(6)/3*(sqrt(3)/3-6/9);
+                      200 * (sqrt(3)/3 - 6/9)] atol = 1e-13
+    @test fpnlp.ys ≈ [ys(xr)] atol = 1e-14
+    @test fpnlp.cx ≈ [0.] atol = 1e-14
+    
+    @test gradient_check(fpnlp) == Dict{Int64,Float64}()
+    
+    @test objgrad(fpnlp, xr) == (obj(fpnlp, xr), grad(fpnlp, xr))
+    
+    #=
+    #Tanj: note that we use here an approximation of the hessian matrix
+    H(x) = [2-100*4*x[2]+100*12*x[1]^2 -400*x[1]; -400*x[1] 200]
+    C(x) = [2*x[1];2*x[2]]
+    DC(x) = [2 0; 0 2]
+    G(x) = (grad(nlp, x) - C(x)*ys(x)-(x[1]^2 + x[2]^2 - 1)*Ys(x)+ρ*(x[1]^2 + x[2]^2 - 1)*C(x))
+    @test grad(fpnlp, xr) ≈  G(xr) atol = 1e-13
+    function Hess(x)
+        Lag = H(x) - (ys(x)-ρ*(x[1]^2 + x[2]^2 - 1)) * DC(x)
+        reg = ρ*C(x)*C(x)'
+       return Lag + reg- Ys(x)*C(x)' # - (x[1]^2 + x[2]^2 - 1)*DYs(x)  - C(x)*Ys(x)'
+    end
+    #Hess(xr) - ForwardDiff.jacobian(G, xr)
+    vr   = rand(nlp.meta.nvar)
+    Hxv  = Hess(xr) * vr
+    _Hxv = hprod(fpnlp, xr, vr)
+    @show Hxv - _Hxv
+    =#
 end

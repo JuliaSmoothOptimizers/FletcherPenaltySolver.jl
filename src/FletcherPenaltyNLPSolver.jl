@@ -81,7 +81,8 @@ function knitro(stp :: NLPStopping)
        stp.current_state.fx = stats.objective
        stp.current_state.gx = grad(nlp, stats.solution)#stats.dual_feas
        stp.current_state.current_score  = norm(stp.current_state.gx, Inf)#stats.dual_feas
-       
+    elseif stats.status == :stalled
+        stp.meta.stalled = true #point is feasible
     elseif stats.status == :infeasible
         stp.meta.infeasible = true #euhhhh, wait ... isn't it unconstrained?
     elseif stats.status == :unbounded

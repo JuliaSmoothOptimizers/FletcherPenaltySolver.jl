@@ -1,7 +1,7 @@
 function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPAtX)
     #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
-    #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \sigma  (x 0 )\|  \infty  )
-    #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \sigma  (x 0 )\|  \infty  )
+    #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
+    #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
     # returns i) + ii) OR iii) ?
     nxk = max(norm(state.x), 1.)
     nlk = state.lambda == nothing ? 1. : max(norm(state.lambda), 1.)
@@ -147,8 +147,8 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
 
   T = eltype(x0)
   
-  @info log_header([:iter, :f, :c, :score, :sigma, :stat], [Int, T, T, T, T, Symbol],
-                   hdr_override=Dict(:f=>"f(x)", :c=>"||c(x)||", :score=>"‖∇L‖", :sigma=>"σ"))
+  @info log_header([:iter, :f, :c, :score, :σ, :stat], [Int, T, T, T, T, Symbol],
+                   hdr_override=Dict(:f=>"f(x)", :c=>"||c(x)||", :score=>"‖∇L‖", :σ=>"σ"))
   @info log_row(Any[0, NaN, nc0, norm(state.current_score,Inf), σ, :o])
 
   while !OK #main loop
@@ -173,7 +173,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
    elseif sub_stp.meta.unbounded
        #Penalized problem is unbounded...
        unsuccessful_subpb += 1
-   elseif sub_stp.meta.iteration_limit || sub_stp.meta.tired || sub_stp.meta.resources
+   elseif sub_stp.meta.iteration_limit || sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.stalled
        #How to control these parameters in knitro ??
        unsuccessful_subpb += 1
    else
@@ -203,7 +203,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
              
           #Go back to three iterations ago
           σ /= ρ_update^3
-          sub_stp.pb.sigma = σ
+          sub_stp.pb.σ = σ
           sub_stp.pb.ρ /= ρ_update^3
           #reinitialize the State(s) as the problem changed
           reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
@@ -212,7 +212,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
           unsuccessful_subpb = 0
        elseif ncx > Δ * nc0 && !feas
           σ *= σ_update
-          sub_stp.pb.sigma = σ
+          sub_stp.pb.σ = σ
           sub_stp.pb.ρ *= ρ_update
           #reinitialize the State(s) as the problem changed
           reinit!(sub_stp.current_state) #reinitialize the State (keeping x)

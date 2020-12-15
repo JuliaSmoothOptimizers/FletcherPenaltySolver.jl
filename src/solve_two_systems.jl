@@ -1,25 +1,3 @@
-function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
-                             x    :: AbstractVector{T},
-                             rhs1 :: AbstractVector{T},
-                             rhs2 :: Union{AbstractVector{T},Nothing};
-                             kwargs...)  where T <: AbstractFloat
-
-  A =  NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
-  In = diagm(0 => ones(nlp.meta.nvar))
-  Im = diagm(0 => ones(nlp.nlp.meta.ncon))
-  M = [In A'; A -nlp.δ*Im] #expensive
-
-  sol1 = M \ rhs1
-
-  if rhs2 != nothing
-      sol2 = M \ rhs2
-  else
-      sol2 = nothing
-  end
-
-  return sol1, sol2
-end
-
 function _solve_with_linear_operator(nlp  :: FletcherPenaltyNLP,
                                      x    :: AbstractVector{T},
                                      rhs1 :: AbstractVector{T},
@@ -51,6 +29,28 @@ function _solve_with_linear_operator(nlp  :: FletcherPenaltyNLP,
     end
 
     return sol1, sol2
+end
+
+function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
+                             x    :: AbstractVector{T},
+                             rhs1 :: AbstractVector{T},
+                             rhs2 :: Union{AbstractVector{T},Nothing};
+                             kwargs...)  where T <: AbstractFloat
+
+  A =  NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
+  In = diagm(0 => ones(nlp.meta.nvar))
+  Im = diagm(0 => ones(nlp.nlp.meta.ncon))
+  M = [In A'; A -nlp.δ*Im] #expensive
+
+  sol1 = M \ rhs1
+
+  if rhs2 != nothing
+      sol2 = M \ rhs2
+  else
+      sol2 = nothing
+  end
+
+  return sol1, sol2
 end
 
 function _solve_system_factorization_eigenvalue(nlp  :: FletcherPenaltyNLP,

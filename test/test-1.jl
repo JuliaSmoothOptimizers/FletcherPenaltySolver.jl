@@ -11,10 +11,10 @@ using OptimizationProblems, NLPModelsJuMP
     nlp = MathOptNLPModel(_model)
     n, x0 = nlp.meta.nvar, nlp.meta.x0
 
-    sigma_0 = 0.1
+    σ_0 = 0.1
 
-    fp_sos  = FletcherPenaltyNLP(nlp, sigma_0, FletcherPenaltyNLPSolver._solve_with_linear_operator)
-    fp_sos2 = FletcherPenaltyNLP(nlp, sigma_0, FletcherPenaltyNLPSolver._solve_system_factorization_lu)
+    fp_sos  = FletcherPenaltyNLP(nlp, σ_0, FletcherPenaltyNLPSolver._solve_with_linear_operator)
+    fp_sos2 = FletcherPenaltyNLP(nlp, σ_0, FletcherPenaltyNLPSolver._solve_system_factorization_lu)
 
     @time x1,f1,g1,H1 = lbfgs(fp_sos, x0, lsfunc = FletcherPenaltyNLPSolver.armijo_og)
     fp_sos.nlp.counters
