@@ -1,6 +1,6 @@
 @testset "simple problem" begin
     
-    @show n = 2^4
+    n = 2^4
     c(x) = [sum(x[findall( x->mod(x,2)==0, 1:n)]) ] #c(x) = [x[2] + x[4] + x[6]]
     lcon, ucon = zeros(1), zeros(1)
     sos = ADNLPModel(x->sum((x .- 1).^2), zeros(n), c, lcon, ucon)
@@ -47,4 +47,3 @@
     #ipopt(fp_sos)
 
 end
-nothing

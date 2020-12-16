@@ -31,7 +31,7 @@ end
    lss    = Main.FletcherPenaltyNLPSolver._solve_with_linear_operator
    nlp    = CUTEstModel(p)
    fpnlp  = FletcherPenaltyNLP(nlp, 1e3, 1e3, 1e-2, lss)
-   stats1 = knitro(fpnlp)
+   stats1 = knitro(fpnlp, outlev = 0)
    stats  = Fletcher_penalty_solver(nlp, rtol = 1e-3,
                                    σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                    linear_system_solver = lss)

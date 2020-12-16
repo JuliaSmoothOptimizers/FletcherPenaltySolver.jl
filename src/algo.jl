@@ -33,6 +33,8 @@ struct AlgoData{T <: Real}
     linear_system_solver  :: Function
     
     unconstrained_solver  :: Function
+    
+    convex_subproblem :: Bool #Useful to set the `convex` option in Knitro
 end
 
 function AlgoData(T                    :: DataType;
@@ -42,7 +44,7 @@ function AlgoData(T                    :: DataType;
                   ρ_0                  :: Real      = one(T),
                   ρ_max                :: Real      = eps(T),
                   ρ_update             :: Real      = T(1.15),
-                  δ_0                  :: Real      = zero(T),
+                  δ_0                  :: Real      = √eps(T),
                   yM                   :: Real      = typemax(T),
                   Δ                    :: Real      = T(0.95),
                   linear_system_solver :: Function  = _solve_with_linear_operator,
@@ -94,7 +96,7 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
                                  ρ_0                   :: Number    = 1.,
                                  ρ_max                 :: Number    = 1/eps(),
                                  ρ_update              :: Number    = 1.15,
-                                 δ_0                   :: Number    = 0.,
+                                 δ_0                   :: Number    = √eps(),
                                  linear_system_solver  :: Function  = _solve_with_linear_operator,
                                  unconstrained_solver  :: Function  = knitro,
                                  kwargs...)
@@ -126,7 +128,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
                                  ρ_0                   :: Number    = one(eltype(stp.pb.meta.x0)),
                                  ρ_max                 :: Number    = eps(eltype(stp.pb.meta.x0)),
                                  ρ_update              :: Number    = eltype(stp.pb.meta.x0)(1.15),
-                                 δ_0                   :: Real      = zero(eltype(stp.pb.meta.x0)),
+                                 δ_0                   :: Real      = √eps(eltype(stp.pb.meta.x0)),
                                  linear_system_solver  :: Function  = _solve_with_linear_operator,
                                  unconstrained_solver  :: Function  = knitro)
   state = stp.current_state
@@ -139,7 +141,11 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
   #First call to the stopping
   OK = start!(stp)
   #Prepare the subproblem-stopping for the unconstrained minimization.
-  sub_stp = NLPStopping(nlp, NLPAtX(x0), main_stp = stp, optimality_check = unconstrained_check)
+  sub_stp = NLPStopping(nlp, NLPAtX(x0), main_stp = stp, 
+                                         optimality_check = unconstrained_check,
+                                         max_iter = 10000,
+                                         atol     = 1e-4,
+                                         rtol     = 1e-7)
   
   nc0 = norm(state.cx, Inf)
   Δ   = 0.95 #expected decrease in feasibility
