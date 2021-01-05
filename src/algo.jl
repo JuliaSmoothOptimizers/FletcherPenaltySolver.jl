@@ -106,7 +106,12 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
  Fptc(atol, rtol, opt0) = rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf),
                                       ones(nlp.meta.nvar) .+ norm(gx0, Inf))
                                       
- initial_state = NLPAtX(x0, zeros(nlp.meta.ncon), cx = cx0, gx = gx0, res = gx0)
+ initial_state = NLPAtX(x0, 
+                        zeros(nlp.meta.ncon), 
+                        Array{Float64,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
+                        cx = cx0, 
+                        gx = gx0, 
+                        res = gx0)
  stp = NLPStopping(nlp, initial_state,
                    optimality_check = Fletcher_penalty_optimality_check,
                    rtol = 1e-6,

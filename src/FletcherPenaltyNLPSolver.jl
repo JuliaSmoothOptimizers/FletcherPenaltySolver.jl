@@ -5,7 +5,7 @@ using LinearAlgebra, Logging, SparseArrays
 # JSO packages
 using Krylov, LinearOperators, NLPModels, SolverTools
 
-@warn "Depend on the last versions of Stopping.jl (≥ 0.2.4) - https://github.com/vepiteski/Stopping.jl"
+@warn "Depend on the last versions of Stopping.jl (≥ 0.2.5) - https://github.com/vepiteski/Stopping.jl"
 
 using Stopping #> 0.2.1
 
