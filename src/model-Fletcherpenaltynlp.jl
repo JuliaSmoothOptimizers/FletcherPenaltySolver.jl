@@ -359,7 +359,7 @@ function hprod!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, v :: AbstractVec
      #invAtA = inv(Matrix(A*A') + τ * Im)
      #invJtJSs = invAtA * Ssv
      ###################################
-     (invJtJSsv, stats) = minres(JtJ, Ssv, λ = -τ)
+     (invJtJSsv, stats) = minres(JtJ, Ssv, λ = τ) #fix after Krylov.jl #256
      JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
      
      Hv .= Hsv - PtHsv - HsPtv + 2 * σ * Ptv + ρ * (Hcv + JtJv) -  JtinvJtJSsv - SsinvJtJJv
@@ -378,7 +378,7 @@ function hprod!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, v :: AbstractVec
      #invAtA = inv(Matrix(A*A') + τ * Im)
      #invJtJSs = invAtA * Ssv
      ###################################
-     (invJtJSsv, stats) = minres(JtJ, Ssv, λ = -τ)
+     (invJtJSsv, stats) = minres(JtJ, Ssv, λ = τ) #fix after Krylov.jl #256
      #@show norm(invJtJSs - invJtJSsv), norm(Ssv - JtJ * invJtJSsv - τ * invJtJSsv)
      JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
      
