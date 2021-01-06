@@ -99,6 +99,7 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
                                  δ_0                   :: Number    = √eps(),
                                  linear_system_solver  :: Function  = _solve_with_linear_operator,
                                  unconstrained_solver  :: Function  = knitro,
+                                 hessian_approx        :: Int       = 2,
                                  kwargs...)
 
  cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
@@ -123,6 +124,7 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
                                 ρ_0 = ρ_0, ρ_max = ρ_max, ρ_update = ρ_update,
                                 δ_0 = δ_0,
                                 linear_system_solver = linear_system_solver,
+                                hessian_approx       = hessian_approx,
                                 unconstrained_solver = unconstrained_solver)
 end
 
@@ -135,13 +137,14 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
                                  ρ_update              :: Number    = eltype(stp.pb.meta.x0)(1.15),
                                  δ_0                   :: Real      = √eps(eltype(stp.pb.meta.x0)),
                                  linear_system_solver  :: Function  = _solve_with_linear_operator,
+                                 hessian_approx        :: Int       = 2,
                                  unconstrained_solver  :: Function  = knitro)
   state = stp.current_state
   #Initialize parameters
   x0, σ, ρ, δ = state.x, σ_0, ρ_0 , δ_0
   
   #Initialize the unconstrained NLP with Fletcher's penalty function.
-  nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, linear_system_solver)
+  nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, linear_system_solver, hessian_approx)
 
   #First call to the stopping
   OK = start!(stp)

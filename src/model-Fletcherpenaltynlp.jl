@@ -55,10 +55,10 @@ mutable struct FletcherPenaltyNLP{S <: AbstractFloat,
     
 end
 
-function FletcherPenaltyNLP(nlp, σ, linear_system_solver)
+function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx)
     x0=nlp.meta.x0
     S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
-    hessian_approx = 2
+    #hessian_approx = 2
     
     nvar = nlp.meta.nvar
 
@@ -73,10 +73,10 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver)
                               σ, 0.0, 0.0, linear_system_solver, hessian_approx)
 end
 
-function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver)
+function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_approx)
     x0=nlp.meta.x0
     S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
-    hessian_approx = 2
+    #hessian_approx = 2
     
     nvar = nlp.meta.nvar
 
@@ -106,8 +106,9 @@ function FletcherPenaltyNLP(nlp       :: AbstractNLPModel;
                             σ_0       :: Real = one(eltype(nlp.meta.x0)),
                             rho_0     :: Real = zero(eltype(nlp.meta.x0)),
                             delta_0   :: Real = zero(eltype(nlp.meta.x0)),
-                            linear_system_solver :: Function = _solve_with_linear_operator)
- return FletcherPenaltyNLP(nlp, σ_0, rho_0, delta_0, linear_system_solver)
+                            linear_system_solver :: Function = _solve_with_linear_operator,
+                            hessian_approx :: Int = 2)
+ return FletcherPenaltyNLP(nlp, σ_0, rho_0, delta_0, linear_system_solver, hessian_approx)
 end
 
 function obj(nlp ::  FletcherPenaltyNLP, 
@@ -249,7 +250,8 @@ function hess_coord!(nlp  :: FletcherPenaltyNLP,
   Im = Matrix(I, ncon, ncon)
   τ  = max(nlp.δ, eltype(x)(1e-14))
   invAtA = inv(Matrix(A*A') + τ * Im)
-  Pt = A' * invAtA * A
+  AinvAtA = A' * invAtA
+  Pt = AinvAtA * A
   
   #regularization term
   if ρ > 0.0
@@ -262,8 +264,11 @@ function hess_coord!(nlp  :: FletcherPenaltyNLP,
   end
   
   if nlp.hessian_approx == 1
-      #Ss = gs' * ??
-      #Hx += -  A' * invAtA * Ss - Ss' * invAtA * A
+      Ss = Array{Float64,2}(undef, ncon, nvar)
+      for j=1:ncon
+        Ss[j,:] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
+      end
+      Hx += -  AinvAtA * Ss - Ss' * invAtA * A
   end
 
   k = 1
@@ -310,6 +315,7 @@ function hprod!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, v :: AbstractVec
  c     = cons(nlp.nlp, x); nlp.cx = c;
  g     = grad(nlp.nlp, x); nlp.gx = g;
  σ, ρ, δ  = nlp.σ, nlp.ρ, nlp.δ
+ τ        = max(δ, eltype(x)(1e-14))
 
  rhs1  = vcat(g, σ * c)
  rhs2  = vcat(zeros(nvar), c)
@@ -328,15 +334,56 @@ function hprod!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, v :: AbstractVec
  PtHsv = Hsv - pt_sol2[1 : nvar]
  HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = 1.0)
  
- if ρ > 0.
+ if nlp.hessian_approx == 2 && ρ > 0.
      Jv    = jprod(nlp.nlp, x, v)
      JtJv  = jtprod(nlp.nlp, x, Jv)
      Hcv   = hprod(nlp.nlp, x, c, v, obj_weight = 0.)
 
      Hv .= Hsv - PtHsv - HsPtv + 2 * σ * Ptv + ρ * (Hcv + JtJv)
- else
+ elseif nlp.hessian_approx == 2
      Hv .= Hsv - PtHsv - HsPtv + 2 * σ * Ptv
- end
+ elseif nlp.hessian_approx == 1  && ρ > 0.
+     Jv    = jprod(nlp.nlp, x, v)
+     JtJv  = jtprod(nlp.nlp, x, Jv)
+     Hcv   = hprod(nlp.nlp, x, c, v, obj_weight = 0.)
+
+     Jt = jac_op(nlp.nlp, x)'
+     invJtJJv = cgls(Jt, v, λ = τ)[1] #invAtA * Jv #cgls(JtJ, Jv)[1]
+     SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = 0.0)
+     
+     Ssv = ghjvprod(nlp.nlp, x, gs, v)
+     JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)'
+     #### TEMP ##########################
+     #A = jac(nlp.nlp, x)
+     #Im = Matrix(I, ncon, ncon)
+     #invAtA = inv(Matrix(A*A') + τ * Im)
+     #invJtJSs = invAtA * Ssv
+     ###################################
+     (invJtJSsv, stats) = minres(JtJ, Ssv, λ = -τ)
+     JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
+     
+     Hv .= Hsv - PtHsv - HsPtv + 2 * σ * Ptv + ρ * (Hcv + JtJv) -  JtinvJtJSsv - SsinvJtJJv
+ elseif nlp.hessian_approx == 1
+     
+     Jv  = jprod(nlp.nlp, x, v)
+     Jt = jac_op(nlp.nlp, x)'
+     invJtJJv = cgls(Jt, v, λ = τ)[1]
+     SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = 0.0)
+     
+     Ssv = ghjvprod(nlp.nlp, x, gs, v)
+     JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)'
+     #### TEMP ##########################
+     #A = jac(nlp.nlp, x)
+     #Im = Matrix(I, ncon, ncon)
+     #invAtA = inv(Matrix(A*A') + τ * Im)
+     #invJtJSs = invAtA * Ssv
+     ###################################
+     (invJtJSsv, stats) = minres(JtJ, Ssv, λ = -τ)
+     #@show norm(invJtJSs - invJtJSsv), norm(Ssv - JtJ * invJtJSsv - τ * invJtJSsv)
+     JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
+     
+     Hv .= Hsv - PtHsv - HsPtv + 2 * σ * Ptv -  JtinvJtJSsv - SsinvJtJJv
+ end 
 
  return Hv
 end

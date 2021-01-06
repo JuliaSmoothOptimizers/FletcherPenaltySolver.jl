@@ -99,6 +99,7 @@ end
 @testset "HS27" begin
     nlp = ADNLPModel(x->.01 * (x[1] - 1)^2 + (x[2] - x[1]^2)^2, [2.0; 2.0; 2.0],
                      x->[x[1] + x[3]^2 + 1.0], [0.0], [0.0])
+                     
     stats = with_logger(NullLogger()) do
         Fletcher_penalty_solver(nlp)
     end
