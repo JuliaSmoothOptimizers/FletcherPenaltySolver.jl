@@ -27,11 +27,12 @@ function status_stopping_to_stats(stp :: AbstractStopping)
                  (:UnboundedPb, :unbounded),
                  (:Stalled, :stalled),
                  (:IterationLimit, :max_iter),
-                 (:Tired, :max_time),
-                 (:ResourcesExhausted, :max_eval),
+                 (:TimeLimit, :max_time), #(:Tired, :max_time),
+                 (:EvaluationLimit, :max_eval), #(:ResourcesExhausted, :max_eval),
                  (:ResourcesOfMainProblemExhausted, :max_eval),
                  (:Infeasible, :infeasible),
                  (:DomainError, :exception),
+                 (:StopByUser, :unknown)
                  (:Unknown, :unknown)
                  ])
  return convert[stp_status]

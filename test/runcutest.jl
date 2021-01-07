@@ -1,23 +1,19 @@
 using CUTEst, NLPModels, NLPModelsIpopt, Plots, SolverBenchmark, SolverTools
-
 #This package
 using FletcherPenaltyNLPSolver
-
-pyplot()
+gr()
 
 function runcutest()
   #pnames = readlines("paper-problems.list")
   #pnames = pnames[1:3]
   pnames = CUTEst.select(max_var=100, min_con=1, max_con=100, only_free_var=true, only_equ_con=true)
-  pnames = pnames[1:3]
   cutest_problems = (CUTEstModel(p) for p in pnames)
 
-  solvers = Dict(:fps => Fletcher_penalty_solver, 
-                 :ipopt => (nlp; kwargs...) -> ipopt(nlp, print_level=0, kwargs...))
+  solvers = Dict(:FPS => Fletcher_penalty_solver, :ipopt => (nlp; kwargs...) -> ipopt(nlp, print_level=0, kwargs...))
   stats = bmark_solvers(solvers, cutest_problems)
 
   join_df = join(stats, [:objective, :dual_feas, :primal_feas, :neval_obj, :status], invariant_cols=[:name])
-  markdown_table(stdout, join_df)
+  SolverBenchmark.markdown_table(stdout, join_df)
   for col in [:neval_obj, :elapsed_time]
     for df in values(stats)
       if all(df[col] .== 0)
