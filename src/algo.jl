@@ -90,6 +90,7 @@ TODO:
 """
 function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
                                  x0                    :: AbstractVector = nlp.meta.x0,
+                                 rtol                  :: Number    = 1e-6,
                                  σ_0                   :: Number    = 1.,
                                  σ_max                 :: Number    = 1/eps(),
                                  σ_update              :: Number    = 1.15,
@@ -115,7 +116,7 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
                         res = gx0)
  stp = NLPStopping(nlp, initial_state,
                    optimality_check = Fletcher_penalty_optimality_check,
-                   rtol = 1e-6,
+                   rtol = rtol,
                    tol_check = Fptc,
                    max_cntrs = _init_max_counters(quick = typemax(Int64)); kwargs...)
 
