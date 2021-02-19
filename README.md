@@ -1,5 +1,8 @@
 # FletcherPenaltyNLPSolver
 
+![CI](https://github.com/tmigot/FletcherPenaltyNLPSolver/workflows/CI/badge.svg?branch=main)
+[![codecov](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver/branch/main/graph/badge.svg)](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver)
+
 The algorithm depends on Stopping (version > 0.2.4)
 ```julia
 pkg> add https://github.com/vepiteski/Stopping.jl
