@@ -3,11 +3,8 @@ module FletcherPenaltyNLPSolver
 using LinearAlgebra, Logging, SparseArrays
 
 # JSO packages
-using Krylov, LinearOperators, NLPModels, SolverTools
-
-@warn "Depend on the last versions of Stopping.jl (≥ 0.2.5) - https://github.com/vepiteski/Stopping.jl"
-
-using Stopping #> 0.2.1
+using Krylov, LinearOperators, LDLFactorizations, NLPModels, SolverTools
+using Stopping #> 0.2.5
 using StoppingInterface #ipopt, knitro, status_stopping_to_stats
 
 include("model-Fletcherpenaltynlp.jl")
@@ -83,7 +80,7 @@ function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
                                  ρ_max                 :: Number    = 1/eps(),
                                  ρ_update              :: Number    = 1.15,
                                  δ_0                   :: Number    = √eps(),
-                                 linear_system_solver  :: Function  = _solve_with_linear_operator,
+                                 linear_system_solver  :: Function  = _solve_ldlt_factorization, #_solve_with_linear_operator,
                                  unconstrained_solver  :: Function  = knitro,
                                  hessian_approx        :: Int       = 2,
                                  kwargs...)

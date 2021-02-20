@@ -1,5 +1,11 @@
 # This file is machine-generated - editing it directly is not advised
 
+[[AMD]]
+deps = ["Libdl", "LinearAlgebra", "SparseArrays", "Test"]
+git-tree-sha1 = "fc66ffc5cff568936649445f58a55b81eaf9592c"
+uuid = "14f7f29c-3bd6-536c-9a0b-7339e30b5a3e"
+version = "0.4.0"
+
 [[ASL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "fc1716d806dd345db9fd82e93f2186771fe6df13"
@@ -249,6 +255,12 @@ repo-rev = "master"
 repo-url = "https://github.com/JuliaSmoothOptimizers/Krylov.jl"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
 version = "0.6.0"
+
+[[LDLFactorizations]]
+deps = ["AMD", "LinearAlgebra", "SparseArrays", "Test"]
+git-tree-sha1 = "5e41f142f6511bb685bb8f4f232f5d82d7fa408e"
+uuid = "40e66cde-538c-5869-a4ad-c39174c6795b"
+version = "0.8.0"
 
 [[LibGit2]]
 deps = ["Printf"]

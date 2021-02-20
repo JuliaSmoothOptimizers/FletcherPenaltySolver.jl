@@ -12,6 +12,7 @@ using Test
 using FletcherPenaltyNLPSolver
 
 include("unit-test.jl")
+include("test_double_linear_algebra.jl")
 #Test the solvers:
 #On a toy rosenbrock variation.
 include("test-0.jl")

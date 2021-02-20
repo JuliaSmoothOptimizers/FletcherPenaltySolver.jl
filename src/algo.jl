@@ -6,7 +6,7 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
                                  ρ_max                 :: Number    = eps(eltype(stp.pb.meta.x0)),
                                  ρ_update              :: Number    = eltype(stp.pb.meta.x0)(1.15),
                                  δ_0                   :: Real      = √eps(eltype(stp.pb.meta.x0)),
-                                 linear_system_solver  :: Function  = _solve_with_linear_operator,
+                                 linear_system_solver  :: Function  = _solve_ldlt_factorization, #_solve_with_linear_operator,
                                  hessian_approx        :: Int       = 2,
                                  unconstrained_solver  :: Function  = knitro)
   state = stp.current_state

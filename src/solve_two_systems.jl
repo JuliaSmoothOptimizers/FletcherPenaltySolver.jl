@@ -5,30 +5,30 @@ function _solve_with_linear_operator(nlp  :: FletcherPenaltyNLP,
                                      _linear_system_solver :: Function = cg,
                                      kwargs...)  where T <: AbstractFloat
 
-    #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
-    n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
-    nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
-    #Tanj: Would it be beneficial to have a jjtprod returning Jv and Jtv ?
-    Mp(v) = vcat( v[1 : n] + jtprod(nlp.nlp, x, v[n + 1 : nn]),
+  #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
+  n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
+  nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
+  #Tanj: Would it be beneficial to have a jjtprod returning Jv and Jtv ?
+  Mp(v) = vcat( v[1 : n] + jtprod(nlp.nlp, x, v[n + 1 : nn]),
                  jprod(nlp.nlp, x, v[1 : n]) - nlp.δ * v[n + 1 : nn])
-    #LinearOperator(type, nrows, ncols, symmetric, hermitian, prod, tprod, ctprod)
-    opM = LinearOperator(T, nn, nn, true, true, v->Mp(v), w->Mp(w), u->Mp(u))
+  #LinearOperator(type, nrows, ncols, symmetric, hermitian, prod, tprod, ctprod)
+  opM = LinearOperator(T, nn, nn, true, true, v->Mp(v), w->Mp(w), u->Mp(u))
 
-    (sol1, stats1)  = _linear_system_solver(opM, rhs1; kwargs...)
-    if !stats1.solved
-        @warn "Failed solving linear system with $(_linear_system_solver)."
+  (sol1, stats1)  = _linear_system_solver(opM, rhs1; kwargs...)
+  if !stats1.solved
+    @warn "Failed solving linear system with $(_linear_system_solver)."
+  end
+
+  if !isnothing(rhs2)
+    (sol2, stats2)  = _linear_system_solver(opM, rhs2; kwargs...)
+    if !stats2.solved
+      @warn "Failed solving linear system with $(_linear_system_solver)."
     end
+  else
+    sol2 = nothing
+  end
 
-    if rhs2 != nothing
-        (sol2, stats2)  = _linear_system_solver(opM, rhs2; kwargs...)
-        if !stats2.solved
-            @warn "Failed solving linear system with $(_linear_system_solver)."
-        end
-    else
-        sol2 = nothing
-    end
-
-    return sol1, sol2
+  return sol1, sol2
 end
 
 function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
@@ -44,7 +44,7 @@ function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
 
   sol1 = M \ rhs1
 
-  if rhs2 != nothing
+  if !isnothing(rhs2)
       sol2 = M \ rhs2
   else
       sol2 = nothing
@@ -53,30 +53,84 @@ function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
   return sol1, sol2
 end
 
-function _solve_system_factorization_eigenvalue(nlp  :: FletcherPenaltyNLP,
-                                                x    :: AbstractVector{T},
-                                                rhs1 :: AbstractVector{T},
-                                                rhs2 :: Union{AbstractVector{T},Nothing};
-                                                kwargs...)  where T <: AbstractFloat
+function _solve_ldlt_factorization(nlp  :: FletcherPenaltyNLP,
+                                   x    :: AbstractVector{T},
+                                   rhs1 :: AbstractVector{T},
+                                   rhs2 :: Nothing;
+                                   kwargs...)  where T <: AbstractFloat
+  #set the memory for the matrix in the FletcherPenaltyNLP
+  nnzj = nlp.nlp.meta.nnzj
+  nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
 
-        A =  NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
-        In = diagm(0 => ones(nlp.meta.nvar))
-        Im = diagm(0 => ones(nlp.nlp.meta.ncon))
-        M = [In A'; A -nlp.δ*Im] #expensive
-        
-        O, Δ = eigen(M)#eigvecs(M), eigvals(M)
-        # Boost negative values of Δ to 1e-8
-        D = Δ .+ max.((1e-8 .- Δ), 0.0)
+  nnz = nvar + nnzj + ncon 
+  rows = zeros(Int, nnz)
+  cols = zeros(Int, nnz)
+  vals = zeros(T, nnz)
 
-        sol1 = O*diagm(1.0 ./ D)*O'*rhs1
+  # I (1:nvar, 1:nvar)
+  nnz_idx = 1:nvar
+  rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
+  vals[nnz_idx] = ones(T, nvar)
+  # J (nvar .+ 1:ncon, 1:nvar)
+  nnz_idx = nvar .+ (1:nnzj)
+  @views jac_structure!(nlp.nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
+  cols[nnz_idx] .+= nvar
+  @views jac_coord!(nlp.nlp, x, vals[nnz_idx])
+  # -δI (nvar .+ 1:ncon, nvar .+ 1:ncon)
+  nnz_idx = nvar .+ nnzj .+ (1:ncon)
+  rows[nnz_idx] .= nvar .+ (1:ncon)
+  cols[nnz_idx] .= nvar .+ (1:ncon)
+  vals[nnz_idx] .= - nlp.δ
 
-        if rhs2 != nothing
-            sol2 = O*diagm(1.0 ./ D)*O'*rhs2
-        else
-            sol2 = nothing
-        end
+  M = Symmetric(sparse(rows, cols, vals, nvar + ncon, nvar + ncon), :U)
+  S = ldl_analyze(M)
+  ldl_factorize!(M, S)
+  sol1 = copy(rhs1)
+  ldiv!(S, sol1)
 
-  return sol1, sol2
+  return sol1, nothing
+end
+
+function _solve_ldlt_factorization(nlp  :: FletcherPenaltyNLP,
+                                   x    :: AbstractVector{T},
+                                   rhs1 :: AbstractVector{T},
+                                   rhs2 :: AbstractVector{T};
+                                   kwargs...)  where T <: AbstractFloat
+  #set the memory for the matrix in the FletcherPenaltyNLP
+  nnzj = nlp.nlp.meta.nnzj
+  nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
+
+  nnz = nvar + nnzj + ncon 
+  rows = zeros(Int, nnz)
+  cols = zeros(Int, nnz)
+  vals = zeros(T, nnz)
+
+  # I (1:nvar, 1:nvar)
+  nnz_idx = 1:nvar
+  rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
+  vals[nnz_idx] = ones(T, nvar)
+  # J (nvar .+ 1:ncon, 1:nvar)
+  nnz_idx = nvar .+ (1:nnzj)
+  @views jac_structure!(nlp.nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
+  cols[nnz_idx] .+= nvar
+  @views jac_coord!(nlp.nlp, x, vals[nnz_idx])
+  # -δI (nvar .+ 1:ncon, nvar .+ 1:ncon)
+  nnz_idx = nvar .+ nnzj .+ (1:ncon)
+  rows[nnz_idx] .= nvar .+ (1:ncon)
+  cols[nnz_idx] .= nvar .+ (1:ncon)
+  vals[nnz_idx] .= - nlp.δ
+
+  M = Symmetric(sparse(rows, cols, vals, nvar + ncon, nvar + ncon), :U)
+  S = ldl_analyze(M)
+  S.n_d = nvar
+  S.tol = √eps(T)
+  S.r1  = √eps(T)
+  S.r2  = -√eps(T) #regularization
+  ldl_factorize!(M, S)
+  sol = hcat(rhs1, rhs2)
+  ldiv!(S, sol)
+
+  return sol[:,1], sol[:,2]
 end
 
 function _solve_system_factorization_lu(nlp  :: FletcherPenaltyNLP,
@@ -95,7 +149,7 @@ function _solve_system_factorization_lu(nlp  :: FletcherPenaltyNLP,
 
         sol1 = LU \ rhs1
 
-        if rhs2 != nothing
+        if !isnothing(rhs2)
             sol2 = LU \ rhs2
         else
             sol2 = nothing

@@ -36,7 +36,7 @@ fp_sos  = FletcherPenaltyNLP(nlp, 0.1, _solve_with_linear_operator)
 mutable struct FletcherPenaltyNLP{S <: AbstractFloat, 
                                   T <: AbstractVector{S}} <: AbstractNLPModel
 
-    meta     :: AbstractNLPModelMeta
+	meta     :: AbstractNLPModelMeta
     counters :: Counters
     nlp      :: AbstractNLPModel
 
