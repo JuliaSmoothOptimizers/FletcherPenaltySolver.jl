@@ -9,7 +9,7 @@ function runcutest()
   pnames = CUTEst.select(max_var=100, min_con=1, max_con=100, only_free_var=true, only_equ_con=true)
   cutest_problems = (CUTEstModel(p) for p in pnames)
 
-  solvers = Dict(:FPS => Fletcher_penalty_solver, :ipopt => (nlp; kwargs...) -> ipopt(nlp, print_level=0, kwargs...))
+  solvers = Dict(:FPS => nlp -> Fletcher_penalty_solver(nlp, nlp.meta.x0), :ipopt => (nlp; kwargs...) -> ipopt(nlp, print_level=0, kwargs...))
   stats = bmark_solvers(solvers, cutest_problems)
 
   join_df = join(stats, [:objective, :dual_feas, :primal_feas, :neval_obj, :status], invariant_cols=[:name])

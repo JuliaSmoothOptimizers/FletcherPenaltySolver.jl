@@ -18,10 +18,9 @@
 @testset "Rank-deficient HS61" begin
    p     = "HS61"
    nlp   = CUTEstModel(p)
+   meta = AlgoData(σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, linear_system_solver = lss)
    lss   = Main.FletcherPenaltyNLPSolver._solve_with_linear_operator
-   stats = Fletcher_penalty_solver(nlp, rtol = 1e-3,
-                                   σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
-                                   linear_system_solver = lss)
+   stats = Fletcher_penalty_solver(nlp, nlp.meta.x0, rtol = 1e-3)
    @test stats.status == :first_order
    finalize(nlp)
 end
@@ -32,7 +31,7 @@ end
    nlp    = CUTEstModel(p)
    fpnlp  = FletcherPenaltyNLP(nlp, 1e3, 1e3, 1e-2, lss, 2)
    stats1 = knitro(fpnlp, outlev = 0)
-   stats  = Fletcher_penalty_solver(nlp, rtol = 1e-3,
+   stats  = Fletcher_penalty_solver(nlp, nlp.meta.x0, rtol = 1e-3,
                                    σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                    linear_system_solver = lss)
    @test stats.status == :first_order

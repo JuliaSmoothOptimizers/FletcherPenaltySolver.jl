@@ -1,20 +1,11 @@
-function Fletcher_penalty_solver(stp                   :: NLPStopping;
-                                 σ_0                   :: Number    = one(eltype(stp.pb.meta.x0)),
-                                 σ_max                 :: Number    = eps(eltype(stp.pb.meta.x0)),
-                                 σ_update              :: Number    = eltype(stp.pb.meta.x0)(1.15),
-                                 ρ_0                   :: Number    = one(eltype(stp.pb.meta.x0)),
-                                 ρ_max                 :: Number    = eps(eltype(stp.pb.meta.x0)),
-                                 ρ_update              :: Number    = eltype(stp.pb.meta.x0)(1.15),
-                                 δ_0                   :: Real      = √eps(eltype(stp.pb.meta.x0)),
-                                 linear_system_solver  :: Function  = _solve_ldlt_factorization, #_solve_with_linear_operator,
-                                 hessian_approx        :: Int       = 2,
-                                 unconstrained_solver  :: Function  = knitro)
+function Fletcher_penalty_solver(stp                   :: NLPStopping, meta :: AlgoData{T}) where T
+
   state = stp.current_state
   #Initialize parameters
-  x0, σ, ρ, δ = state.x, σ_0, ρ_0 , δ_0
+  x0, σ, ρ, δ = state.x, meta.σ_0, meta.ρ_0 , meta.δ_0
   
   #Initialize the unconstrained NLP with Fletcher's penalty function.
-  nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, linear_system_solver, hessian_approx)
+  nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, meta.linear_system_solver, meta.hessian_approx)
 
   #First call to the stopping
   OK = start!(stp)
@@ -30,8 +21,6 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
   unsuccessful_subpb = 0 #number of consecutive failed subproblem solve.
   stalling = 0 #number of consecutive successful subproblem solve without progress
   restoration_phase = false
-
-  T = eltype(x0)
   
   @info log_header([:iter, :f, :c, :score, :σ, :stat], [Int, T, T, T, T, Symbol],
                    hdr_override=Dict(:f=>"f(x)", :c=>"||c(x)||", :score=>"‖∇L‖", :σ=>"σ"))
@@ -39,13 +28,13 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
 
   while !OK #main loop
 
-   #Solve the subproblem
-   reinit!(sub_stp) #reinit the sub-stopping.
-   sub_stp = unconstrained_solver(sub_stp)
-   #Update the State with the info given by the subproblem:
-   if sub_stp.meta.optimal
+    #Solve the subproblem
+    reinit!(sub_stp) #reinit the sub-stopping.
+    sub_stp = meta.unconstrained_solver(sub_stp)
+    #Update the State with the info given by the subproblem:
+    if sub_stp.meta.optimal
       if sub_stp.current_state.x == state.x
-       stalling += 1  
+        stalling += 1  
       end
       unsuccessful_subpb = 0
       
@@ -57,53 +46,53 @@ function Fletcher_penalty_solver(stp                   :: NLPStopping;
                               res    = sub_stp.current_state.gx)
       
    elseif sub_stp.meta.unbounded
-       #Penalized problem is unbounded...
-       unsuccessful_subpb += 1
+      #Penalized problem is unbounded...
+      unsuccessful_subpb += 1
    elseif sub_stp.meta.iteration_limit || sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.stalled
-       #How to control these parameters in knitro ??
-       unsuccessful_subpb += 1
+      #How to control these parameters in knitro ??
+      unsuccessful_subpb += 1
    else
-       stp.meta.fail_sub_pb = true
+      stp.meta.fail_sub_pb = true
    end
    
-   #Check optimality conditions: either stop! is true OR the penalty parameter is too small
-   stp.meta.fail_sub_pb = σ > σ_max || ρ > ρ_max #stp.meta.stalled 
-   OK = stop!(stp)
+    #Check optimality conditions: either stop! is true OR the penalty parameter is too small
+    stp.meta.fail_sub_pb = σ > meta.σ_max || ρ > meta.ρ_max #stp.meta.stalled 
+    OK = stop!(stp)
 
-   @info log_row(Any[stp.meta.nb_of_stop, 
+    @info log_row(Any[stp.meta.nb_of_stop, 
                      state.fx, norm(state.cx), norm(state.res), 
                      norm(state.gx), σ, status(sub_stp)])
  
-   #update the penalty parameter if necessary
-   if !OK
-       ncx  = norm(state.cx)
-       feas = ncx < norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
-       if restoration_phase && !feas &&  stalling >= 3 #or sub_stp.meta.optimal
-          #Can"t escape this infeasible stationary point.
-          stp.meta.suboptimal = true
-          OK = true
-       elseif !feas && (stalling >= 3 || unsuccessful_subpb >= 3)
-          #we are most likely stuck at an infeasible stationary point.
-          restoration_phase = true
-          state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar) 
+    #update the penalty parameter if necessary
+    if !OK
+      ncx  = norm(state.cx)
+      feas = ncx < norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
+      if restoration_phase && !feas &&  stalling >= 3 #or sub_stp.meta.optimal
+        #Can"t escape this infeasible stationary point.
+        stp.meta.suboptimal = true
+        OK = true
+      elseif !feas && (stalling >= 3 || unsuccessful_subpb >= 3)
+        #we are most likely stuck at an infeasible stationary point.
+        restoration_phase = true
+        state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar) 
              
-          #Go back to three iterations ago
-          σ /= ρ_update^3
-          sub_stp.pb.σ = σ
-          sub_stp.pb.ρ /= ρ_update^3
-          #reinitialize the State(s) as the problem changed
-          reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
+        #Go back to three iterations ago
+        σ /= meta.ρ_update^3
+        sub_stp.pb.σ = σ
+        sub_stp.pb.ρ /= meta.ρ_update^3
+        #reinitialize the State(s) as the problem changed
+        reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
              
-          stalling = 0
-          unsuccessful_subpb = 0
-       elseif ncx > Δ * nc0 && !feas
-          σ *= σ_update
-          sub_stp.pb.σ = σ
-          sub_stp.pb.ρ *= ρ_update
-          #reinitialize the State(s) as the problem changed
-          reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
-       end
-       nc0 = copy(ncx)
+        stalling = 0
+        unsuccessful_subpb = 0
+      elseif ncx > Δ * nc0 && !feas
+        σ *= meta.σ_update
+        sub_stp.pb.σ = σ
+        sub_stp.pb.ρ *= meta.ρ_update
+        #reinitialize the State(s) as the problem changed
+        reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
+      end
+      nc0 = copy(ncx)
    end
    
   end #end of main loop

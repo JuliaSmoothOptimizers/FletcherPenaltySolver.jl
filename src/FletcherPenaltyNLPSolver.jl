@@ -28,6 +28,7 @@ function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPA
 end
 
 include("parameters.jl")
+export AlgoData
 
 ###############################
 #
@@ -70,45 +71,32 @@ TODO:
 - Continue to explore the paper.
 - [Long term] Complemetarity constraints
 """
-function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
-                                 x0                    :: AbstractVector = nlp.meta.x0,
-                                 rtol                  :: Number    = 1e-6,
-                                 σ_0                   :: Number    = 1.,
-                                 σ_max                 :: Number    = 1/eps(),
-                                 σ_update              :: Number    = 1.15,
-                                 ρ_0                   :: Number    = 1.,
-                                 ρ_max                 :: Number    = 1/eps(),
-                                 ρ_update              :: Number    = 1.15,
-                                 δ_0                   :: Number    = √eps(),
-                                 linear_system_solver  :: Function  = _solve_ldlt_factorization, #_solve_with_linear_operator,
-                                 unconstrained_solver  :: Function  = knitro,
-                                 hessian_approx        :: Int       = 2,
-                                 kwargs...)
+function Fletcher_penalty_solver(nlp :: AbstractNLPModel,
+                                 x0  :: AbstractVector{T} = nlp.meta.x0;
+                                 kwargs...
+                                ) where T
 
- cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
- #Tanj: how to handle stopping criteria where tol_check depends on the State?
- Fptc(atol, rtol, opt0) = rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf),
+  meta = AlgoData(T)
+
+  cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
+  #Tanj: how to handle stopping criteria where tol_check depends on the State?
+  Fptc(atol, rtol, opt0) = rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf),
                                       ones(nlp.meta.nvar) .+ norm(gx0, Inf))
                                       
- initial_state = NLPAtX(x0, 
+  initial_state = NLPAtX(x0, 
                         zeros(nlp.meta.ncon), 
                         Array{Float64,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
                         cx = cx0, 
                         gx = gx0, 
                         res = gx0)
- stp = NLPStopping(nlp, initial_state,
+  stp = NLPStopping(nlp, initial_state,
                    optimality_check = Fletcher_penalty_optimality_check,
-                   rtol = rtol,
+                   atol = meta.atol,
+                   rtol = meta.rtol,
                    tol_check = Fptc,
                    max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64)); kwargs...)
 
- return Fletcher_penalty_solver(stp,
-                                σ_0 = σ_0, σ_max = σ_max, σ_update = σ_update,
-                                ρ_0 = ρ_0, ρ_max = ρ_max, ρ_update = ρ_update,
-                                δ_0 = δ_0,
-                                linear_system_solver = linear_system_solver,
-                                hessian_approx       = hessian_approx,
-                                unconstrained_solver = unconstrained_solver)
+  return Fletcher_penalty_solver(stp, meta)
 end
 
 include("algo.jl")
