@@ -8,6 +8,7 @@ using Krylov, LinearOperators, NLPModels, SolverTools
 @warn "Depend on the last versions of Stopping.jl (≥ 0.2.5) - https://github.com/vepiteski/Stopping.jl"
 
 using Stopping #> 0.2.1
+using StoppingInterface #ipopt, knitro, status_stopping_to_stats
 
 include("model-Fletcherpenaltynlp.jl")
 
@@ -15,252 +16,104 @@ export FletcherPenaltyNLP
 export obj, objgrad, objgrad!, grad!, grad
 export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
 
-"""
-Move this function to Stopping.jl
-"""
-function status_stopping_to_stats(stp :: AbstractStopping)
- stp_status = status(stp)
- convert = Dict([(:Optimal, :first_order),
-                 (:SubProblemFailure, :unknown),
-                 (:SubOptimal, :acceptable),
-                 (:Unbounded, :unbounded),
-                 (:UnboundedPb, :unbounded),
-                 (:Stalled, :stalled),
-                 (:IterationLimit, :max_iter),
-                 (:TimeLimit, :max_time), #(:Tired, :max_time),
-                 (:EvaluationLimit, :max_eval), #(:ResourcesExhausted, :max_eval),
-                 (:ResourcesOfMainProblemExhausted, :max_eval),
-                 (:Infeasible, :infeasible),
-                 (:DomainError, :exception),
-                 (:StopByUser, :unknown),
-                 (:Unknown, :unknown)
-                 ])
- return convert[stp_status]
+function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPAtX)
+    #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
+    #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
+    #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
+    # returns i) + ii) OR iii) ?
+    nxk = max(norm(state.x), 1.)
+    nlk = isnothing(state.lambda) ? 1. : max(norm(state.lambda), 1.)
+    
+    cx  = state.cx/nxk
+    res = state.res/nlk
+    
+ return vcat(cx, res)
 end
 
-"""
-copy-paste from the coming Stopping-branch
-https://github.com/vepiteski/Stopping.jl/blob/type-stable-version/src/Stopping/NLPStoppingmod.jl
-"""
-function _init_max_counters(; quick  :: T = 20000,
-                              obj    :: T = quick,
-                              grad   :: T = quick,
-                              cons   :: T = quick,
-                              jcon   :: T = quick,
-                              jgrad  :: T = quick,
-                              jac    :: T = quick,
-                              jprod  :: T = quick,
-                              jtprod :: T = quick,
-                              hess   :: T = quick,
-                              hprod  :: T = quick,
-                              jhprod :: T = quick,
-                              sum    :: T = quick*11) where {T <: Int}
+include("parameters.jl")
 
-  cntrs = Dict{Symbol,T}([(:neval_obj,       obj), (:neval_grad,   grad),
-                          (:neval_cons,     cons), (:neval_jcon,   jcon),
-                          (:neval_jgrad,   jgrad), (:neval_jac,    jac),
-                          (:neval_jprod,   jprod), (:neval_jtprod, jtprod),
-                          (:neval_hess,     hess), (:neval_hprod,  hprod),
-                          (:neval_jhprod, jhprod), (:neval_sum,    sum)])
+###############################
+#
+# TO BE REMOVED
+#
+include("lbfgs.jl")
+#
+#
+###############################
 
- return cntrs
+export Fletcher_penalty_solver
+
+"""
+Solver for equality constrained non-linear programs based on Fletcher's penalty function.
+
+    Cite: Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
+    Implementing a smooth exact penalty function for equality-constrained nonlinear optimization.
+    SIAM Journal on Scientific Computing, 42(3), A1809-A1835.
+
+`Fletcher_penalty_solver(:: NLPStopping, :: AbstractVector{T};  σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function  = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
+or
+`Fletcher_penalty_solver(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
+
+Notes:
+- stp.current_state.res contains the gradient of Fletcher's penalty function.
+- unconstrained\\_solver must take an NLPStopping as input.
+- *linear\\_system\\_solver* solves two linear systems with different rhs following the format:
+*linear\\_system\\_solver(nlp, x, rhs1, rhs2; kwargs...)*
+List of implemented methods:
+i)   \\_solve\\_system\\_dense
+ii)  \\_solve\\_with\\_linear\\_operator
+iii) \\_solve\\_system\\_factorization\\_eigenvalue
+iv)  \\_solve\\_system\\_factorization\\_lu
+
+TODO:
+- une façon robuste de mettre à jour le paramètre de pénalité. [Convergence to infeasible stationary points]
+- Extend to bounds and inequality constraints.
+- Handle the tol_check from the paper !
+- Use Hessian (approximation) from FletcherPenaltyNLP
+- Continue to explore the paper.
+- [Long term] Complemetarity constraints
+"""
+function Fletcher_penalty_solver(nlp                   :: AbstractNLPModel;
+                                 x0                    :: AbstractVector = nlp.meta.x0,
+                                 rtol                  :: Number    = 1e-6,
+                                 σ_0                   :: Number    = 1.,
+                                 σ_max                 :: Number    = 1/eps(),
+                                 σ_update              :: Number    = 1.15,
+                                 ρ_0                   :: Number    = 1.,
+                                 ρ_max                 :: Number    = 1/eps(),
+                                 ρ_update              :: Number    = 1.15,
+                                 δ_0                   :: Number    = √eps(),
+                                 linear_system_solver  :: Function  = _solve_with_linear_operator,
+                                 unconstrained_solver  :: Function  = knitro,
+                                 hessian_approx        :: Int       = 2,
+                                 kwargs...)
+
+ cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
+ #Tanj: how to handle stopping criteria where tol_check depends on the State?
+ Fptc(atol, rtol, opt0) = rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf),
+                                      ones(nlp.meta.nvar) .+ norm(gx0, Inf))
+                                      
+ initial_state = NLPAtX(x0, 
+                        zeros(nlp.meta.ncon), 
+                        Array{Float64,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
+                        cx = cx0, 
+                        gx = gx0, 
+                        res = gx0)
+ stp = NLPStopping(nlp, initial_state,
+                   optimality_check = Fletcher_penalty_optimality_check,
+                   rtol = rtol,
+                   tol_check = Fptc,
+                   max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64)); kwargs...)
+
+ return Fletcher_penalty_solver(stp,
+                                σ_0 = σ_0, σ_max = σ_max, σ_update = σ_update,
+                                ρ_0 = ρ_0, ρ_max = ρ_max, ρ_update = ρ_update,
+                                δ_0 = δ_0,
+                                linear_system_solver = linear_system_solver,
+                                hessian_approx       = hessian_approx,
+                                unconstrained_solver = unconstrained_solver)
 end
 
 include("algo.jl")
-
-import NLPModelsKnitro: knitro
-#Check https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl/blob/master/src/NLPModelsKnitro.jl
-"""
-MOVE THIS FUNCTION TO STOPPING
-knitro(nlp) DOESN'T CHECK THE WRONG KWARGS, AND RETURN AN ERROR.
-
-knitro(::NLPStopping)
-
-Selection of possible [options](https://www.artelys.com/docs/knitro/3_referenceManual/userOptions.html):
-*General options*
-algorithm: Indicates which algorithm to use to solve the problem
-blasoption: Specifies the BLAS/LAPACK function library to use for basic vector 
-            and matrix computations
-cg_maxit: Determines the maximum allowable number of inner conjugate gradient 
-          (CG) iterations
-cg_pmem: Specifies number of nonzero elements per hessian column when computing 
-         preconditioner
-cg_precond: Specifies whether or not to apply preconditioning during 
-            CG iterations in barrier algorithms
-cg_stoptol: Relative stopping tolerance for CG subproblems
-convex: Identify convex models and apply specializations often beneficial for convex models
-delta: Specifies the initial trust region radius scaling factor
-eval_fcga: Specifies that gradients are provided together with functions in one callback
-honorbnds: Indicates whether or not to enforce satisfaction of simple variable bounds
-initpenalty: Initial penalty value used in Knitro merit function
-linesearch_maxtrials: Indicates the maximum allowable number of trial points during the linesearch
-linesearch: Indicates which linesearch strategy to use for the Interior/Direct or SQP algorithm
-linsolver_ooc: Indicates whether to use Intel MKL PARDISO out-of-core solve of linear systems
-linsolver: Indicates which linear solver to use to solve linear systems arising in Knitro algorithms
-linsolver_maxitref
-linsolver_pivottol
-objrange: Specifies the extreme limits of the objective function for purposes of determining unboundedness
-          Default value: 1.0e20
-presolve: Determine whether or not to use the Knitro presolver
-presolve_initpt: Controls whether Knitro presolver can shift user-supplied initial point
-restarts: Specifies whether to enable automatic restarts
-restarts_maxit: Maximum number of iterations before restarting when restarts are enabled
-scale: Specifies whether to perform problem scaling
-soc: Specifies whether or not to try second order corrections (SOC)
-strat_warm_start: Specifies whether or not to invoke a warm-start strategy
-
-*Derivatives options*
-bfgs_scaling: Specifies the initial scaling for the BFGS or L-BFGS Hessian approximation
-derivcheck: Determine whether or not to perform a derivative check on the model
-gradopt: Specifies how to compute the gradients of the objective and constraint functions
-hessian_no_f: Determines whether or not to allow Knitro to request Hessian 
-              evaluations without the objective component included.
-hessopt: Specifies how to compute the (approximate) Hessian of the Lagrangian
-         1 (exact) User provides a routine for computing the exact Hessian. (Default)
-         4 (product_findiff) Knitro computes Hessian-vector products using finite-differences.
-         5 (product) User provides a routine to compute the Hessian-vector products.
-         6 (lbfgs) Knitro computes a limited-memory quasi-Newton BFGS Hessian 
-                   (its size is determined by the option lmsize).
-lmsize: Specifies the number of limited memory pairs stored when approximating the Hessian
-
-*Termination options*
-feastol: Specifies the final relative stopping tolerance for the feasibility error.
-         Default value: 1.0e-6
-feastol_abs: Specifies the final absolute stopping tolerance for the feasibility error.
-             Default value: 1.0e-3
-fstopval: Used to implement a custom stopping condition based on the objective function value
-ftol: The optimization process will terminate if feasible and the relative change 
-      in the objective function is less than ftol
-      Default value: 1.0e-15
-ftol_iters: The optimization process will terminate if the relative change in 
-            the objective function is less than ftol for ftol_iters consecutive 
-            feasible iterations. Default value: 5
-
-maxfevals: Specifies the maximum number of function evaluations before termination.
-           Default value: -1 (unlimited)
-maxit: Specifies the maximum number of iterations before termination
-       0 is default value, let Knitro set it (10000 for LP/NLP)
-maxtime_cpu: Specifies, in seconds, the maximum allowable CPU time before termination. 
-             Default value: 1.0e8
-maxtime_real: Specifies, in seconds, the maximum allowable real time before termination. 
-              Default value: 1.0e8
-opttol: Specifies the final relative stopping tolerance for the KKT (optimality) error
-        Default value: 1.0e-6
-opttol_abs: Specifies the final absolute stopping tolerance for the KKT (optimality) error
-            Default value: 1.0e-3
-xtol: The optimization process will terminate if the relative change of the 
-      solution point estimate is less than xtol. Default value: 1.0e-12
-xtol_iters: Number of consecutive iterations where change of the solution point 
-            estimate is less than xtol before Knitro stops.
-            Default is 1
-            
-*Output options*
-out_hints: Print diagnostic hints (e.g. on user option settings) after solving
-           0 no prints, and 1 prints (default in Knitro)
-outlev: Controls the level of output produced by Knitro
-        0 (none) Printing of all output is suppressed.
-        1 (summary) Print only summary information.
-        2 (iter_10) Print basic information every 10 iterations. (default in Knitro)
-"""
-function knitro(stp          :: NLPStopping;
-                convex       :: Int  = -1, #let Knitro deal with it :)
-                objrange     :: Real = stp.meta.unbounded_threshold,
-                hessopt      :: Int  = 1,
-                feastol      :: Real = stp.meta.rtol,
-                feastol_abs  :: Real = stp.meta.atol,
-                opttol       :: Real = stp.meta.rtol,
-                opttol_abs   :: Real = stp.meta.atol,
-                maxfevals    :: Int  = stp.meta.max_cntrs[:neval_sum],
-                maxit        :: Int  = 0, #stp.meta.max_iter
-                maxtime_real :: Real = stp.meta.max_time,
-                out_hints    :: Int  = 0,
-                outlev       :: Int  = 0,
-                kwargs...)
-    
-    @assert -1 ≤ convex ≤ 1
-    @assert 1  ≤ hessopt ≤ 7            
-    @assert 0  ≤ out_hints ≤ 1
-    @assert 0  ≤ outlev ≤ 6
-    @assert 0  ≤ maxit
-    
-    nlp = stp.pb #FletcherPenaltyNLP
-    #y0 = stp.current_state.lambda #si défini
-    #z0 = stp.current_state.mu #si défini 
-    stats = knitro(nlp, x0           = stp.current_state.x,
-                        objrange     = objrange,
-                        feastol      = feastol,
-                        feastol_abs  = feastol_abs,
-                        opttol       = opttol,
-                        opttol_abs   = opttol_abs,
-                        maxfevals    = maxfevals,
-                        maxit        = maxit,
-                        maxtime_real = maxtime_real,
-                        out_hints    = out_hints,
-                        outlev       = outlev;
-                        kwargs...)
-    
-    if stats.status ∈ (:first_order, :acceptable) 
-       stp.meta.optimal = true
-       
-       stp.current_state.x  = stats.solution
-       stp.current_state.fx = stats.objective
-       stp.current_state.gx = grad(nlp, stats.solution)#stats.dual_feas
-       stp.current_state.current_score  = norm(stp.current_state.gx, Inf)#stats.dual_feas
-    elseif stats.status == :stalled
-        stp.meta.stalled = true #point is feasible
-    elseif stats.status == :infeasible
-        stp.meta.infeasible = true #euhhhh, wait ... isn't it unconstrained?
-    elseif stats.status == :unbounded
-        #grrrrr
-        stp.meta.unbounded = true
-    elseif stats.status == :max_iter
-        stp.meta.iteration_limit = true
-    elseif stats.status == :max_time
-        stp.meta.tired = true
-    elseif stats.status == :max_eval  
-        stp.meta.resources = true
-    else #stats.status ∈ (:exception, :unknown)  
-        #Ouch...
-        stp.meta.fail_sub_pb
-    end
-    
-    return stp
-end
-
-import NLPModelsIpopt: ipopt
-#Using Stopping, the idea is to create a buffer function
-function ipopt(stp :: NLPStopping) #kwargs
-
- #xk = solveIpopt(stop.pb, stop.current_state.x)
- nlp = stp.pb
- stats = ipopt(nlp, print_level     = 0,
-                    tol             = stp.meta.rtol,
-                    x0              = stp.current_state.x,
-                    max_iter        = stp.meta.max_iter,
-                    max_cpu_time    = stp.meta.max_time,
-                    dual_inf_tol    = stp.meta.atol,
-                    constr_viol_tol = stp.meta.atol,
-                    compl_inf_tol   = stp.meta.atol)
-
- #Update the meta boolean with the output message
- if stats.status == :first_order stp.meta.suboptimal      = true end
- if stats.status == :acceptable  stp.meta.suboptimal      = true end
- if stats.status == :infeasible  stp.meta.infeasible      = true end
- if stats.status == :small_step  stp.meta.stalled         = true end
- if stats.status == :max_iter    stp.meta.iteration_limit = true end
- if stats.status == :max_time    stp.meta.tired           = true end
-
- stp.meta.nb_of_stop = stats.iter
- #stats.elapsed_time
-
- x = stats.solution
-
- #Not mandatory, but in case some entries of the State are used to stop
- fill_in!(stp, x) #too slow
-
- stop!(stp)
-
- return stp
-end
 
 end #end of module
