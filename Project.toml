@@ -22,7 +22,6 @@ Stopping = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 StoppingInterface = "53949629-e8ff-437b-b6e7-14da1a85bf25"
 
 [compat]
-Stopping = "^0.2.5"
 julia = "^1.3.0"
 
 [extras]

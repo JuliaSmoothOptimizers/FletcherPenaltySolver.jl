@@ -76,7 +76,7 @@ function Fletcher_penalty_solver(nlp :: AbstractNLPModel,
                                  kwargs...
                                 ) where T
 
-  meta = AlgoData(T)
+  meta = AlgoData(T;kwargs...)
 
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
@@ -84,17 +84,17 @@ function Fletcher_penalty_solver(nlp :: AbstractNLPModel,
                                       ones(nlp.meta.nvar) .+ norm(gx0, Inf))
                                       
   initial_state = NLPAtX(x0, 
-                        zeros(nlp.meta.ncon), 
-                        Array{Float64,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
-                        cx = cx0, 
-                        gx = gx0, 
-                        res = gx0)
+                         zeros(nlp.meta.ncon), 
+                         Array{Float64,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
+                         cx = cx0, 
+                         gx = gx0, 
+                         res = gx0)
   stp = NLPStopping(nlp, initial_state,
-                   optimality_check = Fletcher_penalty_optimality_check,
-                   atol = meta.atol,
-                   rtol = meta.rtol,
-                   tol_check = Fptc,
-                   max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64)); kwargs...)
+                    optimality_check = Fletcher_penalty_optimality_check,
+                    atol = T(1e-6),
+                    rtol = T(1e-6),
+                    tol_check = Fptc,
+                    max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64)); kwargs...)
 
   return Fletcher_penalty_solver(stp, meta)
 end

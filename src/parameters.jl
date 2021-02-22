@@ -1,12 +1,4 @@
 struct AlgoData{T <: Real}
-    
-    atol :: Real
-    rtol :: Real
-    ctol :: Real
-
-    max_iter :: Int
-    max_time :: Float64
-    max_eval :: Int
 
     #Initialize, Update and Bound parameters of the penalized problem:
     σ_0      :: T
@@ -33,12 +25,6 @@ struct AlgoData{T <: Real}
 end
 
 function AlgoData(T                    :: DataType;
-                  atol                 :: Real     = T(1e-6),
-                  rtol                 :: Real     = T(1e-6),
-                  ctol                 :: Real     = T(1e-6),
-                  max_iter             :: Int      = 1000,
-                  max_time             :: Float64  = 60.,
-                  max_eval             :: Int      = 5000,
                   σ_0                  :: Real     = one(T),
                   σ_max                :: Real     = 1/eps(T),
                   σ_update             :: Real     = T(1.15),
@@ -51,10 +37,10 @@ function AlgoData(T                    :: DataType;
                   linear_system_solver :: Function = _solve_ldlt_factorization, #_solve_with_linear_operator,
                   unconstrained_solver :: Function = knitro,
                   hessian_approx       :: Int       = 2,
-                  convex_subproblem    :: Bool      = false)
+                  convex_subproblem    :: Bool      = false,
+                  kwargs...)
                   
-   return AlgoData(atol, rtol, ctol, max_iter, max_time, max_eval, 
-                   σ_0, σ_max, σ_update, ρ_0, ρ_max, ρ_update, δ_0, yM, Δ, 
+   return AlgoData(σ_0, σ_max, σ_update, ρ_0, ρ_max, ρ_update, δ_0, yM, Δ, 
                    linear_system_solver, unconstrained_solver, 
                    hessian_approx, convex_subproblem)
 end

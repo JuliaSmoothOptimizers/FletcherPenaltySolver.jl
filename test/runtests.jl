@@ -22,4 +22,4 @@ include("test-1.jl")
 include("test-2.jl")
 
 #Rank-deficient problems
-#include("rank-deficient.jl")
+include("rank-deficient.jl")
