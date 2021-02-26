@@ -25,7 +25,7 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
   
   @info log_header([:iter, :step, :f, :c, :score, :σ, :stat], [Int, String, T, T, T, T, Symbol],
                    hdr_override=Dict(:f=>"f(x)", :c=>"||c(x)||", :score=>"‖∇L‖", :σ=>"σ"))
-  @info log_row(Any[0, "Init", NaN, nc0, norm(state.current_score,Inf), σ, :o])
+  @info log_row(Any[0, "Init", NaN, nc0, norm(state.current_score,Inf), σ, :Initial])
 
   while !OK #main loop
 
@@ -33,7 +33,7 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
     reinit!(sub_stp) #reinit the sub-stopping.
     sub_stp = meta.unconstrained_solver(sub_stp)
     #Update the State with the info given by the subproblem:
-    if sub_stp.meta.optimal || stp.meta.suboptimal
+    if sub_stp.meta.optimal || sub_stp.meta.suboptimal
       if sub_stp.current_state.x == state.x
         stalling += 1  
       end
@@ -44,16 +44,16 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
                               gx     = sub_stp.pb.gx,
                               cx     = sub_stp.pb.cx,
                               lambda = sub_stp.pb.ys,
-                              res    = sub_stp.current_state.gx)
-      
+                              res    = grad(sub_stp.pb, sub_stp.current_state.x))
+#@show "How good is this update ?", abs(state.fx - obj(stp.pb, state.x)), norm(state.gx - grad(stp.pb, state.x), norm(state.cx - cons(stp.pb, state.x)))
    elseif sub_stp.meta.unbounded
-      #Penalized problem is unbounded...
       unsuccessful_subpb += 1
    elseif sub_stp.meta.iteration_limit || sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.stalled
-      #How to control these parameters in knitro ??
       unsuccessful_subpb += 1
-   else
+   else #exception of unexpected failure
       stp.meta.fail_sub_pb = true
+      @warn "Exception of unexpected failure: $(status(sub_stp, list = true))"
+      #break 
    end
    
     #Check optimality conditions: either stop! is true OR the penalty parameter is too small
@@ -61,8 +61,8 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
     OK = stop!(stp)
 
     @info log_row(Any[stp.meta.nb_of_stop, "N", 
-                     state.fx, norm(state.cx), norm(state.res), 
-                     norm(state.gx), σ, status(sub_stp)])
+                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
  
     #update the penalty parameter if necessary
     if !OK
@@ -87,8 +87,8 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
         stalling = 0
         unsuccessful_subpb = 0
         @info log_row(Any[stp.meta.nb_of_stop, "R", 
-                     state.fx, norm(state.cx), norm(state.res), 
-                     norm(state.gx), σ, status(sub_stp)])
+                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
       elseif ncx > Δ * nc0 && !feas
         σ *= meta.σ_update
         sub_stp.pb.σ = σ
@@ -96,8 +96,8 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
         #reinitialize the State(s) as the problem changed
         reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
         @info log_row(Any[stp.meta.nb_of_stop, "D", 
-                     state.fx, norm(state.cx), norm(state.res), 
-                     norm(state.gx), σ, status(sub_stp)])
+                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
       end
       nc0 = copy(ncx)
    end
@@ -109,7 +109,7 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
                                solution     = stp.current_state.x,
                                objective    = stp.current_state.fx,
                                primal_feas  = norm(stp.current_state.cx, Inf),
-                               dual_feas    = norm(stp.current_state.res, Inf),
+                               dual_feas    = sub_stp.current_state.current_score,
                                multipliers  = stp.current_state.lambda,
                                iter         = stp.meta.nb_of_stop,
                                elapsed_time = stp.current_state.current_time - stp.meta.start_time)
