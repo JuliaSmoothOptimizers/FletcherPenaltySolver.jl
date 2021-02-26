@@ -19,8 +19,17 @@
   p     = "HS61"
   nlp   = CUTEstModel(p)
   lss   = FletcherPenaltyNLPSolver._solve_with_linear_operator
-  meta = AlgoData(σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, linear_system_solver = lss)
-  stats = Fletcher_penalty_solver(nlp, nlp.meta.x0, rtol = 1e-3)
+  stats = Fletcher_penalty_solver(nlp, nlp.meta.x0, 
+                                  σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
+                                  linear_system_solver = lss,
+                                  hessian_approx = 1, #error with hessian_approx = 1
+                                  rtol = 1e-3)
+  @test stats.status == :first_order
+  stats = Fletcher_penalty_solver(nlp, nlp.meta.x0, 
+                                  σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
+                                  linear_system_solver = lss,
+                                  hessian_approx = 2, #error with hessian_approx = 1
+                                  rtol = 1e-3)
   @test stats.status == :first_order
   finalize(nlp)
 end
@@ -33,7 +42,8 @@ end
   stats1 = knitro(fpnlp, outlev = 0)
   stats  = Fletcher_penalty_solver(nlp, nlp.meta.x0, rtol = 1e-3,
                                    σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
-                                   linear_system_solver = lss)
+                                   linear_system_solver = lss,
+                                   hessian_approx = 2) #error with hessian_approx = 1
   @test stats.status == :first_order
   finalize(nlp)
 end
