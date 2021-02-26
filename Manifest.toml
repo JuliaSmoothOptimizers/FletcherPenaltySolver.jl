@@ -353,7 +353,9 @@ version = "0.13.2"
 
 [[NLPModelsIpopt]]
 deps = ["Ipopt", "NLPModels", "SolverTools"]
-git-tree-sha1 = "f6dd0b0aa697fc91b9fc58aea601f3affc369de1"
+git-tree-sha1 = "b983f8d29caace0b270ce60727dd4ea518003c64"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl"
 uuid = "f4238b75-b362-5c4c-b852-0801c9a21d71"
 version = "0.5.1"
 
@@ -365,7 +367,9 @@ version = "0.7.1"
 
 [[NLPModelsKnitro]]
 deps = ["KNITRO", "NLPModels", "SolverTools"]
-git-tree-sha1 = "2da4f7baa0c1ef920d8d2db2e948d64f02eb046b"
+git-tree-sha1 = "3abb8163ba1e44af180f2e88ffb0aed0ad13dd61"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl"
 uuid = "bec4dd0d-7755-52d5-9a02-22f0ffc7efcb"
 version = "0.4.3"
 
@@ -487,8 +491,8 @@ uuid = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 version = "0.2.5"
 
 [[StoppingInterface]]
-deps = ["LinearAlgebra", "NLPModelsIpopt", "NLPModelsKnitro", "SolverTools", "Stopping"]
-git-tree-sha1 = "050268f61adf60385b7968a07d7dbad59e0f2b01"
+deps = ["LinearAlgebra", "NLPModels", "NLPModelsIpopt", "NLPModelsKnitro", "SolverTools", "Stopping", "Test"]
+git-tree-sha1 = "288d55d63d35aaa8ed8189e2e7966ef82d5ab3c9"
 repo-rev = "main"
 repo-url = "https://github.com/tmigot/StoppingInterface.jl"
 uuid = "53949629-e8ff-437b-b6e7-14da1a85bf25"
