@@ -25,7 +25,7 @@ function lbfgs(nlp ::  FletcherPenaltyNLP, x0 :: AbstractVector{T}; atol :: Numb
 
  x = copy(x0)
  f, ∇f = objgrad(nlp, x)
- H = InverseLBFGSOperator(T, n, mem, scaling=true)
+ H = InverseLBFGSOperator(T, n, mem = mem, scaling=true)
  h = LineModel(nlp, x, ∇f) #SolverTools.jl
 
  iter = 0

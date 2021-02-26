@@ -23,9 +23,9 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
   stalling = 0 #number of consecutive successful subproblem solve without progress
   restoration_phase = false
   
-  @info log_header([:iter, :f, :c, :score, :σ, :stat], [Int, T, T, T, T, Symbol],
+  @info log_header([:iter, :step, :f, :c, :score, :σ, :stat], [Int, String, T, T, T, T, Symbol],
                    hdr_override=Dict(:f=>"f(x)", :c=>"||c(x)||", :score=>"‖∇L‖", :σ=>"σ"))
-  @info log_row(Any[0, NaN, nc0, norm(state.current_score,Inf), σ, :o])
+  @info log_row(Any[0, "Init", NaN, nc0, norm(state.current_score,Inf), σ, :o])
 
   while !OK #main loop
 
@@ -33,7 +33,7 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
     reinit!(sub_stp) #reinit the sub-stopping.
     sub_stp = meta.unconstrained_solver(sub_stp)
     #Update the State with the info given by the subproblem:
-    if sub_stp.meta.optimal
+    if sub_stp.meta.optimal || stp.meta.suboptimal
       if sub_stp.current_state.x == state.x
         stalling += 1  
       end
@@ -60,7 +60,7 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
     stp.meta.fail_sub_pb = σ > meta.σ_max || ρ > meta.ρ_max #stp.meta.stalled 
     OK = stop!(stp)
 
-    @info log_row(Any[stp.meta.nb_of_stop, 
+    @info log_row(Any[stp.meta.nb_of_stop, "N", 
                      state.fx, norm(state.cx), norm(state.res), 
                      norm(state.gx), σ, status(sub_stp)])
  
@@ -78,20 +78,26 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
         state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar) 
              
         #Go back to three iterations ago
-        σ /= meta.ρ_update^3
+        σ = max(σ/meta.σ_update^(1.5), meta.σ_0)
         sub_stp.pb.σ = σ
-        sub_stp.pb.ρ /= meta.ρ_update^3
+        sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
         #reinitialize the State(s) as the problem changed
         reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
              
         stalling = 0
         unsuccessful_subpb = 0
+        @info log_row(Any[stp.meta.nb_of_stop, "R", 
+                     state.fx, norm(state.cx), norm(state.res), 
+                     norm(state.gx), σ, status(sub_stp)])
       elseif ncx > Δ * nc0 && !feas
         σ *= meta.σ_update
         sub_stp.pb.σ = σ
         sub_stp.pb.ρ *= meta.ρ_update
         #reinitialize the State(s) as the problem changed
         reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
+        @info log_row(Any[stp.meta.nb_of_stop, "D", 
+                     state.fx, norm(state.cx), norm(state.res), 
+                     norm(state.gx), σ, status(sub_stp)])
       end
       nc0 = copy(ncx)
    end

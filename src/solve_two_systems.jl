@@ -8,7 +8,6 @@ function _solve_with_linear_operator(nlp  :: FletcherPenaltyNLP,
   #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
   n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
   nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
-  #Tanj: Would it be beneficial to have a jjtprod returning Jv and Jtv ?
   Mp(v) = vcat( v[1 : n] + jtprod(nlp.nlp, x, v[n + 1 : nn]),
                  jprod(nlp.nlp, x, v[1 : n]) - nlp.δ * v[n + 1 : nn])
   #LinearOperator(type, nrows, ncols, symmetric, hermitian, prod, tprod, ctprod)
@@ -26,28 +25,6 @@ function _solve_with_linear_operator(nlp  :: FletcherPenaltyNLP,
     end
   else
     sol2 = nothing
-  end
-
-  return sol1, sol2
-end
-
-function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
-                             x    :: AbstractVector{T},
-                             rhs1 :: AbstractVector{T},
-                             rhs2 :: Union{AbstractVector{T},Nothing};
-                             kwargs...)  where T <: AbstractFloat
-
-  A =  NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
-  In = diagm(0 => ones(nlp.meta.nvar))
-  Im = diagm(0 => ones(nlp.nlp.meta.ncon))
-  M = [In A'; A -nlp.δ*Im] #expensive
-
-  sol1 = M \ rhs1
-
-  if !isnothing(rhs2)
-      sol2 = M \ rhs2
-  else
-      sol2 = nothing
   end
 
   return sol1, sol2
@@ -131,6 +108,28 @@ function _solve_ldlt_factorization(nlp  :: FletcherPenaltyNLP,
   ldiv!(S, sol)
 
   return sol[:,1], sol[:,2]
+end
+
+function _solve_system_dense(nlp  :: FletcherPenaltyNLP,
+                             x    :: AbstractVector{T},
+                             rhs1 :: AbstractVector{T},
+                             rhs2 :: Union{AbstractVector{T},Nothing};
+                             kwargs...)  where T <: AbstractFloat
+
+  A =  NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
+  In = diagm(0 => ones(nlp.meta.nvar))
+  Im = diagm(0 => ones(nlp.nlp.meta.ncon))
+  M = [In A'; A -nlp.δ*Im] #expensive
+
+  sol1 = M \ rhs1
+
+  if !isnothing(rhs2)
+      sol2 = M \ rhs2
+  else
+      sol2 = nothing
+  end
+
+  return sol1, sol2
 end
 
 function _solve_system_factorization_lu(nlp  :: FletcherPenaltyNLP,

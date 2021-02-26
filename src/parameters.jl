@@ -27,10 +27,10 @@ end
 function AlgoData(T                    :: DataType;
                   σ_0                  :: Real     = one(T),
                   σ_max                :: Real     = 1/eps(T),
-                  σ_update             :: Real     = T(1.15),
+                  σ_update             :: Real     = T(1.5),
                   ρ_0                  :: Real     = one(T),
                   ρ_max                :: Real     = 1/eps(T),
-                  ρ_update             :: Real     = T(1.15),
+                  ρ_update             :: Real     = T(1.5),
                   δ_0                  :: Real     = √eps(T),
                   yM                   :: Real     = typemax(T),
                   Δ                    :: Real     = T(0.95),

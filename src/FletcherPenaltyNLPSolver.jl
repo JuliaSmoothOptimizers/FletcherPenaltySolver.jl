@@ -5,7 +5,14 @@ using LinearAlgebra, Logging, SparseArrays
 # JSO packages
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, SolverTools
 using Stopping #> 0.2.5
-using StoppingInterface #ipopt, knitro, status_stopping_to_stats
+
+
+##################################################################
+# Temporary
+include("StoppingInterfacemod.jl")
+#using StoppingInterface #ipopt, knitro, status_stopping_to_stats
+#
+###################################################################
 
 include("model-Fletcherpenaltynlp.jl")
 
