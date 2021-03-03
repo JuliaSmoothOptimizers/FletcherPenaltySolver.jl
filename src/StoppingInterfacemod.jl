@@ -179,16 +179,16 @@ function knitro(stp          :: NLPStopping;
   #if stats.status ∉ (:unbounded, :exception, :unknown) #∈ (:first_order, :acceptable) 
     stp.current_state.x  = stats.solution
     stp.current_state.fx = stats.objective
-    stp.current_state.gx = grad(nlp, stats.solution)#stats.dual_feas
+    #stp.current_state.gx = grad(nlp, stats.solution)#necessary?
     #norm(stp.current_state.gx, Inf)#stats.dual_feas #TODO: this is for unconstrained problem!!
-    stp.current_state.current_score  = stats.dual_feas
+    stp.current_state.current_score  = max(stats.dual_feas, stats.primal_feas)
   #end
   #Update the meta boolean with the output message
   stp = stats_status_to_meta!(stp, stats)
 
   if status(stp) == :Unknown
     @warn "Error in StoppingInterface statuses: return status is $(stats.status)"
-    print(stats)
+    #print(stats)
   end
 
   return stp #would be better to return the stats somewhere

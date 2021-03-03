@@ -104,7 +104,7 @@ function Fletcher_penalty_solver(stp  :: NLPStopping,
    
   end #end of main loop
   
-  @show status(stp), restoration_phase
+#  @show status(stp), restoration_phase
   return GenericExecutionStats(status_stopping_to_stats(stp), stp.pb,
                                solution     = stp.current_state.x,
                                objective    = stp.current_state.fx,
