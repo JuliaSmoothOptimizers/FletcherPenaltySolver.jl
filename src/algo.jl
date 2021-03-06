@@ -14,8 +14,9 @@ function fps_solve(stp  :: NLPStopping,
   sub_stp = NLPStopping(nlp, NLPAtX(x0), main_stp = stp, 
                                          optimality_check = unconstrained_check,
                                          max_iter = 10000,
-                                         atol     = 1e-4,
-                                         rtol     = 1e-7)
+                                         atol     = stp.meta.atol,
+                                         rtol     = stp.meta.rtol,
+                                         unbounded_threshold = 1e20)
   
   nc0 = norm(state.cx, Inf)
   Δ   = 0.95 #expected decrease in feasibility
@@ -45,10 +46,20 @@ function fps_solve(stp  :: NLPStopping,
                               cx     = sub_stp.pb.cx,
                               lambda = sub_stp.pb.ys,
                               res    = grad(sub_stp.pb, sub_stp.current_state.x))
+
+      @info log_row(Any[stp.meta.nb_of_stop, "Optml", 
+                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
    elseif sub_stp.meta.unbounded
       unsuccessful_subpb += 1
+      @info log_row(Any[stp.meta.nb_of_stop, "Unbdd", 
+                     sub_stp.current_state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
    elseif sub_stp.meta.iteration_limit || sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.stalled
       unsuccessful_subpb += 1
+      @info log_row(Any[stp.meta.nb_of_stop, "Stlld", 
+                     sub_stp.current_state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
    else #exception of unexpected failure
       stp.meta.fail_sub_pb = true
       @warn "Exception of unexpected failure: $(status(sub_stp, list = true))"
@@ -58,10 +69,6 @@ function fps_solve(stp  :: NLPStopping,
     #Check optimality conditions: either stop! is true OR the penalty parameter is too small
     stp.meta.fail_sub_pb = σ > meta.σ_max || ρ > meta.ρ_max #stp.meta.stalled 
     OK = stop!(stp)
-
-    @info log_row(Any[stp.meta.nb_of_stop, "N", 
-                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
-                     σ, status(sub_stp)])
  
     #update the penalty parameter if necessary
     if !OK
@@ -71,8 +78,9 @@ function fps_solve(stp  :: NLPStopping,
         #Can"t escape this infeasible stationary point.
         stp.meta.suboptimal = true
         OK = true
-      elseif !feas && (stalling >= 3 || unsuccessful_subpb >= 3)
+      elseif (stalling >= 3 || unsuccessful_subpb >= 3) && !feas
         #we are most likely stuck at an infeasible stationary point.
+        #or an undetected unbounded problem
         restoration_phase = true
         state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar) 
              
@@ -83,8 +91,7 @@ function fps_solve(stp  :: NLPStopping,
         #reinitialize the State(s) as the problem changed
         reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
              
-        stalling = 0
-        unsuccessful_subpb = 0
+        stalling, unsuccessful_subpb = 0, 0
         @info log_row(Any[stp.meta.nb_of_stop, "R", 
                      state.fx, norm(state.cx), sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
@@ -95,6 +102,16 @@ function fps_solve(stp  :: NLPStopping,
         #reinitialize the State(s) as the problem changed
         reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
         @info log_row(Any[stp.meta.nb_of_stop, "D", 
+                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
+      elseif stalling >= 3 || unsuccessful_subpb >= 3 #but feas is true
+        #probably, an undetected unbounded problem
+        σ *= meta.σ_update
+        sub_stp.pb.σ = σ
+        sub_stp.pb.ρ *= meta.ρ_update
+        #reinitialize the State(s) as the problem changed
+        reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
+        @info log_row(Any[stp.meta.nb_of_stop, "F-D", 
                      state.fx, norm(state.cx), sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
       end
@@ -111,5 +128,8 @@ function fps_solve(stp  :: NLPStopping,
                                dual_feas    = sub_stp.current_state.current_score,
                                multipliers  = stp.current_state.lambda,
                                iter         = stp.meta.nb_of_stop,
-                               elapsed_time = stp.current_state.current_time - stp.meta.start_time)
+                               elapsed_time = stp.current_state.current_time - stp.meta.start_time,
+                               solver_specific=Dict(
+                                                :stp => stp
+                                                ))
 end

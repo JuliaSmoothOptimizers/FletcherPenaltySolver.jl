@@ -79,9 +79,9 @@ TODO:
 - [Long term] Complemetarity constraints
 """
 function fps_solve(nlp :: AbstractNLPModel,
-                                 x0  :: AbstractVector{T} = nlp.meta.x0;
-                                 kwargs...
-                                ) where T
+                   x0  :: AbstractVector{T} = nlp.meta.x0;
+                   kwargs...
+                   ) where T
 
   meta = AlgoData(T;kwargs...)
 
