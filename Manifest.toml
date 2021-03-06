@@ -439,7 +439,9 @@ version = "3.100.0+3"
 
 [[LDLFactorizations]]
 deps = ["AMD", "LinearAlgebra", "SparseArrays", "Test"]
-git-tree-sha1 = "5e41f142f6511bb685bb8f4f232f5d82d7fa408e"
+git-tree-sha1 = "477950aaf3716dabb6511f322e9564e2f0afdf89"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl"
 uuid = "40e66cde-538c-5869-a4ad-c39174c6795b"
 version = "0.8.0"
 
@@ -614,8 +616,8 @@ version = "0.2.14"
 
 [[NLPModels]]
 deps = ["FastClosures", "ForwardDiff", "LinearAlgebra", "LinearOperators", "Printf", "SparseArrays", "Test"]
-git-tree-sha1 = "2d9ea812f837e10c480fc741e0697fe50d43639b"
-repo-rev = "master"
+git-tree-sha1 = "0ce4e94bb1e5ef32e152bee08a06aceb6dbb8df2"
+repo-rev = "compat-fps"
 repo-url = "https://github.com/tmigot/NLPModels.jl"
 uuid = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
 version = "0.13.2"

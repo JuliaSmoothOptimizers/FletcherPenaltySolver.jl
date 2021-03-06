@@ -56,9 +56,8 @@ mutable struct FletcherPenaltyNLP{S <: AbstractFloat,
 end
 
 function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx)
-  x0=nlp.meta.x0
-  S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
-  #hessian_approx = 2
+  x0 = nlp.meta.x0
+  S, T = eltype(x0), typeof(x0)
     
   nvar = nlp.meta.nvar
 
@@ -74,9 +73,8 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx)
 end
 
 function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_approx)
-  x0=nlp.meta.x0
-  S, T = eltype(nlp.meta.x0), typeof(nlp.meta.x0)
-  #hessian_approx = 2
+  x0 = nlp.meta.x0
+  S, T = eltype(x0), typeof(x0)
     
   nvar = nlp.meta.nvar
 
@@ -227,7 +225,7 @@ function hess_coord!(nlp  :: FletcherPenaltyNLP,
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nnzh vals
   increment!(nlp, :neval_hess)
-  
+
   nvar  = nlp.meta.nvar
   ncon  = nlp.nlp.meta.ncon
   
@@ -246,9 +244,10 @@ function hess_coord!(nlp  :: FletcherPenaltyNLP,
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
   In = Matrix(I, nvar, nvar)
-  Im = Matrix(I, ncon, ncon)
-  τ  = max(nlp.δ, eltype(x)(1e-14))
-  invAtA = inv(Matrix(A*A') + τ * Im)
+  #Im = Matrix(I, ncon, ncon)
+  #τ  = max(nlp.δ, eltype(x)(1e-14))
+  invAtA = pinv(Matrix(A*A')) #inv(Matrix(A*A') + τ * Im) #Euh... wait !
+
   AinvAtA = A' * invAtA
   Pt = AinvAtA * A
   
@@ -306,7 +305,7 @@ end
 function hprod!(nlp :: FletcherPenaltyNLP, x :: AbstractVector, v :: AbstractVector, Hv  :: AbstractVector; obj_weight=1.0)
   @lencheck nlp.meta.nvar x v Hv
   increment!(nlp, :neval_hprod)
- 
+
   nvar  = nlp.meta.nvar
   ncon  = nlp.nlp.meta.ncon
  

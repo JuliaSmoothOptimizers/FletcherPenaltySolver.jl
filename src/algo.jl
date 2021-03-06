@@ -45,7 +45,6 @@ function fps_solve(stp  :: NLPStopping,
                               cx     = sub_stp.pb.cx,
                               lambda = sub_stp.pb.ys,
                               res    = grad(sub_stp.pb, sub_stp.current_state.x))
-#@show "How good is this update ?", abs(state.fx - obj(stp.pb, state.x)), norm(state.gx - grad(stp.pb, state.x), norm(state.cx - cons(stp.pb, state.x)))
    elseif sub_stp.meta.unbounded
       unsuccessful_subpb += 1
    elseif sub_stp.meta.iteration_limit || sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.stalled

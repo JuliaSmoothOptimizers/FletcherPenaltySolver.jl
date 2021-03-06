@@ -61,9 +61,17 @@ function _solve_ldlt_factorization(nlp  :: FletcherPenaltyNLP,
 
   M = Symmetric(sparse(rows, cols, vals, nvar + ncon, nvar + ncon), :U)
   S = ldl_analyze(M)
+  S.n_d = nvar
+  S.tol = √eps(T)
+  S.r1  = √eps(T)
+  S.r2  = -√eps(T) #regularization
   ldl_factorize!(M, S)
   sol1 = copy(rhs1)
-  ldiv!(S, sol1)
+  if factorized(S)
+    ldiv!(S, sol1)
+  else
+    @warn "_solve_ldlt_factorization: failed _factorization"
+  end
 
   return sol1, nothing
 end
@@ -105,7 +113,11 @@ function _solve_ldlt_factorization(nlp  :: FletcherPenaltyNLP,
   S.r2  = -√eps(T) #regularization
   ldl_factorize!(M, S)
   sol = hcat(rhs1, rhs2)
-  ldiv!(S, sol)
+  if factorized(S)
+    ldiv!(S, sol)
+  else
+    @warn "_solve_ldlt_factorization: failed _factorization"
+  end
 
   return sol[:,1], sol[:,2]
 end
