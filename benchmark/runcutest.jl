@@ -10,7 +10,7 @@ function runcutest()
   pnames = setdiff(_pnames, pnamesNE)
   cutest_problems = (CUTEstModel(p) for p in pnames)
 
-  solvers = Dict(:FPS => nlp -> Fletcher_penalty_solver(nlp, nlp.meta.x0), 
+  solvers = Dict(:FPS => nlp -> fps_solve(nlp, nlp.meta.x0), 
                  :ipopt => (nlp; kwargs...) -> ipopt(nlp, print_level=0, kwargs...))
   stats = bmark_solvers(solvers, cutest_problems)
 

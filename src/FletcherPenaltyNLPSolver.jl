@@ -46,7 +46,7 @@ include("lbfgs.jl")
 #
 ###############################
 
-export Fletcher_penalty_solver
+export fps_solve
 
 """
 Solver for equality constrained non-linear programs based on Fletcher's penalty function.
@@ -55,9 +55,9 @@ Solver for equality constrained non-linear programs based on Fletcher's penalty 
     Implementing a smooth exact penalty function for equality-constrained nonlinear optimization.
     SIAM Journal on Scientific Computing, 42(3), A1809-A1835.
 
-`Fletcher_penalty_solver(:: NLPStopping, :: AbstractVector{T};  σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function  = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
+`fps_solve(:: NLPStopping, :: AbstractVector{T};  σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function  = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
 or
-`Fletcher_penalty_solver(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
+`fps_solve(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
 
 Notes:
 - stp.current_state.res contains the gradient of Fletcher's penalty function.
@@ -78,7 +78,7 @@ TODO:
 - Continue to explore the paper.
 - [Long term] Complemetarity constraints
 """
-function Fletcher_penalty_solver(nlp :: AbstractNLPModel,
+function fps_solve(nlp :: AbstractNLPModel,
                                  x0  :: AbstractVector{T} = nlp.meta.x0;
                                  kwargs...
                                 ) where T
@@ -88,7 +88,7 @@ function Fletcher_penalty_solver(nlp :: AbstractNLPModel,
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
   Fptc(atol, rtol, opt0) = rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf),
-                                      ones(nlp.meta.nvar) .+ norm(gx0, Inf))
+                                       ones(nlp.meta.nvar) .+ norm(gx0, Inf))
                                       
   initial_state = NLPAtX(x0, 
                          zeros(nlp.meta.ncon), 
@@ -103,7 +103,16 @@ function Fletcher_penalty_solver(nlp :: AbstractNLPModel,
                     tol_check = Fptc,
                     max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64)); kwargs...)
 
-  return Fletcher_penalty_solver(stp, meta)
+  return fps_solve(stp, meta)
+end
+
+function fps_solve(stp :: NLPStopping;
+                                 kwargs...
+                                )
+  T = eltype(stp.pb.meta.x0)
+  meta = AlgoData(T; kwargs...)
+
+  return fps_solve(stp, meta)
 end
 
 include("algo.jl")

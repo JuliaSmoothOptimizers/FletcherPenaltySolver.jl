@@ -1,5 +1,5 @@
-function Fletcher_penalty_solver(stp  :: NLPStopping, 
-                                 meta :: AlgoData{T}) where T
+function fps_solve(stp  :: NLPStopping, 
+                   meta :: AlgoData{T}) where T
 
   state = stp.current_state
   #Initialize parameters

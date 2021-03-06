@@ -5,7 +5,7 @@
     sol = [-1.612771347383541; 2.612771347383541]
     
     stats = with_logger(NullLogger()) do
-      Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+      fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -13,7 +13,7 @@
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-      Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+      fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -28,7 +28,7 @@ end
     #nlp.meta.x0 is an infeasible stationary point?
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     x = stats.solution
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
@@ -38,7 +38,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     x = stats.solution
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
@@ -53,7 +53,7 @@ end
                      x->[10 * (x[2] - x[1]^2)], [0.0], [0.0])
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -61,7 +61,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -74,7 +74,7 @@ end
                      x->[(1 + x[1]^2)^2 + x[2]^2 - 4], [0.0], [0.0])
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -82,7 +82,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -96,7 +96,7 @@ end
                      zeros(2), zeros(2))
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -104,7 +104,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -117,7 +117,7 @@ end
                      x->[4 * x[1] - 3 * x[2]], [0.0], [0.0])
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -125,7 +125,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.)
@@ -138,7 +138,7 @@ end
                      x->[(1 + x[2]^2) * x[1] + x[3]^4 - 3], [0.0], [0.0])
                      
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)
@@ -146,7 +146,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)
@@ -159,7 +159,7 @@ end
                      x->[x[1] + x[3]^2 + 1.0], [0.0], [0.0])
                      
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)
@@ -167,7 +167,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)
@@ -187,7 +187,7 @@ end
     sol1 = [sqrt(2)/2; -sqrt(2)/2]
     sol2 = -sol1
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)
@@ -195,7 +195,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)
@@ -217,7 +217,7 @@ end
     sol1 = [1.]
     sol2 = [-1.56] #undesirable solution
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 1)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 1)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)
@@ -225,7 +225,7 @@ end
     @test status == :first_order
 
     stats = with_logger(NullLogger()) do
-        Fletcher_penalty_solver(nlp, nlp.meta.x0, hessian_approx = 2)
+        fps_solve(nlp, nlp.meta.x0, hessian_approx = 2)
     end
     dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
     @test dual < 1e-6  * max(norm(nlp.meta.x0), 1.)

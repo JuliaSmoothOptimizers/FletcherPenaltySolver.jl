@@ -10,6 +10,9 @@
 # Convergence of x is O(δ), so it should be small or converge to a small value.
 # How much does it help the least-square?
 #
+# Warning: ghjvprod and jth_hess not implemented for CUTEstModel,
+# so hessian_approx = 1 cannot be used.
+#
 ################################################################################
 #using CUTEst, NLPModels, NLPModelsKnitro
 #This package
@@ -19,13 +22,15 @@
   p     = "HS61"
   nlp   = CUTEstModel(p)
   lss   = FletcherPenaltyNLPSolver._solve_with_linear_operator
-  stats = Fletcher_penalty_solver(nlp, nlp.meta.x0, 
+#=
+  stats = fps_solve(nlp, nlp.meta.x0, 
                                   σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                   linear_system_solver = lss,
                                   hessian_approx = 1, #error with hessian_approx = 1
                                   rtol = 1e-3)
   @test stats.status == :first_order
-  stats = Fletcher_penalty_solver(nlp, nlp.meta.x0, 
+=#
+  stats = fps_solve(nlp, nlp.meta.x0, 
                                   σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                   linear_system_solver = lss,
                                   hessian_approx = 2, #error with hessian_approx = 1
@@ -40,7 +45,7 @@ end
   lss    = FletcherPenaltyNLPSolver._solve_with_linear_operator
   fpnlp  = FletcherPenaltyNLP(nlp, 1e3, 1e3, 1e-2, lss, 2)
   stats1 = knitro(fpnlp, outlev = 0)
-  stats  = Fletcher_penalty_solver(nlp, nlp.meta.x0, rtol = 1e-3,
+  stats  = fps_solve(nlp, nlp.meta.x0, rtol = 1e-3,
                                    σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                    linear_system_solver = lss,
                                    hessian_approx = 2) #error with hessian_approx = 1

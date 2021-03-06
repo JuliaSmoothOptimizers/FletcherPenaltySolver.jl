@@ -35,7 +35,7 @@
     @test norm(fp_sos_stp.current_state.x - x2) <= sqrt(eps(Float64))
 
     #sos_stp = NLPStopping(sos, optimality_check = unconstrained_check)
-    stats = Fletcher_penalty_solver(sos, sos.meta.x0)
+    stats = fps_solve(sos, sos.meta.x0)
 
     #Test de compilation:
     hprod(fp_sos, rand(fp_sos.meta.nvar),rand(fp_sos.meta.nvar))
