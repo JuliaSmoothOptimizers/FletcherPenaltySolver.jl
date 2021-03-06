@@ -48,17 +48,43 @@ function fps_solve(stp  :: NLPStopping,
                               res    = grad(sub_stp.pb, sub_stp.current_state.x))
 
       @info log_row(Any[stp.meta.nb_of_stop, "Optml", 
-                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     state.fx, norm(state.cx), 
+                     sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
    elseif sub_stp.meta.unbounded
       unsuccessful_subpb += 1
+      ncx  = norm(sub_stp.pb.cx)
+      feas_tol = stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0)
+      feas = ncx < norm(feas_tol, Inf)
+      if feas
+        stp.meta.unbounded_pb = true #unbounded
+      end
       @info log_row(Any[stp.meta.nb_of_stop, "Unbdd", 
-                     sub_stp.current_state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     sub_stp.current_state.fx, 
+                     ncx, 
+                     sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
-   elseif sub_stp.meta.iteration_limit || sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.stalled
+   elseif sub_stp.meta.tired || sub_stp.meta.resources
       unsuccessful_subpb += 1
+      @info log_row(Any[stp.meta.nb_of_stop, "Tired", 
+                     sub_stp.current_state.fx, 
+                     norm(sub_stp.pb.cx),
+                     sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
+   elseif sub_stp.meta.iteration_limit || sub_stp.meta.stalled
+      unsuccessful_subpb += 1
+
+      Stopping.update!(state, x      = sub_stp.current_state.x,
+                              fx     = sub_stp.pb.fx,
+                              gx     = sub_stp.pb.gx,
+                              cx     = sub_stp.pb.cx,
+                              lambda = sub_stp.pb.ys,
+                              res    = grad(sub_stp.pb, sub_stp.current_state.x))
+
       @info log_row(Any[stp.meta.nb_of_stop, "Stlld", 
-                     sub_stp.current_state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     state.fx, 
+                     norm(state.cx),
+                     sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
    else #exception of unexpected failure
       stp.meta.fail_sub_pb = true
@@ -130,6 +156,7 @@ function fps_solve(stp  :: NLPStopping,
                                iter         = stp.meta.nb_of_stop,
                                elapsed_time = stp.current_state.current_time - stp.meta.start_time,
                                solver_specific=Dict(
-                                                :stp => stp
+                                                :stp => stp,
+                                                :restoration => restoration_phase
                                                 ))
 end

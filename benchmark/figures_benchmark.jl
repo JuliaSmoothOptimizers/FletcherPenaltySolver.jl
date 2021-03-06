@@ -3,7 +3,7 @@ using Dates, JLD2, SolverTools, SolverBenchmark
 using Plots; pgfplots()
 
 function figure()
-  names = ["2021-03-03__FPS_ipopt_2",
+  names = ["2021-03-03__FPS_knitro_ipopt_45",
           ]
 
   tod = string(today())
