@@ -251,7 +251,7 @@ version = "0.8.4"
 
 [[FletcherPenaltyNLPSolver]]
 deps = ["CUTEst", "Ipopt", "JSOSolvers", "Krylov", "LDLFactorizations", "LinearAlgebra", "LinearOperators", "Logging", "NLPModels", "NLPModelsIpopt", "NLPModelsJuMP", "NLPModelsKnitro", "OptimizationProblems", "SolverBenchmark", "SolverTools", "SparseArrays", "Stopping"]
-git-tree-sha1 = "f308141edca97ccc0d9bce746f4c013e8b34bacd"
+git-tree-sha1 = "57691a37473e409f54157ca6167687051ab96028"
 repo-rev = "main"
 repo-url = "https://github.com/tmigot/FletcherPenaltyNLPSolver"
 uuid = "e59f0261-166d-4fee-8bf3-5e50457de5db"

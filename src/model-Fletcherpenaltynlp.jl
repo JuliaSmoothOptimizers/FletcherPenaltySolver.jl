@@ -244,9 +244,9 @@ function hess_coord!(nlp  :: FletcherPenaltyNLP,
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
   In = Matrix(I, nvar, nvar)
-  #Im = Matrix(I, ncon, ncon)
-  #τ  = max(nlp.δ, eltype(x)(1e-14))
-  invAtA = pinv(Matrix(A*A')) #inv(Matrix(A*A') + τ * Im) #Euh... wait !
+  Im = Matrix(I, ncon, ncon)
+  τ  = max(nlp.δ, eltype(x)(1e-14))
+  invAtA = pinv(Matrix(A*A') + τ * Im) #inv(Matrix(A*A') + τ * Im) #Euh... wait !
 
   AinvAtA = A' * invAtA
   Pt = AinvAtA * A

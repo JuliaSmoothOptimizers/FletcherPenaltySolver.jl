@@ -73,14 +73,14 @@ function fps_solve(stp  :: NLPStopping,
                      σ, status(sub_stp)])
    elseif sub_stp.meta.iteration_limit || sub_stp.meta.stalled
       unsuccessful_subpb += 1
-
+#=
       Stopping.update!(state, x      = sub_stp.current_state.x,
                               fx     = sub_stp.pb.fx,
                               gx     = sub_stp.pb.gx,
                               cx     = sub_stp.pb.cx,
                               lambda = sub_stp.pb.ys,
                               res    = grad(sub_stp.pb, sub_stp.current_state.x))
-
+=#
       @info log_row(Any[stp.meta.nb_of_stop, "Stlld", 
                      state.fx, 
                      norm(state.cx),
