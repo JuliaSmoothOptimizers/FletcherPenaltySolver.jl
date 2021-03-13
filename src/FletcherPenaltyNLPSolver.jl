@@ -46,6 +46,8 @@ include("lbfgs.jl")
 #
 ###############################
 
+include("feasibility.jl")
+
 export fps_solve
 
 """

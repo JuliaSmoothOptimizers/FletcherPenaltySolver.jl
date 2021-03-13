@@ -21,6 +21,7 @@ function fps_solve(stp  :: NLPStopping,
   nc0 = norm(state.cx, Inf)
   Δ   = 0.95 #expected decrease in feasibility
   unsuccessful_subpb = 0 #number of consecutive failed subproblem solve.
+  unbounded_subpb = 0 #number of consecutive failed subproblem solve.
   stalling = 0 #number of consecutive successful subproblem solve without progress
   restoration_phase = false
   
@@ -38,7 +39,7 @@ function fps_solve(stp  :: NLPStopping,
       if sub_stp.current_state.x == state.x
         stalling += 1  
       end
-      unsuccessful_subpb = 0
+      unsuccessful_subpb, unbounded_subpb = 0, 0
       
       Stopping.update!(state, x      = sub_stp.current_state.x,
                               fx     = sub_stp.pb.fx,
@@ -52,7 +53,7 @@ function fps_solve(stp  :: NLPStopping,
                      sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
    elseif sub_stp.meta.unbounded
-      unsuccessful_subpb += 1
+      unbounded_subpb += 1
       ncx  = norm(sub_stp.pb.cx)
       feas_tol = stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0)
       feas = ncx < norm(feas_tol, Inf)
@@ -99,17 +100,50 @@ function fps_solve(stp  :: NLPStopping,
     #update the penalty parameter if necessary
     if !OK
       ncx  = norm(state.cx)
-      feas = ncx < norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
+      feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
+      feas = ncx < feas_tol
       if restoration_phase && !feas &&  stalling >= 3 #or sub_stp.meta.optimal
         #Can"t escape this infeasible stationary point.
         stp.meta.suboptimal = true
         OK = true
+      elseif unbounded_subpb >= 3 && !feas #Tanj: how can we get here???
+        #we are most likely stuck at an infeasible stationary point.
+        #or an undetected unbounded problem
+        restoration_phase = true
+        state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar)   
+
+        #Go back to three iterations ago
+        σ = max(σ/meta.σ_update^(1.5), meta.σ_0)
+        sub_stp.pb.σ = σ
+        sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
+        #reinitialize the State(s) as the problem changed
+        reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
+             
+        unbounded_subpb = 0
+        @info log_row(Any[stp.meta.nb_of_stop, "R-Unbdd", 
+                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)]) #why state.fx if we just reinit it?
       elseif (stalling >= 3 || unsuccessful_subpb >= 3) && !feas
         #we are most likely stuck at an infeasible stationary point.
         #or an undetected unbounded problem
         restoration_phase = true
-        state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar) 
-             
+        ##################################################################
+        #
+        # Add a restoration step here
+        #
+        ρ = feas_tol #by default, we just want a feasible point.
+        Jx = jac_op(stp.pb, state.x)
+        z, cz, normcz, Jz, status_feas = feasibility_step(stp.pb, state.x, state.cx, ncx, Jx, ρ, feas_tol)
+        if status_feas == :success
+          Stopping.update!(stp.current_state, x = z, cx = cz)
+        else
+          #randomization step:
+          state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar)   
+        end
+        #
+        # End of restoration step
+        #
+        ###################################################################
         #Go back to three iterations ago
         σ = max(σ/meta.σ_update^(1.5), meta.σ_0)
         sub_stp.pb.σ = σ
@@ -120,7 +154,7 @@ function fps_solve(stp  :: NLPStopping,
         stalling, unsuccessful_subpb = 0, 0
         @info log_row(Any[stp.meta.nb_of_stop, "R", 
                      state.fx, norm(state.cx), sub_stp.current_state.current_score, 
-                     σ, status(sub_stp)])
+                     σ, status(sub_stp)]) #why state.fx if we just reinit it?
       elseif ncx > Δ * nc0 && !feas
         σ *= meta.σ_update
         sub_stp.pb.σ = σ
@@ -155,8 +189,8 @@ function fps_solve(stp  :: NLPStopping,
                                multipliers  = stp.current_state.lambda,
                                iter         = stp.meta.nb_of_stop,
                                elapsed_time = stp.current_state.current_time - stp.meta.start_time,
-                               solver_specific=Dict(
-                                                :stp => stp,
-                                                :restoration => restoration_phase
-                                                ))
+                               solver_specific = Dict(
+                                                 :stp => stp,
+                                                 :restoration => restoration_phase
+                                                 ))
 end
