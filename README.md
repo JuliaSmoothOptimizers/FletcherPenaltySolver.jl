@@ -3,12 +3,7 @@
 ![CI](https://github.com/tmigot/FletcherPenaltyNLPSolver/workflows/CI/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver/branch/main/graph/badge.svg)](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver)
 
-The algorithm depends on Stopping (version > 0.2.4)
-```julia
-pkg> add https://github.com/vepiteski/Stopping.jl
-pkg> test Stopping
-pkg> status Stopping
-```
+This implementation uses [Stopping](https://github.com/vepiteski/Stopping.jl).
 
 ## Algorithm
 
@@ -29,3 +24,7 @@ the unconstrained optimization problem using Fletcher penalty function:
 Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
   Implementing a smooth exact penalty function for equality-constrained nonlinear optimization.
   SIAM Journal on Scientific Computing, 42(3), A1809-A1835.
+
+## Versions [On hold]
+
+This package still relies on unofficial versions of [LDLFactorizations >0.8.0](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl#master), [NLPModels >??](https://github.com/tmigot/NLPModels.jl#compat-fps), [NLPModelsKnitro >0.4.3](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl#master) and [JSOSolvers (tmigot's branc)](https://github.com/tmigot/JSOSolvers.jl#master).
