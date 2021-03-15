@@ -841,9 +841,9 @@ version = "0.3.2"
 
 [[SolverTools]]
 deps = ["DataFrames", "JLD2", "LinearAlgebra", "LinearOperators", "Logging", "NLPModels", "Printf"]
-git-tree-sha1 = "dfbf2fc53d08eb0910bf806439caed1fc24f1b36"
+git-tree-sha1 = "06c88810a679bbca1016e759eef74016b4c9318c"
 uuid = "b5612192-2639-5dc1-abfe-fbedd65fab29"
-version = "0.3.1"
+version = "0.3.2"
 
 [[SortingAlgorithms]]
 deps = ["DataStructures", "Random", "Test"]
