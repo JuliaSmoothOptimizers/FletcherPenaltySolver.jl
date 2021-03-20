@@ -73,8 +73,7 @@ function stats_status_to_meta!(stp    :: AbstractStopping,
 end
   export status_stopping_to_stats, stopping_to_stats
 
-  using NLPModelsIpopt
-import NLPModelsIpopt: ipopt
+#using NLPModelsIpopt
 
 """
 ipopt(nlp) DOESN'T CHECK THE WRONG KWARGS, AND RETURN AN ERROR.
@@ -130,69 +129,67 @@ function NLPModelsIpopt.ipopt(stp :: NLPStopping; kwargs...)
 
   return stp
 end
-  export ipopt
 
-  using NLPModelsKnitro
-import NLPModelsKnitro: knitro
-"""
-knitro(nlp) DOESN'T CHECK THE WRONG KWARGS, AND RETURN AN ERROR.
-knitro(::NLPStopping)
-Selection of possible [options](https://www.artelys.com/docs/knitro/3_referenceManual/userOptions.html):
-"""
-function knitro(stp          :: NLPStopping;
-                convex       :: Int  = -1, #let Knitro deal with it :)
-                objrange     :: Real = stp.meta.unbounded_threshold,
-                hessopt      :: Int  = 1,
-                feastol      :: Real = stp.meta.rtol,
-                feastol_abs  :: Real = stp.meta.atol,
-                opttol       :: Real = stp.meta.rtol,
-                opttol_abs   :: Real = stp.meta.atol,
-                maxfevals    :: Int  = stp.meta.max_cntrs[:neval_sum],
-                maxit        :: Int  = 0, #stp.meta.max_iter
-                maxtime_real :: Real = stp.meta.max_time,
-                out_hints    :: Int  = 0,
-                outlev       :: Int  = 0, #1 to see everything
-                kwargs...)
-    
-  @assert -1 ≤ convex ≤ 1
-  @assert 1  ≤ hessopt ≤ 7            
-  @assert 0  ≤ out_hints ≤ 1
-  @assert 0  ≤ outlev ≤ 6
-  @assert 0  ≤ maxit
-    
-  nlp = stp.pb
-  #y0 = stp.current_state.lambda #si défini
-  #z0 = stp.current_state.mu #si défini 
-  stats = knitro(nlp, x0           = stp.current_state.x,
-                      objrange     = objrange,
-                      feastol      = feastol,
-                      feastol_abs  = feastol_abs,
-                      opttol       = opttol,
-                      opttol_abs   = opttol_abs,
-                      maxfevals    = maxfevals,
-                      maxit        = maxit,
-                      maxtime_real = maxtime_real,
-                      out_hints    = out_hints,
-                      outlev       = outlev;
-                      kwargs...)
-#@show stats.status, stats.solver_specific[:internal_msg]
-  #if stats.status ∉ (:unbounded, :exception, :unknown) #∈ (:first_order, :acceptable) 
-    stp.current_state.x  = stats.solution
-    stp.current_state.fx = stats.objective
-    #stp.current_state.gx = grad(nlp, stats.solution)#necessary?
-    #norm(stp.current_state.gx, Inf)#stats.dual_feas #TODO: this is for unconstrained problem!!
-    stp.current_state.current_score  = max(stats.dual_feas, stats.primal_feas)
-  #end
-  #Update the meta boolean with the output message
-  stp = stats_status_to_meta!(stp, stats)
-#@show status(stp, list = true)
-  if status(stp) == :Unknown
-    @warn "Error in StoppingInterface statuses: return status is $(stats.status)"
-    #print(stats)
+if is_knitro_installed
+  """
+  knitro(nlp) DOESN'T CHECK THE WRONG KWARGS, AND RETURN AN ERROR.
+  knitro(::NLPStopping)
+  Selection of possible [options](https://www.artelys.com/docs/knitro/3_referenceManual/userOptions.html):
+  """
+  function NLPModelsKnitro.knitro(stp          :: NLPStopping;
+                  convex       :: Int  = -1, #let Knitro deal with it :)
+                  objrange     :: Real = stp.meta.unbounded_threshold,
+                  hessopt      :: Int  = 1,
+                  feastol      :: Real = stp.meta.rtol,
+                  feastol_abs  :: Real = stp.meta.atol,
+                  opttol       :: Real = stp.meta.rtol,
+                  opttol_abs   :: Real = stp.meta.atol,
+                  maxfevals    :: Int  = stp.meta.max_cntrs[:neval_sum],
+                  maxit        :: Int  = 0, #stp.meta.max_iter
+                  maxtime_real :: Real = stp.meta.max_time,
+                  out_hints    :: Int  = 0,
+                  outlev       :: Int  = 0, #1 to see everything
+                  kwargs...)
+      
+    @assert -1 ≤ convex ≤ 1
+    @assert 1  ≤ hessopt ≤ 7            
+    @assert 0  ≤ out_hints ≤ 1
+    @assert 0  ≤ outlev ≤ 6
+    @assert 0  ≤ maxit
+      
+    nlp = stp.pb
+    #y0 = stp.current_state.lambda #si défini
+    #z0 = stp.current_state.mu #si défini 
+    stats = knitro(nlp, x0           = stp.current_state.x,
+                        objrange     = objrange,
+                        feastol      = feastol,
+                        feastol_abs  = feastol_abs,
+                        opttol       = opttol,
+                        opttol_abs   = opttol_abs,
+                        maxfevals    = maxfevals,
+                        maxit        = maxit,
+                        maxtime_real = maxtime_real,
+                        out_hints    = out_hints,
+                        outlev       = outlev;
+                        kwargs...)
+  #@show stats.status, stats.solver_specific[:internal_msg]
+    #if stats.status ∉ (:unbounded, :exception, :unknown) #∈ (:first_order, :acceptable) 
+      stp.current_state.x  = stats.solution
+      stp.current_state.fx = stats.objective
+      #stp.current_state.gx = grad(nlp, stats.solution)#necessary?
+      #norm(stp.current_state.gx, Inf)#stats.dual_feas #TODO: this is for unconstrained problem!!
+      stp.current_state.current_score  = max(stats.dual_feas, stats.primal_feas)
+    #end
+    #Update the meta boolean with the output message
+    stp = stats_status_to_meta!(stp, stats)
+  #@show status(stp, list = true)
+    if status(stp) == :Unknown
+      @warn "Error in StoppingInterface statuses: return status is $(stats.status)"
+      #print(stats)
+    end
+
+    return stp #would be better to return the stats somewhere
   end
-
-  return stp #would be better to return the stats somewhere
 end
-  export knitro
 
 #end # module

@@ -4,8 +4,17 @@ using LinearAlgebra, Logging, SparseArrays
 
 # JSO packages
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, SolverTools
-using Stopping #> 0.2.5
+using Stopping
 
+using NLPModelsIpopt
+
+const is_knitro_installed = try
+  @eval using NLPModelsKnitro
+  true
+catch
+  #@warn "KNITRO not properly installed. Please run `] build KNITRO`"
+  false
+end
 
 ##################################################################
 # Temporary

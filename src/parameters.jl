@@ -35,9 +35,9 @@ function AlgoData(T                    :: DataType;
                   yM                   :: Real     = typemax(T),
                   Δ                    :: Real     = T(0.95),
                   linear_system_solver :: Function = _solve_ldlt_factorization, #_solve_with_linear_operator,
-                  unconstrained_solver :: Function = knitro,
-                  hessian_approx       :: Int       = 2,
-                  convex_subproblem    :: Bool      = false,
+                  unconstrained_solver :: Function = is_knitro_installed ? knitro : ipopt,
+                  hessian_approx       :: Int      = 2,
+                  convex_subproblem    :: Bool     = false,
                   kwargs...)
                   
    return AlgoData(σ_0, σ_max, σ_update, ρ_0, ρ_max, ρ_update, δ_0, yM, Δ, 

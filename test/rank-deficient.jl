@@ -44,7 +44,7 @@ end
   nlp    = CUTEstModel(p)
   lss    = FletcherPenaltyNLPSolver._solve_with_linear_operator
   fpnlp  = FletcherPenaltyNLP(nlp, 1e3, 1e3, 1e-2, lss, 2)
-  stats1 = knitro(fpnlp, outlev = 0)
+  stats1 = ipopt(fpnlp, print_level = 0) #knitro
   stats  = fps_solve(nlp, nlp.meta.x0, rtol = 1e-3,
                                    σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                    linear_system_solver = lss,
