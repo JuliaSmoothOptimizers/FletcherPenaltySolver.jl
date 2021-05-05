@@ -1,6 +1,8 @@
-function fps_solve(stp  :: NLPStopping, 
-                   meta :: AlgoData{T}) where T
-
+function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
+  if has_inequalities(stp.pb)
+    throw("Error: consider only problem with equalities and bounds. 
+           Use `NLPModelsModifiers.SlackModel`.")
+  end
   state = stp.current_state
   #Initialize parameters
   x0, σ, ρ, δ = state.x, meta.σ_0, meta.ρ_0 , meta.δ_0
@@ -12,7 +14,7 @@ function fps_solve(stp  :: NLPStopping,
   OK = start!(stp)
   #Prepare the subproblem-stopping for the unconstrained minimization.
   sub_stp = NLPStopping(nlp, NLPAtX(x0), main_stp = stp, 
-                                         optimality_check = unconstrained_check,
+                                         optimality_check = has_bounds(nlp) ? unconstrained_check : optim_check_bounded,
                                          max_iter = 10000,
                                          atol     = stp.meta.atol,
                                          rtol     = stp.meta.rtol,
@@ -31,8 +33,8 @@ function fps_solve(stp  :: NLPStopping,
 
   while !OK #main loop
 
-    #Solve the subproblem
     reinit!(sub_stp) #reinit the sub-stopping.
+    #Solve the subproblem
     sub_stp = meta.unconstrained_solver(sub_stp)
     #Update the State with the info given by the subproblem:
     if sub_stp.meta.optimal || sub_stp.meta.suboptimal

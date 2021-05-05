@@ -64,7 +64,7 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = 
 
   nnzh = nvar * (nvar + 1) / 2
 
-  meta = NLPModelMeta(nvar, x0 = x0, nnzh = nnzh, 
+  meta = NLPModelMeta(nvar, x0 = x0, nnzh = nnzh, lvar = nlp.meta.lvar, uvar = nlp.meta.uvar,
                             minimize = true, islp = false, 
                             name = "Fletcher penalization of $(nlp.meta.name)")
   counters = Counters()
@@ -80,7 +80,7 @@ function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_appro
 
   nnzh = nvar * (nvar + 1) / 2
 
-  meta = NLPModelMeta(nvar, x0 = x0, nnzh = nnzh, 
+  meta = NLPModelMeta(nvar, x0 = x0, nnzh = nnzh, lvar = nlp.meta.lvar, uvar = nlp.meta.uvar,
                             minimize = true, islp = false, 
                             name = "Fletcher penalization of $(nlp.meta.name)")
   counters = Counters()
@@ -203,10 +203,6 @@ function objgrad!(nlp :: FletcherPenaltyNLP,
   return fx, gx
 end
 
-"""
-    hess_structure!(nlp, rows, cols)
-Return the structure of the Lagrangian Hessian in sparse coordinate format in place.
-"""
 function hess_structure!(nlp  :: FletcherPenaltyNLP, 
                          rows :: AbstractVector{<: Integer}, 
                          cols :: AbstractVector{<: Integer})
@@ -328,7 +324,7 @@ function hprod!(
 
   gs, ys = _sol1[1 : nvar], _sol1[nvar + 1 : nvar + ncon]
 
-  Hsv    = hprod(nlp.nlp, x, -ys, v, obj_weight = 1.0)
+  Hsv    = hprod(nlp.nlp, x, -ys, v, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
   pt_rhs1 = vcat(v,   zeros(T, ncon))

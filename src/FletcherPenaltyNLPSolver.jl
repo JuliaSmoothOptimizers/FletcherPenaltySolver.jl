@@ -3,7 +3,7 @@ module FletcherPenaltyNLPSolver
 using LinearAlgebra, Logging, SparseArrays
 
 # JSO packages
-using Krylov, LinearOperators, LDLFactorizations, NLPModels, SolverCore
+using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
 using Stopping
 
 using NLPModelsIpopt
@@ -70,7 +70,8 @@ Solver for equality constrained non-linear programs based on Fletcher's penalty 
 or
 `fps_solve(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
 
-Notes:
+Notes:     
+- If the problem has inequalities, we use slack variables to get only equalities and bounds.
 - `stp.current_state.res` contains the gradient of Fletcher's penalty function.
 - `unconstrained_solver` must take an NLPStopping as input.
 - `linear_system_solver` solves two linear systems with different rhs following the format:
@@ -93,8 +94,10 @@ function fps_solve(nlp :: AbstractNLPModel,
                    x0  :: AbstractVector{T} = nlp.meta.x0;
                    kwargs...
                    ) where T
-
-  meta = AlgoData(T;kwargs...)
+  if has_inequalities(nlp)
+    nlp = SlackModel(nlp)
+  end
+  meta = AlgoData(T; kwargs...)
 
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
@@ -117,9 +120,7 @@ function fps_solve(nlp :: AbstractNLPModel,
   return fps_solve(stp, meta)
 end
 
-function fps_solve(stp :: NLPStopping;
-                                 kwargs...
-                                )
+function fps_solve(stp :: NLPStopping; kwargs...)
   T = eltype(stp.pb.meta.x0)
   meta = AlgoData(T; kwargs...)
 
