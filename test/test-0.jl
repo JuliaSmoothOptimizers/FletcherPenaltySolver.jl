@@ -6,8 +6,8 @@
     sos = ADNLPModel(x->sum((x .- 1).^2), zeros(n), c, lcon, ucon)
     σ_0 = 0.1
     #fp_sos0 = FletcherPenaltyNLP(NLPModelMeta(n), Counters(), sos, σ_0, _solve_system_dense, 2)
-    fp_sos  = FletcherPenaltyNLP(sos, σ_0, FletcherPenaltyNLPSolver._solve_with_linear_operator, 2)
-    fp_sos2 = FletcherPenaltyNLP(sos, σ_0, FletcherPenaltyNLPSolver._solve_system_factorization_lu, 2)
+    fp_sos  = FletcherPenaltyNLP(sos, σ_0, FletcherPenaltyNLPSolver._solve_with_linear_operator, Val(2))
+    fp_sos2 = FletcherPenaltyNLP(sos, σ_0, FletcherPenaltyNLPSolver._solve_system_factorization_lu, Val(2))
     solx = zeros(n); solx[findall( x->mod(x,2)==1, 1:n)] = ones(Int(n/2))
 
     #In the paper, they use a Newton method.

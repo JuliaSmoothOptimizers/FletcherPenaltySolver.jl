@@ -6,9 +6,9 @@
     fpnlp = FletcherPenaltyNLP(nlp)
     fpnlp = FletcherPenaltyNLP(nlp, σ_0 = 0.5)
     fpnlp = FletcherPenaltyNLP(nlp, linear_system_solver = demo_func)
-    fpnlp = FletcherPenaltyNLP(nlp, 0.5, demo_func, 1)
+    fpnlp = FletcherPenaltyNLP(nlp, 0.5, demo_func, Val(1))
     
-    @test fpnlp.hessian_approx == 1
+    @test fpnlp.hessian_approx == Val(1)
     
     σ = 0.5
     ys(x) = [(2-σ)/n*sum(x) + σ/n]
@@ -66,7 +66,7 @@ end
     @test equality_constrained(nlp)
              
     demo_func = FletcherPenaltyNLPSolver._solve_system_dense
-    fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, demo_func, 1)
+    fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, demo_func, Val(1))
     
     @test fpnlp.meta.ncon == 0
     @test fpnlp.meta.nvar == 2
@@ -76,7 +76,7 @@ end
     @test fpnlp.δ == 0.25
     σ, ρ, δ = fpnlp.σ, fpnlp.ρ, fpnlp.δ
     
-    @test fpnlp.hessian_approx == 1
+    @test fpnlp.hessian_approx == Val(1)
     
     xr = [sqrt(6)/3; sqrt(3)/3]
     
@@ -135,9 +135,9 @@ end
     fpnlp = FletcherPenaltyNLP(nlp)
     fpnlp = FletcherPenaltyNLP(nlp, σ_0 = 0.5)
     fpnlp = FletcherPenaltyNLP(nlp, linear_system_solver = demo_func)
-    fpnlp = FletcherPenaltyNLP(nlp, 0.5, demo_func, 2)
+    fpnlp = FletcherPenaltyNLP(nlp, 0.5, demo_func, Val(2))
     
-    @test fpnlp.hessian_approx == 2
+    @test fpnlp.hessian_approx == Val(2)
     
     σ = 0.5
     ys(x) = [(2-σ)/n*sum(x) + σ/n]
@@ -196,7 +196,7 @@ end
     @test equality_constrained(nlp)
              
     demo_func = FletcherPenaltyNLPSolver._solve_system_dense
-    fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, demo_func, 2)
+    fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, demo_func, Val(2))
     
     @test fpnlp.meta.ncon == 0
     @test fpnlp.meta.nvar == 2
@@ -206,7 +206,7 @@ end
     @test fpnlp.δ == 0.25
     σ, ρ, δ = fpnlp.σ, fpnlp.ρ, fpnlp.δ
     
-    @test fpnlp.hessian_approx == 2
+    @test fpnlp.hessian_approx == Val(2)
     
     xr = [sqrt(6)/3; sqrt(3)/3]
     

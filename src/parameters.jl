@@ -36,7 +36,7 @@ function AlgoData(T                    :: DataType;
                   Δ                    :: Real     = T(0.95),
                   linear_system_solver :: Function = _solve_ldlt_factorization, #_solve_with_linear_operator,
                   unconstrained_solver :: Function = is_knitro_installed ? knitro : ipopt,
-                  hessian_approx       :: Int      = 2,
+                  hessian_approx                   = Val(2),
                   convex_subproblem    :: Bool     = false,
                   kwargs...)
                   

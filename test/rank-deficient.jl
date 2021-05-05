@@ -33,7 +33,7 @@
   stats = fps_solve(nlp, nlp.meta.x0, 
                                   σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                   linear_system_solver = lss,
-                                  hessian_approx = 2, #error with hessian_approx = 1
+                                  hessian_approx = Val(2), #error with hessian_approx = 1
                                   rtol = 1e-3)
   @test stats.status == :first_order
   finalize(nlp)
@@ -43,12 +43,12 @@ end
   p      = "MSS1"
   nlp    = CUTEstModel(p)
   lss    = FletcherPenaltyNLPSolver._solve_with_linear_operator
-  fpnlp  = FletcherPenaltyNLP(nlp, 1e3, 1e3, 1e-2, lss, 2)
+  fpnlp  = FletcherPenaltyNLP(nlp, 1e3, 1e3, 1e-2, lss, Val(2))
   stats1 = ipopt(fpnlp, print_level = 0) #knitro
   stats  = fps_solve(nlp, nlp.meta.x0, rtol = 1e-3,
                                    σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
                                    linear_system_solver = lss,
-                                   hessian_approx = 2) #error with hessian_approx = 1
+                                   hessian_approx = Val(2)) #error with hessian_approx = 1
   @test stats.status == :first_order
   finalize(nlp)
 end
