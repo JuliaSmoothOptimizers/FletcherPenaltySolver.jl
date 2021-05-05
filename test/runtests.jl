@@ -2,6 +2,7 @@ using LinearAlgebra, LinearOperators, SparseArrays
 
 #JSO packages
 using CUTEst, JSOSolvers, Logging, NLPModels, NLPModelsIpopt, SolverTools
+using ADNLPModels, NLPModelsTest
 
 using Stopping
 

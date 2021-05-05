@@ -3,15 +3,15 @@ import NLPModels: increment!, obj, objgrad, objgrad!, grad!, grad, hess, hprod, 
 We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
 
-min\\_x f(x) s.t. c(x) = 0
+    minₓ f(x) s.t. c(x) = 0
 
 using Fletcher penalty function:
     
-min\\_x f(x) - dot(c(x),ys(x)) + ρ/2 dot(c(x),c(x))
+    minₓ f(x) - dot(c(x),ys(x)) + ρ/2 dot(c(x),c(x))
 
 where
 
-ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||²\\_2 + σ c(x)^T y + 0.5 δ ||y||²
+ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||²₂ + σ c(x)^T y + 0.5 δ ||²₂
 
 and denote Ys the gradient of ys(x).
 

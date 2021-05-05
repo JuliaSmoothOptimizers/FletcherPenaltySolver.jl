@@ -27,4 +27,6 @@ Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
 
 ## Versions [On hold]
 
-This package still relies on unofficial versions of [LDLFactorizations >0.8.0](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl#master), [NLPModels >??](https://github.com/tmigot/NLPModels.jl#compat-fps), [NLPModelsKnitro >0.4.3](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl#master) and [JSOSolvers (tmigot's branc)](https://github.com/tmigot/JSOSolvers.jl#master).
+This package still on unofficial versions of:
+ - ADNLPModels v0.1.1 `https://github.com/tmigot/ADNLPModels.jl#exlude-jth_functions`    
+ - NLPModelsKnitro v0.5.0 `https://github.com/tmigot/NLPModelsKnitro.jl#solvertools050`

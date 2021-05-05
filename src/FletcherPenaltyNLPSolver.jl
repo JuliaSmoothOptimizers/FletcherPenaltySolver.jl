@@ -3,7 +3,7 @@ module FletcherPenaltyNLPSolver
 using LinearAlgebra, Logging, SparseArrays
 
 # JSO packages
-using Krylov, LinearOperators, LDLFactorizations, NLPModels, SolverTools
+using Krylov, LinearOperators, LDLFactorizations, NLPModels, SolverCore
 using Stopping
 
 using NLPModelsIpopt
@@ -50,7 +50,7 @@ export AlgoData
 #
 # TO BE REMOVED
 #
-include("lbfgs.jl")
+include("lbfgs.jl") # relies on SolverTools
 #
 #
 ###############################
@@ -71,15 +71,15 @@ or
 `fps_solve(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), linear_system_solver :: Function = _solve_with_linear_operator, unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
 
 Notes:
-- stp.current_state.res contains the gradient of Fletcher's penalty function.
-- unconstrained\\_solver must take an NLPStopping as input.
-- *linear\\_system\\_solver* solves two linear systems with different rhs following the format:
-*linear\\_system\\_solver(nlp, x, rhs1, rhs2; kwargs...)*
+- `stp.current_state.res` contains the gradient of Fletcher's penalty function.
+- `unconstrained_solver` must take an NLPStopping as input.
+- `linear_system_solver` solves two linear systems with different rhs following the format:
+`linear_system_solver(nlp, x, rhs1, rhs2; kwargs...)`
 List of implemented methods:
-i)   \\_solve\\_system\\_dense
-ii)  \\_solve\\_with\\_linear\\_operator
-iii) \\_solve\\_system\\_factorization\\_eigenvalue
-iv)  \\_solve\\_system\\_factorization\\_lu
+i)   `_solve_system_dense`
+ii)  `_solve_with_linear_operator`
+iii) `_solve_system_factorization_eigenvalue`
+iv)  `_solve_system_factorization_lu`
 
 TODO:
 - une façon robuste de mettre à jour le paramètre de pénalité. [Convergence to infeasible stationary points]
