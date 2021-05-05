@@ -269,7 +269,7 @@ function hess_coord!(nlp  :: FletcherPenaltyNLP,
   k = 1
   for j = 1 : nvar
     for i = j : nvar
-      vals[k] = Hx[i, j]
+      vals[k] = obj_weight * Hx[i, j]
       k += 1
     end
   end
@@ -349,7 +349,7 @@ function hprod!(
 
     Jt = jac_op(nlp.nlp, x)'
     invJtJJv = cgls(Jt, v, λ = τ)[1] #invAtA * Jv #cgls(JtJ, Jv)[1]
-    SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = 0.0)
+    SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
      
     Ssv = ghjvprod(nlp.nlp, x, gs, v)
     JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)'
@@ -368,7 +368,7 @@ function hprod!(
     Jv  = jprod(nlp.nlp, x, v)
     Jt = jac_op(nlp.nlp, x)'
     invJtJJv = cgls(Jt, v, λ = τ)[1]
-    SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = 0.0)
+    SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
      
     Ssv = ghjvprod(nlp.nlp, x, gs, v)
     JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)'
@@ -385,5 +385,6 @@ function hprod!(
     Hv .= Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv -  JtinvJtJSsv - SsinvJtJJv
   end 
 
+  Hv .*= obj_weight
   return Hv
 end

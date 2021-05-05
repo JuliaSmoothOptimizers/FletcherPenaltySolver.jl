@@ -1,3 +1,4 @@
+#=
 function multiple_precision_nlp(
   nlp :: AbstractNLPModel;
   precisions :: Array = [Float16, Float32, Float64, BigFloat],
@@ -42,7 +43,7 @@ function multiple_precision_nlp(
     end
   end
 end
-
+=#
 @testset "NLP tests" begin
     nlp1 = ADNLPModel(x->dot(x, x), zeros(10), x->[sum(x) - 1.], zeros(1), zeros(1))
     demo_func = FletcherPenaltyNLPSolver._solve_system_dense
@@ -53,7 +54,7 @@ end
     for nlp in problemset
       @testset "Problem $(nlp.meta.name)" begin
         @testset "Consistency" begin
-          #consistent_nlps([nlp, nlp], exclude = [])
+          consistent_nlps([nlp, nlp])
         end
         @testset "Check dimensions" begin
           check_nlp_dimensions(nlp)
@@ -62,7 +63,7 @@ end
           #multiple_precision_nlp(nlp) # not exactly working
         end
         @testset "View subarray" begin
-          view_subarray_nlp(nlp) #problem with Krylov.jl, https://github.com/JuliaSmoothOptimizers/Krylov.jl/issues/290 
+          view_subarray_nlp(nlp) #https://github.com/JuliaSmoothOptimizers/Krylov.jl/issues/290 
         end
         @testset "Test coord memory" begin
           coord_memory_nlp(nlp)
