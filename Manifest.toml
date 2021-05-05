@@ -428,9 +428,11 @@ version = "0.9.3"
 
 [[Krylov]]
 deps = ["LinearAlgebra", "LinearOperators", "Printf", "SparseArrays"]
-git-tree-sha1 = "65c7e46ab74eaaad2f27964004e7d663c7148d5d"
+git-tree-sha1 = "4b8d33711fbafe36ac1dbda54eae89a647138ef0"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaSmoothOptimizers/Krylov.jl"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
-version = "0.6.1"
+version = "0.7.0"
 
 [[LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -878,6 +880,14 @@ deps = ["NLPModels", "Printf"]
 git-tree-sha1 = "715267968f4ac8b4866c67e6bccaaeb3574b6140"
 uuid = "ff4d7338-4cf1-434d-91df-b86cb86fb843"
 version = "0.1.0"
+
+[[SolverTest]]
+deps = ["ADNLPModels", "LinearAlgebra", "Logging", "NLPModels", "SparseArrays", "Test"]
+git-tree-sha1 = "d9905f47ba5ccc34ec058ba0ac8e3d11c88ec6b9"
+repo-rev = "main"
+repo-url = "https://github.com/JuliaSmoothOptimizers/SolverTest.jl"
+uuid = "4343dc35-3317-4c6e-8877-f0cc8502c90e"
+version = "0.1.1"
 
 [[SolverTools]]
 deps = ["LinearAlgebra", "LinearOperators", "NLPModels", "Printf"]

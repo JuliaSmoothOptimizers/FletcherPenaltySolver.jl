@@ -2,7 +2,7 @@ using LinearAlgebra, LinearOperators, SparseArrays
 
 #JSO packages
 using CUTEst, JSOSolvers, Logging, NLPModels, NLPModelsIpopt, SolverTools
-using ADNLPModels, NLPModelsTest
+using ADNLPModels, NLPModelsTest, SolverTest
 
 using Stopping
 
@@ -11,6 +11,8 @@ using Test
 
 #This package
 using FletcherPenaltyNLPSolver
+
+include("nlpmodelstest.jl")
 
 include("unit-test.jl")
 include("test_double_linear_algebra.jl")

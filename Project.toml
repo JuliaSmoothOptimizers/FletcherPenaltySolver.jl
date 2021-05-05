@@ -21,15 +21,16 @@ NLPModelsTest = "7998695d-6960-4d3a-85c4-e1bceb8cd856"
 OptimizationProblems = "5049e819-d29b-5fba-b941-0eee7e64c1c6"
 SolverBenchmark = "581a75fa-a23a-52d0-a590-d6201de2218a"
 SolverCore = "ff4d7338-4cf1-434d-91df-b86cb86fb843"
+SolverTest = "4343dc35-3317-4c6e-8877-f0cc8502c90e"
 SolverTools = "b5612192-2639-5dc1-abfe-fbedd65fab29"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Stopping = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 
 [compat]
-Krylov = "0.6.1"
 LDLFactorizations = "0.8.1"
+NLPModelsIpopt = "0.7.0"
+SolverCore = "0.1"
 Stopping = "0.3"
-julia = "^1.5"
 
 [extras]
 CUTEst = "1b53aba6-35b6-5f92-a507-53c67d53f819"
