@@ -63,7 +63,7 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
       if feas
         stp.meta.unbounded_pb = true #unbounded
       end
-      @show sub_stp.current_state.x, sub_stp.pb.ys, sub_stp.pb.δ
+      #@show sub_stp.current_state.x, sub_stp.pb.ys, sub_stp.pb.δ
       @info log_row(Any[stp.meta.nb_of_stop, "Unbdd", 
                      sub_stp.current_state.fx, 
                      ncx, 
