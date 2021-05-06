@@ -45,29 +45,29 @@ function multiple_precision_nlp(
 end
 =#
 @testset "NLP tests" begin
-    nlp1 = ADNLPModel(x->dot(x, x), zeros(10), x->[sum(x) - 1.], zeros(1), zeros(1))
-    demo_func = FletcherPenaltyNLPSolver._solve_system_dense
-    problemset = [
-        FletcherPenaltyNLP(nlp1, 0.5, demo_func, Val(1)),
-        FletcherPenaltyNLP(nlp1, 0.5, demo_func, Val(2)),
-    ]
-    for nlp in problemset
-      @testset "Problem $(nlp.meta.name)" begin
-        @testset "Consistency" begin
-          consistent_nlps([nlp, nlp])
-        end
-        @testset "Check dimensions" begin
-          check_nlp_dimensions(nlp)
-        end
-        @testset "Multiple precision support" begin
-          #multiple_precision_nlp(nlp) # not exactly working
-        end
-        @testset "View subarray" begin
-          view_subarray_nlp(nlp) #https://github.com/JuliaSmoothOptimizers/Krylov.jl/issues/290 
-        end
-        @testset "Test coord memory" begin
-          coord_memory_nlp(nlp)
-        end
+  nlp1 = ADNLPModel(x->dot(x, x), zeros(10), x->[sum(x) - 1.], zeros(1), zeros(1))
+  demo_func = FletcherPenaltyNLPSolver._solve_system_dense
+  problemset = [
+    FletcherPenaltyNLP(nlp1, 0.5, demo_func, Val(1)),
+    FletcherPenaltyNLP(nlp1, 0.5, demo_func, Val(2)),
+  ]
+  for nlp in problemset
+    @testset "Problem $(nlp.meta.name)" begin
+      @testset "Consistency" begin
+        consistent_nlps([nlp, nlp])
+      end
+      @testset "Check dimensions" begin
+        check_nlp_dimensions(nlp)
+      end
+      @testset "Multiple precision support" begin
+        #multiple_precision_nlp(nlp) # not exactly working
+      end
+      @testset "View subarray" begin
+        view_subarray_nlp(nlp) #https://github.com/JuliaSmoothOptimizers/Krylov.jl/issues/290 
+      end
+      @testset "Test coord memory" begin
+        coord_memory_nlp(nlp)
       end
     end
+  end
 end
