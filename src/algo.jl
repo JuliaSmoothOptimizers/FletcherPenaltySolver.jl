@@ -36,6 +36,7 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
     reinit!(sub_stp) #reinit the sub-stopping.
     #Solve the subproblem
     sub_stp = meta.unconstrained_solver(sub_stp)
+    
     #Update the State with the info given by the subproblem:
     if sub_stp.meta.optimal || sub_stp.meta.suboptimal
       if sub_stp.current_state.x == state.x
@@ -62,6 +63,7 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
       if feas
         stp.meta.unbounded_pb = true #unbounded
       end
+      @show sub_stp.current_state.x, sub_stp.pb.ys, sub_stp.pb.δ
       @info log_row(Any[stp.meta.nb_of_stop, "Unbdd", 
                      sub_stp.current_state.fx, 
                      ncx, 
@@ -101,23 +103,24 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
  
     #update the penalty parameter if necessary
     if !OK
-      ncx  = norm(state.cx)
+      ncx  = norm(state.cx) #careful as this is not always updated
       feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
-      if restoration_phase && !feas &&  stalling >= 3 #or sub_stp.meta.optimal
+      if restoration_phase && !feas && stalling >= 3 #or sub_stp.meta.optimal
         #Can"t escape this infeasible stationary point.
         stp.meta.suboptimal = true
         OK = true
-      elseif unbounded_subpb >= 3 && !feas #Tanj: how can we get here???
-        #we are most likely stuck at an infeasible stationary point.
-        #or an undetected unbounded problem
+      elseif unbounded_subpb >= 3 #&& !restoration_phase # && !feas #Tanj: how can we get here???
+        # Is that really useful ??????
         restoration_phase = true
         state.x += min(max(stp.meta.atol, 1/σ, 1e-3), 1.) * rand(stp.pb.meta.nvar)   
 
         #Go back to three iterations ago
+        #=
         σ = max(σ/meta.σ_update^(1.5), meta.σ_0)
         sub_stp.pb.σ = σ
         sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
+        =#
         #reinitialize the State(s) as the problem changed
         reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
              
@@ -125,6 +128,16 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
         @info log_row(Any[stp.meta.nb_of_stop, "R-Unbdd", 
                      state.fx, norm(state.cx), sub_stp.current_state.current_score, 
                      σ, status(sub_stp)]) #why state.fx if we just reinit it?
+      #=
+      elseif sub_stp.meta.unbounded #unbounded subproblem no restoration
+        σ *= meta.σ_update
+        sub_stp.pb.σ = σ
+        #reinitialize the State(s) as the problem changed
+        reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
+        @info log_row(Any[stp.meta.nb_of_stop, "noR-Unbdd", 
+                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
+                     σ, status(sub_stp)])
+      =#
       elseif (stalling >= 3 || unsuccessful_subpb >= 3) && !feas
         #we are most likely stuck at an infeasible stationary point.
         #or an undetected unbounded problem
@@ -176,6 +189,12 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
         @info log_row(Any[stp.meta.nb_of_stop, "F-D", 
                      state.fx, norm(state.cx), sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
+      elseif sub_stp.meta.optimal || sub_stp.meta.suboptimal #we need to tighten the tolerances
+        sub_stp.meta.atol /= 10
+        sub_stp.meta.rtol /= 10
+      else
+        @show "Euh... How?", stalling, unsuccessful_subpb, unbounded_subpb, sub_stp.meta.unbounded, feas
+        # ("Euh... How?", 0, 2, 0, false, false) -> and then R steps which never increase sigma
       end
       nc0 = copy(ncx)
    end

@@ -30,17 +30,22 @@ export obj, objgrad, objgrad!, grad!, grad
 export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
 
 function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPAtX)
-    #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
-    #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
-    #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
-    # returns i) + ii) OR iii) ?
-    nxk = max(norm(state.x), 1.)
-    nlk = isnothing(state.lambda) ? 1. : max(norm(state.lambda), 1.)
+  #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
+  #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
+  #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
+  # returns i) + ii) OR iii) ?
+  nxk = max(norm(state.x), 1.)
+  nlk = isnothing(state.lambda) ? 1. : max(norm(state.lambda), 1.)
     
-    cx  = state.cx/nxk
+  cx  = state.cx/nxk
+  if has_bounds(pb)
+    proj = max.(min.(state.x - state.gx, pb.meta.uvar), pb.meta.lvar)
+    res = state.x - proj
+  else
     res = state.res/nlk
+  end
     
- return vcat(cx, res)
+  return vcat(cx, res)
 end
 
 include("parameters.jl")
@@ -86,7 +91,6 @@ TODO:
 - une façon robuste de mettre à jour le paramètre de pénalité. [Convergence to infeasible stationary points]
 - Extend to bounds and inequality constraints.
 - Handle the tol_check from the paper !
-- Use Hessian (approximation) from FletcherPenaltyNLP
 - Continue to explore the paper.
 - [Long term] Complemetarity constraints
 """
@@ -105,14 +109,14 @@ function fps_solve(nlp :: AbstractNLPModel,
                                        ones(nlp.meta.nvar) .+ norm(gx0, Inf))
                                       
   initial_state = NLPAtX(x0, 
-                         zeros(nlp.meta.ncon), 
-                         Array{Float64,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
+                         zeros(T, nlp.meta.ncon), 
+                         Array{T,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
                          cx = cx0, 
                          gx = gx0, 
                          res = gx0)
   stp = NLPStopping(nlp, initial_state,
                     optimality_check = Fletcher_penalty_optimality_check,
-                    atol = T(1e-6),
+                    atol = T(1e-6), # really convert here ?
                     rtol = T(1e-6),
                     tol_check = Fptc,
                     max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64)); kwargs...)
