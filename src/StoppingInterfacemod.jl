@@ -67,7 +67,7 @@ function stats_status_to_meta!(stp    :: AbstractStopping,
   if status ∈ [:stalled, 
                :small_residual,
                :small_step]   stp.meta.stalled       = true end
-  if stats.status == :exception   stp.meta.exception = true end #available ≥ 0.2.6
+  if status == :exception   stp.meta.exception       = true end #available ≥ 0.2.6
 
   return stp
 end
