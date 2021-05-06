@@ -106,7 +106,10 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
       ncx  = norm(state.cx) #careful as this is not always updated
       feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
-      if restoration_phase && !feas && stalling >= 3 #or sub_stp.meta.optimal
+      if sub_stp.meta.optimal || sub_stp.meta.suboptimal #we need to tighten the tolerances
+        sub_stp.meta.atol /= 10
+        sub_stp.meta.rtol /= 10
+      elseif restoration_phase && !feas && stalling >= 3 #or sub_stp.meta.optimal
         #Can"t escape this infeasible stationary point.
         stp.meta.suboptimal = true
         OK = true
@@ -189,9 +192,6 @@ function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
         @info log_row(Any[stp.meta.nb_of_stop, "F-D", 
                      state.fx, norm(state.cx), sub_stp.current_state.current_score, 
                      σ, status(sub_stp)])
-      elseif sub_stp.meta.optimal || sub_stp.meta.suboptimal #we need to tighten the tolerances
-        sub_stp.meta.atol /= 10
-        sub_stp.meta.rtol /= 10
       else
         @show "Euh... How?", stalling, unsuccessful_subpb, unbounded_subpb, sub_stp.meta.unbounded, feas
         # ("Euh... How?", 0, 2, 0, false, false) -> and then R steps which never increase sigma
