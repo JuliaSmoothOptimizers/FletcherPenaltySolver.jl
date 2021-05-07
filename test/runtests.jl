@@ -23,7 +23,10 @@ mutable struct DummyModel <: AbstractNLPModel
 end
 @testset "Problem type error" begin
   nlp = DummyModel(NLPModelMeta(1, minimize = false), Counters())
-  @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(nlp, zeros(1))
+  @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(
+    nlp,
+    zeros(1),
+  )
   stp = NLPStopping(nlp)
   meta = AlgoData(Float64)
   @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(stp, meta)

@@ -21,9 +21,13 @@ using FletcherPenaltyNLPSolver
 names = ["DIXCHLNG", "BT7", "FLT", "HS52", "HS47", "SPIN2OP"] #small problems first
 
 nlp = CUTEstModel(names[3])
-stats = fps_solve(nlp, max_iter = 300, hessian_approx = 2, 
-                                     #linear_system_solve = FletcherPenaltyNLPSolver._solve_with_linear_operator,
-                                     unconstrained_solver = knitro)
+stats = fps_solve(
+  nlp,
+  max_iter = 300,
+  hessian_approx = 2,
+  #linear_system_solve = FletcherPenaltyNLPSolver._solve_with_linear_operator,
+  unconstrained_solver = knitro,
+)
 print(stats)
 
 finalize(nlp)

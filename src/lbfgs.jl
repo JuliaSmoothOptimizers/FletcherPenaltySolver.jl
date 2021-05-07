@@ -1,10 +1,15 @@
 import JSOSolvers.lbfgs
-function lbfgs(stp :: NLPStopping; x0 :: AbstractVector{T} = stp.current_state.x, atol :: Number = 1e-3, mem :: Int = 5, lsfunc :: Function = SolverTools.armijo_wolfe) where T <: AbstractFloat
+function lbfgs(
+  stp::NLPStopping;
+  x0::AbstractVector{T} = stp.current_state.x,
+  atol::Number = 1e-3,
+  mem::Int = 5,
+  lsfunc::Function = SolverTools.armijo_wolfe,
+) where {T <: AbstractFloat}
+  (x, f, ∇f, H) = lbfgs(stp.pb, x0, atol = atol, mem = mem, lsfunc = lsfunc)
+  Stopping.update!(stp.current_state, x = x, fx = f, gx = ∇f, Hx = H)
 
- (x, f, ∇f, H) = lbfgs(stp.pb, x0, atol = atol, mem = mem, lsfunc = lsfunc)
- Stopping.update!(stp.current_state, x = x, fx = f, gx = ∇f, Hx = H)
-
- return stp
+  return stp
 end
 
 """
@@ -16,24 +21,28 @@ https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl/blob/master/src/lbfgs.jl
 - adapt output
 - remove stats and info-log (maybe put it back)
 """
-function lbfgs(nlp ::  FletcherPenaltyNLP, x0 :: AbstractVector{T}; atol :: Number = 1e-3, mem :: Int = 5, lsfunc :: Function = armijo_og) where T <: AbstractFloat
+function lbfgs(
+  nlp::FletcherPenaltyNLP,
+  x0::AbstractVector{T};
+  atol::Number = 1e-3,
+  mem::Int = 5,
+  lsfunc::Function = armijo_og,
+) where {T <: AbstractFloat}
+  n = nlp.meta.nvar
 
-     n = nlp.meta.nvar
+  xt = zeros(T, n)
+  ∇ft = zeros(T, n)
 
-     xt = zeros(T, n)
-     ∇ft = zeros(T, n)
+  x = copy(x0)
+  f, ∇f = objgrad(nlp, x)
+  H = InverseLBFGSOperator(T, n, mem = mem, scaling = true)
+  h = LineModel(nlp, x, ∇f) #SolverTools.jl
 
- x = copy(x0)
- f, ∇f = objgrad(nlp, x)
- H = InverseLBFGSOperator(T, n, mem = mem, scaling=true)
- h = LineModel(nlp, x, ∇f) #SolverTools.jl
-
- iter = 0
- OK = norm(∇f) <= atol
-
+  iter = 0
+  OK = norm(∇f) <= atol
 
   while !OK
-    d = - H * ∇f
+    d = -H * ∇f
     slope = dot(n, d, ∇f)
     if slope ≥ 0
       @error "not a descent direction" slope
@@ -45,7 +54,8 @@ function lbfgs(nlp ::  FletcherPenaltyNLP, x0 :: AbstractVector{T}; atol :: Numb
     redirect!(h, x, d)
     # Perform improved Armijo linesearch.
     #t, good_grad, ft, nbk, nbW = armijo_wolfe(h, f, slope, ∇ft, τ₁=T(0.9999), bk_max=25, verbose=false)
-    t, good_grad, ft, nbk, nbW = lsfunc(h, f, slope, ∇ft, τ₁=T(0.9999), bk_max=25, verbose=false)
+    t, good_grad, ft, nbk, nbW =
+      lsfunc(h, f, slope, ∇ft, τ₁ = T(0.9999), bk_max = 25, verbose = false)
 
     copyaxpy!(n, t, d, x, xt)
     good_grad || grad!(nlp, xt, ∇ft)
@@ -63,5 +73,5 @@ function lbfgs(nlp ::  FletcherPenaltyNLP, x0 :: AbstractVector{T}; atol :: Numb
 
     OK = (∇fNorm <= atol) || iter >= 100
   end
- return x, f, ∇f, H
+  return x, f, ∇f, H
 end
