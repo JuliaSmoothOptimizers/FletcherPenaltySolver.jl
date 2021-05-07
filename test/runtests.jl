@@ -17,6 +17,17 @@ include("nlpmodelstest.jl")
 include("unit-test.jl")
 include("test_double_linear_algebra.jl")
 #Test the solvers:
+mutable struct DummyModel <: AbstractNLPModel
+  meta::NLPModelMeta
+  counters::Counters
+end
+@testset "Problem type error" begin
+  nlp = DummyModel(NLPModelMeta(1, minimize = false), Counters())
+  @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(nlp, zeros(1))
+  stp = NLPStopping(nlp)
+  meta = AlgoData(Float64)
+  @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(stp, meta)
+end
 #On a toy rosenbrock variation.
 include("test-0.jl")
 #On a problem from the package OptimizationProblems
@@ -26,3 +37,6 @@ include("test-2.jl")
 
 #Rank-deficient problems
 include("rank-deficient.jl")
+
+# Solver tests
+include("solvertest.jl")

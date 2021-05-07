@@ -38,9 +38,13 @@ function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPA
   nlk = isnothing(state.lambda) ? 1. : max(norm(state.lambda), 1.)
     
   cx  = state.cx/nxk
-  if has_bounds(pb)
+  if has_bounds(pb) && isnothing(state.mu)
     proj = max.(min.(state.x - state.gx, pb.meta.uvar), pb.meta.lvar)
     res = state.x - proj
+  elseif has_bounds(pb)
+    gix = min.(x - pb.meta.lvar, pb.meta.uvar - x)
+    mu  = state.mu
+    res = max.(state.res, min.(mu, gix, mu .* gix))
   else
     res = state.res/nlk
   end
@@ -98,6 +102,9 @@ function fps_solve(nlp :: AbstractNLPModel,
                    x0  :: AbstractVector{T} = nlp.meta.x0;
                    kwargs...
                    ) where T
+  if !(nlp.meta.minimize)
+    error("fps_solve only works for minimization problem")
+  end
   if has_inequalities(nlp)
     nlp = SlackModel(nlp)
   end

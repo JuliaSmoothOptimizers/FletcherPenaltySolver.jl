@@ -1,6 +1,9 @@
 function fps_solve(stp :: NLPStopping, meta :: AlgoData{T}) where T
+  if !(stp.pb.meta.minimize)
+    error("fps_solve only works for minimization problem")
+  end
   if has_inequalities(stp.pb)
-    throw("Error: consider only problem with equalities and bounds. 
+    error("Error: consider only problem with equalities and bounds. 
            Use `NLPModelsModifiers.SlackModel`.")
   end
   state = stp.current_state
