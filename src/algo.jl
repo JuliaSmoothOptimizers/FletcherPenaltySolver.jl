@@ -22,8 +22,8 @@ function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
     main_stp = stp,
     optimality_check = has_bounds(nlp) ? unconstrained_check : optim_check_bounded,
     max_iter = 10000,
-    atol = stp.meta.atol,
-    rtol = stp.meta.rtol,
+    atol = stp.meta.atol/100,
+    rtol = stp.meta.rtol/100,
     unbounded_threshold = 1e20,
   )
 
@@ -76,7 +76,7 @@ function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
       )
     elseif sub_stp.meta.unbounded
       unbounded_subpb += 1
-      ncx = norm(sub_stp.pb.cx)
+      ncx = norm(sub_stp.pb.cx, Inf)
       feas_tol = stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0)
       feas = ncx < norm(feas_tol, Inf)
       if feas
@@ -143,9 +143,21 @@ function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
       ncx = norm(state.cx) #careful as this is not always updated
       feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
-      if sub_stp.meta.optimal || sub_stp.meta.suboptimal #we need to tighten the tolerances
+      if (sub_stp.meta.optimal || sub_stp.meta.suboptimal) && feas #we need to tighten the tolerances
         sub_stp.meta.atol /= 10
         sub_stp.meta.rtol /= 10
+        stalling, unsuccessful_subpb = 0, 0
+        @info log_row(
+          Any[
+            stp.meta.nb_of_stop,
+            "D-ϵ",
+            state.fx,
+            ncx,
+            sub_stp.current_state.current_score,
+            σ,
+            status(sub_stp),
+          ],
+        )
       elseif restoration_phase && !feas && stalling >= 3 #or sub_stp.meta.optimal
         #Can"t escape this infeasible stationary point.
         stp.meta.suboptimal = true
@@ -227,7 +239,7 @@ function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
             status(sub_stp),
           ],
         ) #why state.fx if we just reinit it?
-      elseif ncx > Δ * nc0 && !feas
+      elseif (ncx > Δ * nc0 || sub_stp.meta.optimal || sub_stp.meta.suboptimal) && !feas
         σ *= meta.σ_update
         sub_stp.pb.σ = σ
         sub_stp.pb.ρ *= meta.ρ_update
