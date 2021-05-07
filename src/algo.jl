@@ -275,12 +275,14 @@ function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
           ],
         )
       else
+        #=
         @show "Euh... How?",
         stalling,
         unsuccessful_subpb,
         unbounded_subpb,
         sub_stp.meta.unbounded,
         feas
+        =#
         # ("Euh... How?", 0, 2, 0, false, false) -> and then R steps which never increase sigma
       end
       nc0 = copy(ncx)

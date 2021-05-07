@@ -1,5 +1,5 @@
 using Pkg;
-Pkg.activate("bench2");
+Pkg.activate("bench");
 using CUTEst, NLPModels, NLPModelsKnitro, NLPModelsIpopt, SolverBenchmark, SolverTools
 #This package
 using FletcherPenaltyNLPSolver

@@ -1,13 +1,13 @@
 using Pkg; Pkg.activate("bench")
-using Dates, JLD2, SolverTools, SolverBenchmark
+using Dates, JLD2, SolverTools, SolverBenchmark, Stopping
 using Plots; gr() #pgfplots()
 
 function figure()
-  names = ["2021-03-03__FPS_knitro_ipopt_45",
+  names = ["2021-05-07__FPS_knitro_ipopt_45",
           ]
 
   tod = string(today())
-  dsolvers = [:ipopt, :knitro, :DCILDL, :DCIMA57]
+  dsolvers = [:ipopt, :knitro, :FPS]
   list=""
   for solver in dsolvers
     list=string(list,"_$(solver)") 
