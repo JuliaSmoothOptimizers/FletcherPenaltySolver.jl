@@ -29,26 +29,26 @@ export FletcherPenaltyNLP
 export obj, objgrad, objgrad!, grad!, grad
 export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
 
-function Fletcher_penalty_optimality_check(pb :: AbstractNLPModel, state :: NLPAtX)
+function Fletcher_penalty_optimality_check(pb::AbstractNLPModel, state::NLPAtX)
   #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
   #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
   #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
   # returns i) + ii) OR iii) ?
-  nxk = max(norm(state.x), 1.)
-  nlk = isnothing(state.lambda) ? 1. : max(norm(state.lambda), 1.)
-    
-  cx  = state.cx/nxk
+  nxk = max(norm(state.x), 1.0)
+  nlk = isnothing(state.lambda) ? 1.0 : max(norm(state.lambda), 1.0)
+
+  cx = state.cx / nxk
   if has_bounds(pb) && isnothing(state.mu)
     proj = max.(min.(state.x - state.gx, pb.meta.uvar), pb.meta.lvar)
     res = state.x - proj
   elseif has_bounds(pb)
     gix = min.(x - pb.meta.lvar, pb.meta.uvar - x)
-    mu  = state.mu
+    mu = state.mu
     res = max.(state.res, min.(mu, gix, mu .* gix))
   else
-    res = state.res/nlk
+    res = state.res / nlk
   end
-    
+
   return vcat(cx, res)
 end
 
@@ -98,10 +98,7 @@ TODO:
 - Continue to explore the paper.
 - [Long term] Complemetarity constraints
 """
-function fps_solve(nlp :: AbstractNLPModel,
-                   x0  :: AbstractVector{T} = nlp.meta.x0;
-                   kwargs...
-                   ) where T
+function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; kwargs...) where {T}
   if !(nlp.meta.minimize)
     error("fps_solve only works for minimization problem")
   end
@@ -112,26 +109,32 @@ function fps_solve(nlp :: AbstractNLPModel,
 
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
-  Fptc(atol, rtol, opt0) = rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf),
-                                       ones(nlp.meta.nvar) .+ norm(gx0, Inf))
-                                      
-  initial_state = NLPAtX(x0, 
-                         zeros(T, nlp.meta.ncon), 
-                         Array{T,1}(undef, nlp.meta.ncon+nlp.meta.nvar), 
-                         cx = cx0, 
-                         gx = gx0, 
-                         res = gx0)
-  stp = NLPStopping(nlp, initial_state,
-                    optimality_check = Fletcher_penalty_optimality_check,
-                    atol = T(1e-6), # really convert here ?
-                    rtol = T(1e-6),
-                    tol_check = Fptc,
-                    max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64)); kwargs...)
+  Fptc(atol, rtol, opt0) =
+    rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf), ones(nlp.meta.nvar) .+ norm(gx0, Inf))
+
+  initial_state = NLPAtX(
+    x0,
+    zeros(T, nlp.meta.ncon),
+    Array{T, 1}(undef, nlp.meta.ncon + nlp.meta.nvar),
+    cx = cx0,
+    gx = gx0,
+    res = gx0,
+  )
+  stp = NLPStopping(
+    nlp,
+    initial_state,
+    optimality_check = Fletcher_penalty_optimality_check,
+    atol = T(1e-6), # really convert here ?
+    rtol = T(1e-6),
+    tol_check = Fptc,
+    max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64));
+    kwargs...,
+  )
 
   return fps_solve(stp, meta)
 end
 
-function fps_solve(stp :: NLPStopping; kwargs...)
+function fps_solve(stp::NLPStopping; kwargs...)
   T = eltype(stp.pb.meta.x0)
   meta = AlgoData(T; kwargs...)
 

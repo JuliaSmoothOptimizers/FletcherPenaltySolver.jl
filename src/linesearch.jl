@@ -5,16 +5,18 @@ but only with objgrad
 Note:
 - not working very well...
 """
-function armijo_og(h :: LineModel,
-                         h₀ :: T,
-                         slope :: T,
-                         g :: Array{T,1};
-                         t :: T=one(T),
-                         τ₀ :: T=max(T(1.0e-4), sqrt(eps(T))),
-                         τ₁ :: T=T(0.9999),
-                         bk_max :: Int=10,
-                         bW_max :: Int=5,
-                         verbose :: Bool=false) where T <: AbstractFloat
+function armijo_og(
+  h::LineModel,
+  h₀::T,
+  slope::T,
+  g::Array{T, 1};
+  t::T = one(T),
+  τ₀::T = max(T(1.0e-4), sqrt(eps(T))),
+  τ₁::T = T(0.9999),
+  bk_max::Int = 10,
+  bW_max::Int = 5,
+  verbose::Bool = false,
+) where {T <: AbstractFloat}
 
   # Perform improved Armijo linesearch.
   nbk = 0
@@ -22,15 +24,15 @@ function armijo_og(h :: LineModel,
 
   # First try to increase t to satisfy loose Wolfe condition
   ht, slope_t = objgrad!(h, t, g)
-  while (slope_t < τ₁*slope) && (ht <= h₀ + τ₀ * t * slope) && (nbW < bW_max)
+  while (slope_t < τ₁ * slope) && (ht <= h₀ + τ₀ * t * slope) && (nbW < bW_max)
     t *= 5
     ht, slope_t = objgrad!(h, t, g)
     nbW += 1
   end
 
-  hgoal = h₀ + slope * t * τ₀;
+  hgoal = h₀ + slope * t * τ₀
   fact = -T(0.8)
-  ϵ = eps(T)^T(3/5)
+  ϵ = eps(T)^T(3 / 5)
 
   # Enrich Armijo's condition with Hager & Zhang numerical trick
   Armijo = (ht <= hgoal)
@@ -38,7 +40,7 @@ function armijo_og(h :: LineModel,
   while !Armijo && (nbk < bk_max)
     t *= T(0.4)
     ht, = obj(h, t)
-    hgoal = h₀ + slope * t * τ₀;
+    hgoal = h₀ + slope * t * τ₀
 
     good_grad = false
 

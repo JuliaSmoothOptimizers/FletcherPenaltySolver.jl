@@ -3,10 +3,7 @@ using Documenter
 using Printf
 using FletcherPenaltyNLPSolver
 
-pages = [
-  "Introduction" => "index.md",
-  "Reference" => "reference.md",
-]
+pages = ["Introduction" => "index.md", "Reference" => "reference.md"]
 
 makedocs(
   sitename = "FletcherPenaltyNLPSolver",
