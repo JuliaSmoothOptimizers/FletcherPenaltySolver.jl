@@ -30,9 +30,8 @@ using OptimizationProblems, NLPModelsJuMP
   @time x4, f4, g4, H4 = lbfgs(fp_sos2, x0, lsfunc = SolverTools.armijo_wolfe)
   fp_sos2.nlp.counters
 
-  @test obj(nlp, x1) == obj(nlp, x2)
   @test obj(nlp, x1) == obj(nlp, x3)
-  @test obj(nlp, x1) == obj(nlp, x4)
+  @test obj(nlp, x2) == obj(nlp, x4)
 
   fp_sos_stp = NLPStopping(fp_sos, optimality_check = unconstrained_check, atol = 1e-3)
   @time fp_sos_stp = lbfgs(fp_sos_stp, x0 = x0, lsfunc = SolverTools.armijo_wolfe)

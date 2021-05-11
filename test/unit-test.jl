@@ -1,3 +1,17 @@
+function test_memoization(fpnlp)
+  xr = rand(fpnlp.meta.nvar)
+
+  for f in [:obj, :grad, :objgrad]
+    @test eval(f)(fpnlp, xr) != nothing
+    tmp = (fpnlp.nlp.counters.neval_obj, fpnlp.nlp.counters.neval_grad, fpnlp.nlp.counters.neval_cons)
+    @test eval(f)(fpnlp, xr) != nothing
+    tmp2 = (fpnlp.nlp.counters.neval_obj, fpnlp.nlp.counters.neval_grad, fpnlp.nlp.counters.neval_cons)
+    @test tmp == tmp2
+  end
+
+end
+
+
 @testset "Unit test: FletcherPenaltyNLP with 1st hessian approximation" begin
   n = 10
   nlp = ADNLPModel(x -> dot(x, x), zeros(n), x -> [sum(x) - 1.0], zeros(1), zeros(1)) #ne second derivatives of the constraints
@@ -23,6 +37,12 @@
 
   xfeas = ones(n) ./ n
   @test obj(fpnlp, xfeas) ≈ 0.1 atol = 1e-14
+
+  # Test memoization
+  tmp = (fpnlp.nlp.counters.neval_obj, fpnlp.nlp.counters.neval_grad, fpnlp.nlp.counters.neval_cons)
+  @test obj(fpnlp, xfeas) ≈ 0.1 atol = 1e-14
+  tmp2 = (fpnlp.nlp.counters.neval_obj, fpnlp.nlp.counters.neval_grad, fpnlp.nlp.counters.neval_cons)
+  @test tmp == tmp2
 
   @test fpnlp.fx ≈ 0.1 atol = 1e-14
   @test fpnlp.gx ≈ 0.2 * ones(n) atol = 1e-14
