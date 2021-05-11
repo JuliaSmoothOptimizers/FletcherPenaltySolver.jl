@@ -35,14 +35,10 @@ end
   @test length(fpnlp.ys) == nlp.meta.ncon
   @test length(fpnlp.cx) == nlp.meta.ncon
 
+  test_memoization(fpnlp)
+
   xfeas = ones(n) ./ n
   @test obj(fpnlp, xfeas) ≈ 0.1 atol = 1e-14
-
-  # Test memoization
-  tmp = (fpnlp.nlp.counters.neval_obj, fpnlp.nlp.counters.neval_grad, fpnlp.nlp.counters.neval_cons)
-  @test obj(fpnlp, xfeas) ≈ 0.1 atol = 1e-14
-  tmp2 = (fpnlp.nlp.counters.neval_obj, fpnlp.nlp.counters.neval_grad, fpnlp.nlp.counters.neval_cons)
-  @test tmp == tmp2
 
   @test fpnlp.fx ≈ 0.1 atol = 1e-14
   @test fpnlp.gx ≈ 0.2 * ones(n) atol = 1e-14
@@ -118,6 +114,8 @@ end
   @test length(fpnlp.ys) == nlp.meta.ncon
   @test length(fpnlp.cx) == nlp.meta.ncon
 
+  test_memoization(fpnlp)
+
   @test obj(fpnlp, xr) ≈ (sqrt(6) - 3)^2 / 9 + 100 * (sqrt(3) - 2)^2 / 9 atol = 1e-14
 
   @test fpnlp.fx ≈ (sqrt(6) - 3)^2 / 9 + 100 * (sqrt(3) - 2)^2 / 9 atol = 1e-14
@@ -177,6 +175,8 @@ end
   @test length(fpnlp.gx) == nlp.meta.nvar
   @test length(fpnlp.ys) == nlp.meta.ncon
   @test length(fpnlp.cx) == nlp.meta.ncon
+
+  test_memoization(fpnlp)
 
   xfeas = ones(n) ./ n
   @test obj(fpnlp, xfeas) ≈ 0.1 atol = 1e-14
@@ -256,6 +256,8 @@ end
   @test length(fpnlp.gx) == nlp.meta.nvar
   @test length(fpnlp.ys) == nlp.meta.ncon
   @test length(fpnlp.cx) == nlp.meta.ncon
+
+  test_memoization(fpnlp)
 
   @test obj(fpnlp, xr) ≈ (sqrt(6) - 3)^2 / 9 + 100 * (sqrt(3) - 2)^2 / 9 atol = 1e-14
 
