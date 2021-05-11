@@ -179,6 +179,18 @@ end
 @memoize function main_jac(nlp::FletcherPenaltyNLP, x::AbstractVector)
   return jac(nlp.nlp, x)
 end
+
+@memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where T
+  g = nlp.gx
+  c = nlp.cx
+  σ = nlp.σ
+  rhs1 = vcat(g, T(σ) * c)
+  rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
+
+  _sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
+
+  return _sol1, _sol2
+end
 #=
 @memoize function main_obj!(nlp::FletcherPenaltyNLP, x::AbstractVector, fx)
   fx = obj(nlp.nlp, x) 
@@ -195,22 +207,22 @@ end
 =#
 
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
-  @lencheck nlp.meta.nvar x
-  f = main_obj(nlp, x); nlp.fx = f
-  g = main_grad(nlp, x)
-  nlp.gx .= g 
-  c = main_cons(nlp, x)
-  nlp.cx .= c
+  nvar = nlp.meta.nvar
+  @lencheck nvar x
+  nlp.fx = main_obj(nlp, x)
+  f = nlp.fx
+  nlp.gx .= main_grad(nlp, x)
+  g = nlp.gx 
+  nlp.cx .= main_cons(nlp, x)
+  c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
   rhs1 = vcat(g, T(σ) * c)
 
   _sol1, _ = nlp.linear_system_solver(nlp, x, rhs1, nothing)
 
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
-  gs, ys = _sol1[1:nvar], _sol1[(nvar + 1):(nvar + ncon)]
-  nlp.ys = ys
-  fx = f - dot(c, ys) + T(ρ) / 2 * dot(c, c)
+  nlp.ys .= _sol1[(nvar + 1):(nvar + nlp.nlp.meta.ncon)]
+
+  fx = f - dot(c, nlp.ys) + T(ρ) / 2 * dot(c, c)
 
   return fx
 end
@@ -224,19 +236,18 @@ function grad!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  g = main_grad(nlp, x)
-  nlp.gx .= g 
-  c = main_cons(nlp, x)
-  nlp.cx .= c
+  nlp.gx .= main_grad(nlp, x)
+  g = nlp.gx 
+  nlp.cx .= main_cons(nlp, x)
+  c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  rhs1 = vcat(g, T(σ) * c)
-  rhs2 = vcat(zeros(T, nvar), c)
+  _sol1, _sol2 = linear_system2(nlp, x)
 
-  _sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
+  gs = _sol1[1:nvar]
+  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
+  ys = nlp.ys
 
-  gs, ys = _sol1[1:nvar], _sol1[(nvar + 1):(nvar + ncon)]
-  nlp.ys = ys
   v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
   Hsv = hprod(nlp.nlp, x, ys, v, obj_weight = one(T))
   Sstw = hprod(nlp.nlp, x, w, gs; obj_weight = zero(T))
@@ -262,20 +273,19 @@ function objgrad!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f = main_obj(nlp, x); nlp.fx = f
-  g = main_grad(nlp, x)
-  nlp.gx .= g 
-  c = main_cons(nlp, x)
-  nlp.cx .= c
+  nlp.fx = main_obj(nlp, x); f = nlp.fx
+  nlp.gx .= main_grad(nlp, x)
+  g = nlp.gx 
+  nlp.cx .= main_cons(nlp, x)
+  c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  rhs1 = vcat(g, T(σ) * c)
-  rhs2 = vcat(zeros(T, nvar), c)
+  _sol1, _sol2 = linear_system2(nlp, x)
 
-  _sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
+  gs = _sol1[1:nvar]
+  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
+  ys = nlp.ys
 
-  gs, ys = _sol1[1:nvar], _sol1[(nvar + 1):(nvar + ncon)]
-  nlp.ys = ys
   v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
   Hsv = hprod(nlp.nlp, x, ys, v, obj_weight = one(T))
   Sstw = hprod(nlp.nlp, x, w, gs; obj_weight = zero(T))
@@ -322,21 +332,21 @@ function hess_coord!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f = main_obj(nlp, x); nlp.fx = f
-  g = main_grad(nlp, x)
-  nlp.gx .= g 
-  c = main_cons(nlp, x)
-  nlp.cx .= c
+  nlp.fx = main_obj(nlp, x)
+  f = nlp.fx
+  nlp.gx .= main_grad(nlp, x)
+  g = nlp.gx 
+  nlp.cx .= main_cons(nlp, x)
+  c = nlp.cx
   A = main_jac(nlp, x)
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  rhs1 = vcat(g, T(σ) * c)
-  rhs2 = vcat(zeros(T, nvar), c)
+  _sol1, _sol2 = linear_system2(nlp, x)
 
-  _sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
-
-  gs, ys = _sol1[1:nvar], _sol1[(nvar + 1):(nvar + ncon)]
+  gs = _sol1[1:nvar]
+  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
+  ys = nlp.ys
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
   In = Matrix(I, nvar, nvar)
@@ -415,21 +425,21 @@ function hprod!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f = main_obj(nlp, x); nlp.fx = f
-  g = main_grad(nlp, x)
-  nlp.gx .= g 
-  c = main_cons(nlp, x)
-  nlp.cx .= c
+  nlp.fx = main_obj(nlp, x)
+  f = nlp.fx
+  nlp.gx .= main_grad(nlp, x)
+  g = nlp.gx 
+  nlp.cx .= main_cons(nlp, x)
+  c = nlp.cx
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
   τ = T(max(δ, 1e-14))
 
-  rhs1 = vcat(g, T(σ) * c)
-  rhs2 = vcat(zeros(T, nvar), c)
+  _sol1, _sol2 = linear_system2(nlp, x)
 
-  _sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
-
-  gs, ys = _sol1[1:nvar], _sol1[(nvar + 1):(nvar + ncon)]
+  gs = _sol1[1:nvar]
+  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
+  ys = nlp.ys
 
   Hsv = hprod(nlp.nlp, x, -ys, v, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
