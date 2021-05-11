@@ -92,9 +92,9 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = 
     counters,
     nlp,
     S(NaN),
-    S[],
-    S[],
-    S[],
+    Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.ncon),
     σ,
     0.0,
     0.0,
@@ -126,9 +126,9 @@ function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_appro
     counters,
     nlp,
     S(NaN),
-    S[],
-    S[],
-    S[],
+    Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.ncon),
     σ,
     ρ,
     δ,
@@ -170,12 +170,9 @@ end
 
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
   @lencheck nlp.meta.nvar x
-  f = obj(nlp.nlp, x)
+  f, g = objgrad!(nlp.nlp, x, nlp.gx)
   nlp.fx = f
-  c = cons(nlp.nlp, x)
-  nlp.cx = c
-  g = grad(nlp.nlp, x)
-  nlp.gx = g
+  c = cons!(nlp.nlp, x, nlp.cx)
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
   rhs1 = vcat(g, T(σ) * c)
 
@@ -199,10 +196,8 @@ function grad!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  c = cons(nlp.nlp, x)
-  nlp.cx = c
-  g = grad(nlp.nlp, x)
-  nlp.gx = g
+  c = cons!(nlp.nlp, x, nlp.cx)
+  g = grad!(nlp.nlp, x, nlp.gx)
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   rhs1 = vcat(g, T(σ) * c)
@@ -237,12 +232,9 @@ function objgrad!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f = obj(nlp.nlp, x)
+  f, g = objgrad!(nlp.nlp, x, nlp.gx)
   nlp.fx = f
-  c = cons(nlp.nlp, x)
-  nlp.cx = c
-  g = grad(nlp.nlp, x)
-  nlp.gx = g
+  c = cons!(nlp.nlp, x, nlp.cx)
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   rhs1 = vcat(g, T(σ) * c)
@@ -298,13 +290,11 @@ function hess_coord!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f = obj(nlp.nlp, x)
-  nlp.fx = f
-  c = cons(nlp.nlp, x)
-  nlp.cx = c
-  g = grad(nlp.nlp, x)
-  nlp.gx = g
   A = jac(nlp.nlp, x)
+  f, g = objgrad!(nlp.nlp, x, nlp.gx)
+  nlp.fx = f
+  c = cons!(nlp.nlp, x, nlp.cx)
+
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   rhs1 = vcat(g, T(σ) * c)
@@ -391,12 +381,10 @@ function hprod!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f = obj(nlp.nlp, x)
+  f, g = objgrad!(nlp.nlp, x, nlp.gx)
   nlp.fx = f
-  c = cons(nlp.nlp, x)
-  nlp.cx = c
-  g = grad(nlp.nlp, x)
-  nlp.gx = g
+  c = cons!(nlp.nlp, x, nlp.cx)
+
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
   τ = T(max(δ, 1e-14))
 

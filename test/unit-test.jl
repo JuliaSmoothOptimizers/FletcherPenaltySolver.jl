@@ -17,9 +17,9 @@
   @test fpnlp.meta.nvar == 10
 
   @test isnan(fpnlp.fx)
-  @test fpnlp.gx == Float64[]
-  @test fpnlp.ys == Float64[]
-  @test fpnlp.cx == Float64[]
+  @test length(fpnlp.gx) == nlp.meta.nvar
+  @test length(fpnlp.ys) == nlp.meta.ncon
+  @test length(fpnlp.cx) == nlp.meta.ncon
 
   xfeas = ones(n) ./ n
   @test obj(fpnlp, xfeas) ≈ 0.1 atol = 1e-14
@@ -94,9 +94,9 @@ end
   DYs(x) = ForwardDiff.hessian(ys, x)
 
   @test isnan(fpnlp.fx)
-  @test fpnlp.gx == Float64[]
-  @test fpnlp.ys == Float64[]
-  @test fpnlp.cx == Float64[]
+  @test length(fpnlp.gx) == nlp.meta.nvar
+  @test length(fpnlp.ys) == nlp.meta.ncon
+  @test length(fpnlp.cx) == nlp.meta.ncon
 
   @test obj(fpnlp, xr) ≈ (sqrt(6) - 3)^2 / 9 + 100 * (sqrt(3) - 2)^2 / 9 atol = 1e-14
 
@@ -154,9 +154,9 @@ end
   @test fpnlp.meta.nvar == 10
 
   @test isnan(fpnlp.fx)
-  @test fpnlp.gx == Float64[]
-  @test fpnlp.ys == Float64[]
-  @test fpnlp.cx == Float64[]
+  @test length(fpnlp.gx) == nlp.meta.nvar
+  @test length(fpnlp.ys) == nlp.meta.ncon
+  @test length(fpnlp.cx) == nlp.meta.ncon
 
   xfeas = ones(n) ./ n
   @test obj(fpnlp, xfeas) ≈ 0.1 atol = 1e-14
@@ -233,9 +233,9 @@ end
   DYs(x) = ForwardDiff.hessian(ys, x)
 
   @test isnan(fpnlp.fx)
-  @test fpnlp.gx == Float64[]
-  @test fpnlp.ys == Float64[]
-  @test fpnlp.cx == Float64[]
+  @test length(fpnlp.gx) == nlp.meta.nvar
+  @test length(fpnlp.ys) == nlp.meta.ncon
+  @test length(fpnlp.cx) == nlp.meta.ncon
 
   @test obj(fpnlp, xr) ≈ (sqrt(6) - 3)^2 / 9 + 100 * (sqrt(3) - 2)^2 / 9 atol = 1e-14
 
