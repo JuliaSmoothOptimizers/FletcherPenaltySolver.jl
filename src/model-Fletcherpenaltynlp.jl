@@ -50,70 +50,65 @@ mutable struct FletcherPenaltyNLP{
   S <: AbstractFloat,
   T <: AbstractVector{S},
   A <: Union{Val{1}, Val{2}},
+  P <: Real,
 } <: AbstractNLPModel
   meta::AbstractNLPModelMeta
   counters::Counters
   nlp::AbstractNLPModel
 
   #Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
-  fx::Union{S}
-  cx::Union{T}
-  gx::Union{T}
-  ys::Union{T}
+  fx::S
+  cx::T
+  gx::T
+  ys::T
 
-  σ::Real
-  ρ::Real
-  δ::Real
+  σ::P
+  ρ::P
+  δ::P
   linear_system_solver::Function
 
   hessian_approx::A
 end
 
 function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = nlp.meta.x0)
-  S, T = eltype(x0), typeof(x0)
-
+  S = eltype(x0)
   nvar = nlp.meta.nvar
-
-  nnzh = nvar * (nvar + 1) / 2
 
   meta = NLPModelMeta(
     nvar,
     x0 = x0,
-    nnzh = nnzh,
+    nnzh = nvar * (nvar + 1) / 2,
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
   )
-  counters = Counters()
+
   return FletcherPenaltyNLP(
     meta,
-    counters,
+    Counters(),
     nlp,
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
     σ,
-    0.0,
-    0.0,
+    zero(typeof(σ)),
+    zero(typeof(σ)),
     linear_system_solver,
     hessian_approx,
   )
 end
 
 function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_approx; x0 = nlp.meta.x0)
-  S, T = eltype(x0), typeof(x0)
-
+  S = eltype(x0)
   nvar = nlp.meta.nvar
-
-  nnzh = nvar * (nvar + 1) / 2
 
   meta = NLPModelMeta(
     nvar,
     x0 = x0,
-    nnzh = nnzh,
+    nnzh = nvar * (nvar + 1) / 2,
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
     minimize = true,
@@ -168,11 +163,44 @@ function FletcherPenaltyNLP(
   )
 end
 
+@memoize function main_obj(nlp::FletcherPenaltyNLP, x::AbstractVector)
+  fx = obj(nlp.nlp, x) 
+  return fx
+end
+
+@memoize function main_grad(nlp::FletcherPenaltyNLP, x::AbstractVector)
+  return grad(nlp.nlp, x)
+end
+
+@memoize function main_cons(nlp::FletcherPenaltyNLP, x::AbstractVector)
+  return cons(nlp.nlp, x)
+end
+
+@memoize function main_jac(nlp::FletcherPenaltyNLP, x::AbstractVector)
+  return jac(nlp.nlp, x)
+end
+#=
+@memoize function main_obj!(nlp::FletcherPenaltyNLP, x::AbstractVector, fx)
+  fx = obj(nlp.nlp, x) 
+  return fx
+end
+
+@memoize function main_grad!(nlp::FletcherPenaltyNLP, x::AbstractVector, gx::AbstractVector)
+  return grad!(nlp.nlp, x, gx)
+end
+
+@memoize function main_cons!(nlp::FletcherPenaltyNLP, x::AbstractVector, cx::AbstractVector)
+  return cons!(nlp.nlp, x, cx)
+end
+=#
+
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
   @lencheck nlp.meta.nvar x
-  f, g = objgrad!(nlp.nlp, x, nlp.gx)
-  nlp.fx = f
-  c = cons!(nlp.nlp, x, nlp.cx)
+  f = main_obj(nlp, x); nlp.fx = f
+  g = main_grad(nlp, x)
+  nlp.gx .= g 
+  c = main_cons(nlp, x)
+  nlp.cx .= c
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
   rhs1 = vcat(g, T(σ) * c)
 
@@ -196,8 +224,10 @@ function grad!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  c = cons!(nlp.nlp, x, nlp.cx)
-  g = grad!(nlp.nlp, x, nlp.gx)
+  g = main_grad(nlp, x)
+  nlp.gx .= g 
+  c = main_cons(nlp, x)
+  nlp.cx .= c
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   rhs1 = vcat(g, T(σ) * c)
@@ -232,9 +262,11 @@ function objgrad!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f, g = objgrad!(nlp.nlp, x, nlp.gx)
-  nlp.fx = f
-  c = cons!(nlp.nlp, x, nlp.cx)
+  f = main_obj(nlp, x); nlp.fx = f
+  g = main_grad(nlp, x)
+  nlp.gx .= g 
+  c = main_cons(nlp, x)
+  nlp.cx .= c
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   rhs1 = vcat(g, T(σ) * c)
@@ -290,10 +322,12 @@ function hess_coord!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  A = jac(nlp.nlp, x)
-  f, g = objgrad!(nlp.nlp, x, nlp.gx)
-  nlp.fx = f
-  c = cons!(nlp.nlp, x, nlp.cx)
+  f = main_obj(nlp, x); nlp.fx = f
+  g = main_grad(nlp, x)
+  nlp.gx .= g 
+  c = main_cons(nlp, x)
+  nlp.cx .= c
+  A = main_jac(nlp, x)
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
@@ -315,9 +349,9 @@ function hess_coord!(
 
   #regularization term
   if ρ > 0.0
-    J = jac(nlp.nlp, x)
+    #J = jac(nlp.nlp, x)
     Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
-    Hcrho = Hc + T(ρ) * J' * J
+    Hcrho = Hc + T(ρ) * A' * A
     Hx = (In - Pt) * Hs - Hs * Pt + 2 * T(σ) * Pt + Hcrho
   else
     Hx = (In - Pt) * Hs - Hs * Pt + 2 * T(σ) * Pt
@@ -381,9 +415,11 @@ function hprod!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  f, g = objgrad!(nlp.nlp, x, nlp.gx)
-  nlp.fx = f
-  c = cons!(nlp.nlp, x, nlp.cx)
+  f = main_obj(nlp, x); nlp.fx = f
+  g = main_grad(nlp, x)
+  nlp.gx .= g 
+  c = main_cons(nlp, x)
+  nlp.cx .= c
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
   τ = T(max(δ, 1e-14))
