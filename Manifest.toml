@@ -421,10 +421,10 @@ uuid = "4076af6c-e467-56ae-b986-b466b2749572"
 version = "0.21.7"
 
 [[KNITRO]]
-deps = ["Libdl", "MathOptInterface", "MathProgBase", "SparseArrays"]
-git-tree-sha1 = "b14c5f5e72b706c68e44931a9b19f4e1abb8e8ac"
+deps = ["Libdl", "MathOptInterface", "SparseArrays"]
+git-tree-sha1 = "88c9bba20c0834c79476a7f28cedfc8c9931e4db"
 uuid = "67920dd8-b58e-52a8-8622-53c4cffbe346"
-version = "0.9.3"
+version = "0.10.0"
 
 [[Krylov]]
 deps = ["LinearAlgebra", "LinearOperators", "Printf", "SparseArrays"]
@@ -660,11 +660,9 @@ version = "0.8.0"
 
 [[NLPModelsKnitro]]
 deps = ["KNITRO", "NLPModels", "NLPModelsModifiers", "SolverCore"]
-git-tree-sha1 = "52afbe582ffb742f62972dabe89cf861222c9851"
-repo-rev = "solvertools050"
-repo-url = "https://github.com/tmigot/NLPModelsKnitro.jl"
+git-tree-sha1 = "8c05944cbc1a44a3eb77a9bacee742157ed212bd"
 uuid = "bec4dd0d-7755-52d5-9a02-22f0ffc7efcb"
-version = "0.5.0"
+version = "0.5.1"
 
 [[NLPModelsModifiers]]
 deps = ["FastClosures", "LinearAlgebra", "LinearOperators", "NLPModels", "Printf", "SparseArrays"]

@@ -29,6 +29,5 @@ Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
 
 This package still on unofficial versions of:
  - ADNLPModels v0.1.1 `https://github.com/tmigot/ADNLPModels.jl#exlude-jth_functions`    
- - NLPModelsKnitro v0.5.0 `https://github.com/tmigot/NLPModelsKnitro.jl#solvertools050`
  - Krylov v0.7.0 master
  - SolverTest v0.1.1 main
