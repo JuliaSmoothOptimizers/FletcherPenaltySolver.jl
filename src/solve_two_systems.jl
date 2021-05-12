@@ -10,9 +10,10 @@ function _solve_with_linear_operator(
   #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
   n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
   nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
+  Aop = jac_op(nlp.nlp, x) # Jacobian operator
   Mp(v) = vcat(
-    v[1:n] + jtprod(nlp.nlp, x, v[(n + 1):nn]),
-    jprod(nlp.nlp, x, v[1:n]) - nlp.δ * v[(n + 1):nn],
+    v[1:n] + Aop' * v[(n + 1):nn],
+    Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
   )
   #LinearOperator(type, nrows, ncols, symmetric, hermitian, prod, tprod, ctprod)
   opM = LinearOperator(T, nn, nn, true, true, v -> Mp(v), w -> Mp(w), u -> Mp(u))
