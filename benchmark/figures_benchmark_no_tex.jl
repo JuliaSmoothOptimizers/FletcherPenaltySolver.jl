@@ -1,31 +1,32 @@
-using Pkg; Pkg.activate("bench")
+using Pkg
+Pkg.activate("bench")
 using Dates, JLD2, SolverTools, SolverBenchmark, Stopping
-using Plots; gr() #pgfplots()
+using Plots
+gr() #pgfplots()
 
 function figure()
-  names = ["2021-05-07__FPS_knitro_ipopt_45",
-          ]
+  names = ["2021-05-12__FPS_knitro_ipopt_45"]
 
   tod = string(today())
   dsolvers = [:ipopt, :knitro, :FPS]
-  list=""
+  list = ""
   for solver in dsolvers
-    list=string(list,"_$(solver)") 
+    list=string(list,"_$(solver)")
   end
   legend = Dict(
-            :neval_obj => "number of f evals", 
-            :neval_cons => "number of c evals", 
-            :neval_grad => "number of ∇f evals", 
-            :neval_jac => "number of ∇c evals", 
-            :neval_jprod => "number of ∇c*v evals", 
-            :neval_jtprod  => "number of ∇cᵀ*v evals", 
-            :neval_hess  => "number of ∇²f evals", 
-            :elapsed_time => "elapsed time"
-            )
+    :neval_obj => "number of f evals",
+    :neval_cons => "number of c evals",
+    :neval_grad => "number of ∇f evals",
+    :neval_jac => "number of ∇c evals",
+    :neval_jprod => "number of ∇c*v evals",
+    :neval_jtprod => "number of ∇cᵀ*v evals",
+    :neval_hess => "number of ∇²f evals",
+    :elapsed_time => "elapsed time",
+  )
   styles = [:solid,:dash,:dot,:dashdot] #[:auto, :solid, :dash, :dot, :dashdot, :dashdotdot]
   perf_title(col) = "Performance profile on CUTEst w.r.t. $(string(legend[col]))"
 
-  @load string(names[1],".jld2") stats
+  @load string(names[1], ".jld2") stats
 
   for col in keys(legend)
       empty = false

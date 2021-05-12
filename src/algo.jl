@@ -22,8 +22,8 @@ function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
     main_stp = stp,
     optimality_check = has_bounds(nlp) ? unconstrained_check : optim_check_bounded,
     max_iter = 10000,
-    atol = stp.meta.atol/100,
-    rtol = stp.meta.rtol/100,
+    atol = stp.meta.atol / 100,
+    rtol = stp.meta.rtol / 100,
     unbounded_threshold = 1e20,
   )
 

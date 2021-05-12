@@ -164,7 +164,7 @@ function FletcherPenaltyNLP(
 end
 
 @memoize function main_obj(nlp::FletcherPenaltyNLP, x::AbstractVector)
-  fx = obj(nlp.nlp, x) 
+  fx = obj(nlp.nlp, x)
   return fx
 end
 
@@ -180,7 +180,7 @@ end
   return jac(nlp.nlp, x)
 end
 
-@memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where T
+@memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   g = nlp.gx
   c = nlp.cx
   σ = nlp.σ
@@ -212,7 +212,7 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   nlp.fx = main_obj(nlp, x)
   f = nlp.fx
   nlp.gx .= main_grad(nlp, x)
-  g = nlp.gx 
+  g = nlp.gx
   nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
@@ -237,7 +237,7 @@ function grad!(
   ncon = nlp.nlp.meta.ncon
 
   nlp.gx .= main_grad(nlp, x)
-  g = nlp.gx 
+  g = nlp.gx
   nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
@@ -275,7 +275,7 @@ function objgrad!(
 
   nlp.fx = main_obj(nlp, x); f = nlp.fx
   nlp.gx .= main_grad(nlp, x)
-  g = nlp.gx 
+  g = nlp.gx
   nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
@@ -335,7 +335,7 @@ function hess_coord!(
   nlp.fx = main_obj(nlp, x)
   f = nlp.fx
   nlp.gx .= main_grad(nlp, x)
-  g = nlp.gx 
+  g = nlp.gx
   nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
   A = main_jac(nlp, x)
@@ -428,7 +428,7 @@ function hprod!(
   nlp.fx = main_obj(nlp, x)
   f = nlp.fx
   nlp.gx .= main_grad(nlp, x)
-  g = nlp.gx 
+  g = nlp.gx
   nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
 
