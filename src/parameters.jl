@@ -36,6 +36,8 @@ struct AlgoData{T <: Real}
   linear_system_solver::Function
 
   unconstrained_solver::Function
+  atol_sub::Function # (stp.meta.atol)
+  rtol_sub::Function #(stp.meta.rtol)
 
   hessian_approx
   convex_subproblem::Bool #Useful to set the `convex` option in Knitro
@@ -54,6 +56,8 @@ function AlgoData(
   Δ::Real = T(0.95),
   linear_system_solver::Function = _solve_ldlt_factorization, #_solve_with_linear_operator,
   unconstrained_solver::Function = is_knitro_installed ? knitro : ipopt,
+  atol_sub::Function = atol -> max(0.1, atol),
+  rtol_sub::Function = rtol -> max(0.1, rtol),
   hessian_approx = Val(2),
   convex_subproblem::Bool = false,
   kwargs...,
@@ -70,6 +74,8 @@ function AlgoData(
     Δ,
     linear_system_solver,
     unconstrained_solver,
+    atol_sub,
+    rtol_sub,
     hessian_approx,
     convex_subproblem,
   )
