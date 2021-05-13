@@ -1,31 +1,34 @@
-function _solve_with_linear_operator(
+function _solve_with_linear_operator( # linear_system_solver
   nlp::FletcherPenaltyNLP,
   x::AbstractVector{T},
   rhs1::AbstractVector{T},
   rhs2::AbstractVector{T};
-  _linear_system_solver::Function = cg,
   kwargs...,
 ) where {T <: AbstractFloat}
 
   #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
   n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
   nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
-  Aop = jac_op(nlp.nlp, x) # Jacobian operator
-  Mp(v) = vcat(
-    v[1:n] + Aop' * v[(n + 1):nn],
-    Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
-  )
+  Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  # only one as the matrix is symmetric
+  function Mp!(r, v) 
+    nlp.qdsolver.Jtv .= v[1:n] + Aop' * v[(n + 1):nn]
+    nlp.qdsolver.Jv .= Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
+    r .= vcat(nlp.qdsolver.Jtv, nlp.qdsolver.Jv) # necessary ?
+    return r
+  end
   #LinearOperator(type, nrows, ncols, symmetric, hermitian, prod, tprod, ctprod)
-  opM = LinearOperator(T, nn, nn, true, true, v -> Mp(v), w -> Mp(w), u -> Mp(u))
+  prod = @closure v -> Mp!(nlp.qdsolver.opr, v)
+  opM = LinearOperator(T, nn, nn, true, true, prod, prod, prod)
 
-  (sol1, stats1) = _linear_system_solver(opM, rhs1; kwargs...)
+  (sol1, stats1) = solve(opM, rhs1, nlp.qdsolver; kwargs...)
   if !stats1.solved
-    @warn "Failed solving linear system with $(_linear_system_solver)."
+    @warn "Failed solving linear system with $(nlp.qdsolver.solver)."
   end
 
-  (sol2, stats2) = _linear_system_solver(opM, rhs2; kwargs...)
+  (sol2, stats2) = solve(opM, rhs2, nlp.qdsolver; kwargs...)
   if !stats2.solved
-    @warn "Failed solving linear system with $(_linear_system_solver)."
+    @warn "Failed solving linear system with $(nlp.qdsolver.solver)."
   end
 
   return sol1, sol2
@@ -36,24 +39,28 @@ function _solve_with_linear_operator(
   x::AbstractVector{T},
   rhs1::AbstractVector{T},
   rhs2::Nothing;
-  _linear_system_solver::Function = cg,
   kwargs...,
 ) where {T <: AbstractFloat}
 
   #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
   n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
   nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
-  Aop = jac_op(nlp.nlp, x) # Jacobian operator
-  Mp(v) = vcat(
-    v[1:n] + Aop' * v[(n + 1):nn],
-    Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
-  )
+  Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  # only one as the matrix is symmetric
+  function Mp!(r, v) 
+    nlp.qdsolver.Jtv .= v[1:n] + Aop' * v[(n + 1):nn]
+    nlp.qdsolver.Jv .= Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
+    r .= vcat(nlp.qdsolver.Jtv, nlp.qdsolver.Jv) # necessary ?
+    return r
+  end
   #LinearOperator(type, nrows, ncols, symmetric, hermitian, prod, tprod, ctprod)
-  opM = LinearOperator(T, nn, nn, true, true, v -> Mp(v), w -> Mp(w), u -> Mp(u))
+  prod = @closure v -> Mp!(nlp.qdsolver.opr, v)
+  opM = LinearOperator(T, nn, nn, true, true, prod, prod, prod)
 
-  (sol1, stats1) = _linear_system_solver(opM, rhs1; kwargs...)
+  # I think the result, sol1 is also in nlp.qdsolver.opr ! (but memoize problem)
+  (sol1, stats1) = solve(opM, rhs1, nlp.qdsolver; kwargs...)
   if !stats1.solved
-    @warn "Failed solving linear system with $(_linear_system_solver)."
+    @warn "Failed solving linear system with $(nlp.qdsolver.solver)."
   end
 
   return sol1

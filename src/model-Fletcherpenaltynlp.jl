@@ -12,6 +12,9 @@ import NLPModels:
   hess_coord!,
   hess_structure,
   hess_structure!
+
+include("solve_two_systems_struct.jl")
+
 """
 We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
@@ -41,7 +44,6 @@ the two linear systems and returns the two solutions.
 
 TODO:
 - sparse structure of the hessian?
-- avoid reevaluation fx, cx, gs, ys?
 
 Example:
 fp_sos  = FletcherPenaltyNLP(nlp, 0.1, _solve_with_linear_operator)
@@ -51,6 +53,7 @@ mutable struct FletcherPenaltyNLP{
   T <: AbstractVector{S},
   A <: Union{Val{1}, Val{2}},
   P <: Real,
+  QDS <: QDSolver,
 } <: AbstractNLPModel
   meta::AbstractNLPModelMeta
   counters::Counters
@@ -72,7 +75,9 @@ mutable struct FletcherPenaltyNLP{
   σ::P
   ρ::P
   δ::P
-  linear_system_solver::Function
+
+  qdsolver::QDS
+  linear_system_solver::Function # to be removed
 
   hessian_approx::A
 end
@@ -108,6 +113,7 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = 
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
+    IterativeSolver(nlp.meta.ncon, nlp.meta.nvar, S),
     linear_system_solver,
     hessian_approx,
   )
@@ -144,6 +150,7 @@ function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_appro
     σ,
     ρ,
     δ,
+    IterativeSolver(nlp.meta.ncon, nlp.meta.nvar, S(NaN)),
     linear_system_solver,
     hessian_approx,
   )

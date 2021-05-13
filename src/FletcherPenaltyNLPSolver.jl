@@ -1,6 +1,6 @@
 module FletcherPenaltyNLPSolver
 
-using LinearAlgebra, Logging, SparseArrays
+using FastClosures, LinearAlgebra, Logging, SparseArrays
 
 using Memoize
 
