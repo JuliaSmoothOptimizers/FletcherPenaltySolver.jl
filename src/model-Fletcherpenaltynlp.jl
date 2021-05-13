@@ -209,6 +209,7 @@ end
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
   nvar = nlp.meta.nvar
   @lencheck nvar x
+  increment!(nlp, :neval_obj)
   nlp.fx = main_obj(nlp, x)
   f = nlp.fx
   nlp.gx .= main_grad(nlp, x)
@@ -233,6 +234,7 @@ function grad!(
   gx::AbstractVector{T},
 ) where {T <: AbstractFloat}
   @lencheck nlp.meta.nvar x gx
+  increment!(nlp, :neval_grad)
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
@@ -270,6 +272,8 @@ function objgrad!(
   gx::AbstractVector{T},
 ) where {T <: AbstractFloat}
   @lencheck nlp.meta.nvar x gx
+  increment!(nlp, :neval_obj)
+  increment!(nlp, :neval_grad)
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
@@ -396,7 +400,6 @@ function hess_coord!(
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.ncon y
   @lencheck nlp.meta.nnzh vals
-  increment!(nlp, :neval_hess)
   #This is an unconstrained optimization problem
   return hess_coord!(nlp, x, vals; obj_weight = obj_weight)
 end
