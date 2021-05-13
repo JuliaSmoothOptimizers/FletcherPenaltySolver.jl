@@ -2,7 +2,7 @@ function _solve_with_linear_operator(
   nlp::FletcherPenaltyNLP,
   x::AbstractVector{T},
   rhs1::AbstractVector{T},
-  rhs2::Union{AbstractVector{T}, Nothing};
+  rhs2::AbstractVector{T};
   _linear_system_solver::Function = cg,
   kwargs...,
 ) where {T <: AbstractFloat}
@@ -23,16 +23,40 @@ function _solve_with_linear_operator(
     @warn "Failed solving linear system with $(_linear_system_solver)."
   end
 
-  if !isnothing(rhs2)
-    (sol2, stats2) = _linear_system_solver(opM, rhs2; kwargs...)
-    if !stats2.solved
-      @warn "Failed solving linear system with $(_linear_system_solver)."
-    end
-  else
-    sol2 = nothing
+  (sol2, stats2) = _linear_system_solver(opM, rhs2; kwargs...)
+  if !stats2.solved
+    @warn "Failed solving linear system with $(_linear_system_solver)."
   end
 
   return sol1, sol2
+end
+
+function _solve_with_linear_operator(
+  nlp::FletcherPenaltyNLP,
+  x::AbstractVector{T},
+  rhs1::AbstractVector{T},
+  rhs2::Nothing;
+  _linear_system_solver::Function = cg,
+  kwargs...,
+) where {T <: AbstractFloat}
+
+  #size(A) : nlp.nlp.meta.ncon x nlp.nlp.meta.nvar
+  n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
+  nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
+  Aop = jac_op(nlp.nlp, x) # Jacobian operator
+  Mp(v) = vcat(
+    v[1:n] + Aop' * v[(n + 1):nn],
+    Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
+  )
+  #LinearOperator(type, nrows, ncols, symmetric, hermitian, prod, tprod, ctprod)
+  opM = LinearOperator(T, nn, nn, true, true, v -> Mp(v), w -> Mp(w), u -> Mp(u))
+
+  (sol1, stats1) = _linear_system_solver(opM, rhs1; kwargs...)
+  if !stats1.solved
+    @warn "Failed solving linear system with $(_linear_system_solver)."
+  end
+
+  return sol1
 end
 
 function _solve_ldlt_factorization(
@@ -80,7 +104,7 @@ function _solve_ldlt_factorization(
     @warn "_solve_ldlt_factorization: failed _factorization"
   end
 
-  return sol1, nothing
+  return sol1
 end
 
 function _solve_ldlt_factorization(
@@ -135,7 +159,7 @@ function _solve_system_dense(
   nlp::FletcherPenaltyNLP,
   x::AbstractVector{T},
   rhs1::AbstractVector{T},
-  rhs2::Union{AbstractVector{T}, Nothing};
+  rhs2::Nothing;
   kwargs...,
 ) where {T <: AbstractFloat}
   A = NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
@@ -145,11 +169,23 @@ function _solve_system_dense(
 
   sol1 = M \ rhs1
 
-  if !isnothing(rhs2)
-    sol2 = M \ rhs2
-  else
-    sol2 = nothing
-  end
+  return sol1
+end
+
+function _solve_system_dense(
+  nlp::FletcherPenaltyNLP,
+  x::AbstractVector{T},
+  rhs1::AbstractVector{T},
+  rhs2::AbstractVector{T};
+  kwargs...,
+) where {T <: AbstractFloat}
+  A = NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
+  In = diagm(0 => ones(nlp.meta.nvar))
+  Im = diagm(0 => ones(nlp.nlp.meta.ncon))
+  M = [In A'; A -nlp.δ*Im] #expensive
+
+  sol1 = M \ rhs1
+  sol2 = M \ rhs2
 
   return sol1, sol2
 end
@@ -171,11 +207,26 @@ function _solve_system_factorization_lu(
 
   sol1 = LU \ rhs1
 
-  if !isnothing(rhs2)
-    sol2 = LU \ rhs2
-  else
-    sol2 = nothing
-  end
+  return sol1
+end
+
+function _solve_system_factorization_lu(
+  nlp::FletcherPenaltyNLP,
+  x::AbstractVector{T},
+  rhs1::AbstractVector{T},
+  rhs2::AbstractVector{T};
+  kwargs...,
+) where {T <: AbstractFloat}
+  n, ncon = nlp.meta.nvar, nlp.nlp.meta.ncon
+  A = NLPModels.jac(nlp.nlp, x) #expensive (for large problems)
+  In = Matrix{T}(I, n, n) #spdiagm(0 => ones(nlp.meta.nvar)) ?
+  Im = Matrix{T}(I, ncon, ncon)
+  M = [In A'; A -nlp.δ*Im] #expensive
+
+  LU = lu(M)
+
+  sol1 = LU \ rhs1
+  sol2 = LU \ rhs2
 
   return sol1, sol2
 end

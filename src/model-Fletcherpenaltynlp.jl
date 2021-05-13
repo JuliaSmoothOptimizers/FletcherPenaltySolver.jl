@@ -204,7 +204,7 @@ function linear_system1(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   σ = nlp.σ
   rhs1 = vcat(g, T(σ) * c)
 
-  _sol1, _ = nlp.linear_system_solver(nlp, x, rhs1, nothing)
+  _sol1 = nlp.linear_system_solver(nlp, x, rhs1, nothing)
   #nlp._sol1 .= _sol1
   return _sol1
 end
