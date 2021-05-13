@@ -409,6 +409,8 @@ function hess_coord!(
   return vals
 end
 
+#################################################################"
+# REMOVE
 function hess_coord!(
   nlp::FletcherPenaltyNLP,
   x::AbstractVector,
@@ -433,6 +435,8 @@ function hprod!(
 )
   return hprod!(nlp, x, v, Hv, obj_weight = obj_weight)
 end
+# END REMOVE
+#################################################################"
 
 function hprod!(
   nlp::FletcherPenaltyNLP,
@@ -455,7 +459,7 @@ function hprod!(
   c = nlp.cx
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
-  τ = T(max(δ, 1e-14))
+  τ = T(max(δ, 1e-14)) # should be a parameter in the solver structure
 
   _sol1, _sol2 = linear_system2(nlp, x)
 
@@ -463,14 +467,15 @@ function hprod!(
   nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
   ys = nlp.ys
 
-  Hsv = hprod(nlp.nlp, x, -ys, v, obj_weight = one(T))
+  hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
+  #Hsv = hprod(nlp.nlp, x, -ys, v, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
   pt_rhs1 = vcat(v, zeros(T, ncon))
-  pt_rhs2 = vcat(Hsv, zeros(T, ncon))
+  pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
   pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
   Ptv = v - pt_sol1[1:nvar]
-  PtHsv = Hsv - pt_sol2[1:nvar]
+  PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
   if nlp.hessian_approx == Val(2) && ρ > 0.0
@@ -478,9 +483,9 @@ function hprod!(
     JtJv = jtprod(nlp.nlp, x, Jv)
     Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    Hv .= Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv + T(ρ) * (Hcv + JtJv)
+    Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv + T(ρ) * (Hcv + JtJv)
   elseif nlp.hessian_approx == Val(2)
-    Hv .= Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv
+    Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv
   elseif nlp.hessian_approx == Val(1) && ρ > 0.0
     Jv = jprod(nlp.nlp, x, v)
     JtJv = jtprod(nlp.nlp, x, Jv)
@@ -491,7 +496,7 @@ function hprod!(
     SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
 
     Ssv = ghjvprod(nlp.nlp, x, gs, v)
-    JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)'
+    JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)' # why ?? - use Jt
     #### TEMP ##########################
     #A = jac(nlp.nlp, x)
     #Im = Matrix(I, ncon, ncon)
@@ -501,7 +506,7 @@ function hprod!(
     (invJtJSsv, stats) = minres(JtJ, Ssv, λ = τ) #fix after Krylov.jl #256
     JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
 
-    Hv .= Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv + T(ρ) * (Hcv + JtJv) - JtinvJtJSsv - SsinvJtJJv
+    Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv + T(ρ) * (Hcv + JtJv) - JtinvJtJSsv - SsinvJtJJv
   elseif nlp.hessian_approx == Val(1)
     Jv = jprod(nlp.nlp, x, v)
     Jt = jac_op(nlp.nlp, x)'
@@ -509,7 +514,7 @@ function hprod!(
     SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
 
     Ssv = ghjvprod(nlp.nlp, x, gs, v)
-    JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)'
+    JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)' # why ?? - use Jt
     #### TEMP ##########################
     #A = jac(nlp.nlp, x)
     #Im = Matrix(I, ncon, ncon)
@@ -520,7 +525,7 @@ function hprod!(
     #@show norm(invJtJSs - invJtJSsv), norm(Ssv - JtJ * invJtJSsv - τ * invJtJSsv)
     JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
 
-    Hv .= Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - JtinvJtJSsv - SsinvJtJJv
+    Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - JtinvJtJSsv - SsinvJtJJv
   end
 
   Hv .*= obj_weight
