@@ -62,6 +62,13 @@ mutable struct FletcherPenaltyNLP{
   gx::T
   ys::T
 
+  #Pre-allocated space:
+  _sol1::T
+  _sol2::T
+  Hsv::T 
+  Sstw::T
+  Jcρ::T
+
   σ::P
   ρ::P
   δ::P
@@ -93,6 +100,11 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = 
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
@@ -124,6 +136,11 @@ function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_appro
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
     σ,
     ρ,
     δ,
@@ -180,6 +197,18 @@ end
   return jac(nlp.nlp, x)
 end
 
+# no need to memoize as it is only used in obj
+function linear_system1(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+  g = nlp.gx
+  c = nlp.cx
+  σ = nlp.σ
+  rhs1 = vcat(g, T(σ) * c)
+
+  _sol1, _ = nlp.linear_system_solver(nlp, x, rhs1, nothing)
+  #nlp._sol1 .= _sol1
+  return _sol1
+end
+
 @memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   g = nlp.gx
   c = nlp.cx
@@ -188,23 +217,11 @@ end
   rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
 
   _sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
+  # nlp._sol1 .= _sol1
+  # nlp._sol2 .= _sol2
 
   return _sol1, _sol2
 end
-#=
-@memoize function main_obj!(nlp::FletcherPenaltyNLP, x::AbstractVector, fx)
-  fx = obj(nlp.nlp, x) 
-  return fx
-end
-
-@memoize function main_grad!(nlp::FletcherPenaltyNLP, x::AbstractVector, gx::AbstractVector)
-  return grad!(nlp.nlp, x, gx)
-end
-
-@memoize function main_cons!(nlp::FletcherPenaltyNLP, x::AbstractVector, cx::AbstractVector)
-  return cons!(nlp.nlp, x, cx)
-end
-=#
 
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
   nvar = nlp.meta.nvar
@@ -216,14 +233,11 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   g = nlp.gx
   nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
-  σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
-  rhs1 = vcat(g, T(σ) * c)
 
-  _sol1, _ = nlp.linear_system_solver(nlp, x, rhs1, nothing)
-
+  _sol1 = linear_system1(nlp, x)
   nlp.ys .= _sol1[(nvar + 1):(nvar + nlp.nlp.meta.ncon)]
 
-  fx = f - dot(c, nlp.ys) + T(ρ) / 2 * dot(c, c)
+  fx = f - dot(c, nlp.ys) + T(nlp.ρ) / 2 * dot(c, c)
 
   return fx
 end
@@ -251,16 +265,17 @@ function grad!(
   ys = nlp.ys
 
   v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
-  Hsv = hprod(nlp.nlp, x, ys, v, obj_weight = one(T))
-  Sstw = hprod(nlp.nlp, x, w, gs; obj_weight = zero(T))
-  Ysc = Hsv - T(σ) * v - Sstw
+  hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
+  hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
+  #Ysc = Hsv - T(σ) * v - Sstw
+  gx .= gs - nlp.Hsv + T(σ) * v + nlp.Sstw
 
   #regularization term
   if ρ > 0.0
-    Jc = jtprod(nlp.nlp, x, c * T(ρ))
-    gx .= gs - Ysc + Jc
-  else
-    gx .= gs - Ysc
+    jtprod!(nlp.nlp, x, c * T(ρ), nlp.Jcρ)
+    gx .+= nlp.Jcρ # gs - Ysc + Jc
+  #else
+  #  gx .= gs - Ysc
   end
 
   return gx
@@ -291,20 +306,17 @@ function objgrad!(
   ys = nlp.ys
 
   v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
-  Hsv = hprod(nlp.nlp, x, ys, v, obj_weight = one(T))
-  Sstw = hprod(nlp.nlp, x, w, gs; obj_weight = zero(T))
-  Ysc = Hsv - T(σ) * v - Sstw
-
-  Jc = jtprod(nlp.nlp, x, c * T(ρ))
+  hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
+  hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
+  #Ysc = Hsv - T(σ) * v - Sstw
+  gx .= gs - nlp.Hsv + T(σ) * v + nlp.Sstw
+  fx = f - dot(c, ys)
 
   #regularization term
   if ρ > 0.0
-    Jc = jtprod(nlp.nlp, x, c * T(ρ))
-    fx = f - dot(c, ys) + T(ρ) / 2 * dot(c, c)
-    gx .= gs - Ysc + Jc
-  else
-    fx = f - dot(c, ys)
-    gx .= gs - Ysc
+    jtprod!(nlp.nlp, x, c * T(ρ), nlp.Jcρ)
+    gx .+= nlp.Jcρ # gs - Ysc + Jc
+    fx += T(ρ) / 2 * dot(c, c)
   end
 
   return fx, gx
