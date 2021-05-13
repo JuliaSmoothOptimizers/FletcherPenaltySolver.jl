@@ -19,7 +19,7 @@
     nlp_fps.δ = 1.0
 
     for func ∈ fcts
-      s11, s12 = FletcherPenaltyNLPSolver.eval(func)(nlp_fps, sol1, rhs1, nothing)
+      s11 = FletcherPenaltyNLPSolver.eval(func)(nlp_fps, sol1, rhs1, nothing)
       s21, s22 = FletcherPenaltyNLPSolver.eval(func)(nlp_fps, sol1, rhs1, rhs2)
       @test s11 == s21
       @test s21[1:(nlp.meta.nvar)] +
@@ -28,7 +28,6 @@
       @test jprod(nlp, sol1, s21[1:(nlp.meta.nvar)]) -
             nlp_fps.δ * s21[(nlp.meta.nvar + 1):(nlp.meta.nvar + nlp.meta.ncon)] ≈
             rhs1[(nlp.meta.nvar + 1):(nlp.meta.nvar + nlp.meta.ncon)]
-      @test isnothing(s12)
       @test s22[1:(nlp.meta.nvar)] +
             jtprod(nlp, sol1, s22[(nlp.meta.nvar + 1):(nlp.meta.nvar + nlp.meta.ncon)]) ≈
             rhs2[1:(nlp.meta.nvar)]
