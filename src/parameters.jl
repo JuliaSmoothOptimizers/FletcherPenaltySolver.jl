@@ -1,3 +1,20 @@
+#=
+Add tolerances for the subproblem
+  -
+  -
+  -
+  -
+Add how we decrease the tolerance as a function of sigma?
+  - atol
+  - rtol
+Threshold for restoration
+  - stalling
+  - unbounded
+  - unsuccessful
+
+Random:
+  - set the radius of the ball ? (function of atol and sigma)
+=#
 struct AlgoData{T <: Real}
 
   #Initialize, Update and Bound parameters of the penalized problem:
@@ -59,3 +76,32 @@ function AlgoData(
 end
 
 AlgoData(; kwargs...) = AlgoData(Float64; kwargs...)
+
+abstract type UnconstrainedSolver end
+
+mutable struct KnitroSolver end
+mutable struct IpoptSolver end
+mutable struct LBFGSSolver end
+
+mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver}
+  meta::AlgoData{T} # AlgoData
+  workspace # allocated space for the solver itself
+  qdsolver::QDS # solver structure for the linear algebra part, contains allocation for this par
+  unconstrained_solver::US # should be a structure/named typle, with everything related to unconstrained
+end
+
+#=
+function LBFGSSolver{T, V}(
+  meta::AbstractNLPModelMeta;
+) where {T, V}
+  nvar = meta.nvar
+  workspace = (
+    x = V(undef, nvar),
+    xt = V(undef, nvar),
+    gx = V(undef, nvar),
+    gt = V(undef, nvar),
+    d = V(undef, nvar),
+  )
+  return LBFGSSolver{T, V}(workspace)
+end
+=#

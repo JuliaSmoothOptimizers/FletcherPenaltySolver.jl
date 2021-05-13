@@ -38,8 +38,23 @@ function IterativeSolver(
   return IterativeSolver(solver, M, atol, rtol, itmax, Vector{T}(undef, m + n), Vector{T}(undef, m), Vector{T}(undef, n))
 end
 
+#=
+nnzj = nlp.nlp.meta.nnzj
+  nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
+
+  nnz = nvar + nnzj + ncon
+  rows = zeros(Int, nnz)
+  cols = zeros(Int, nnz)
+  vals = zeros(T, nnz)
+
++ The LDLFactorizationStruct
+=#
 struct LDLtSolver <: QDSolver end
 struct DirectSolver <: QDSolver end
+#=
+ - Store the matrix ?
+ - in-place LU factorization ?
+=#
 struct LUSolver <: QDSolver end
 
 const qdsolvers = Dict(
