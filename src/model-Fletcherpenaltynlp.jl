@@ -68,11 +68,14 @@ mutable struct FletcherPenaltyNLP{
   xk::T # last iterate
 
   # Pre-allocated space:
+  v::T
+  w::T #2nd linear system
   _sol1::T
   _sol2::T
   Hsv::T 
   Sstw::T
   Jcρ::T
+  Jv::T
 
   # Problem parameter
   σ::P
@@ -109,13 +112,16 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = 
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.ncon),
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
@@ -149,13 +155,16 @@ function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_appro
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.ncon),
     σ,
     ρ,
     δ,
@@ -227,6 +236,8 @@ function linear_system1(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
 end
 
 @memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
   g = nlp.gx
   c = nlp.cx
   σ = nlp.σ
@@ -238,6 +249,26 @@ end
   # nlp._sol2 .= _sol2
 
   return _sol1, _sol2
+end
+
+# gs, ys, v, w = _compute_ys_gs!(nlp, x)
+# Improve allocs and all here !
+function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
+  nlp.fx = main_obj(nlp, x)
+  nlp.gx .= main_grad(nlp, x)
+  nlp.cx .= main_cons(nlp, x)
+
+  _sol1, _sol2 = linear_system2(nlp, x)
+
+  nlp.gs .= _sol1[1:nvar]
+  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
+
+  nlp.v .=  _sol2[1:nvar]
+  nlp.w .= _sol2[(nvar + 1):(nvar + ncon)]
+
+  return nlp.gs, nlp.ys, nlp.v, nlp.w
 end
 
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
@@ -269,22 +300,12 @@ function grad!(
 ) where {T <: AbstractFloat}
   @lencheck nlp.meta.nvar x gx
   increment!(nlp, :neval_grad)
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
 
-  nlp.gx .= main_grad(nlp, x)
+  gs, ys, v, w = _compute_ys_gs!(nlp, x)
   g = nlp.gx
-  nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  _sol1, _sol2 = linear_system2(nlp, x)
-
-  gs = _sol1[1:nvar]
-  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
-  ys = nlp.ys
-
-  v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
   hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
@@ -313,20 +334,12 @@ function objgrad!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  nlp.fx = main_obj(nlp, x); f = nlp.fx
-  nlp.gx .= main_grad(nlp, x)
+  gs, ys, v, w = _compute_ys_gs!(nlp, x)
+  f = nlp.fx
   g = nlp.gx
-  nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  _sol1, _sol2 = linear_system2(nlp, x)
-
-  gs = _sol1[1:nvar]
-  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
-  ys = nlp.ys
-
-  v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
   hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
@@ -373,21 +386,12 @@ function hess_coord!(
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  nlp.fx = main_obj(nlp, x)
+  gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
-  nlp.gx .= main_grad(nlp, x)
   g = nlp.gx
-  nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
   A = main_jac(nlp, x)
-
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
-
-  _sol1, _sol2 = linear_system2(nlp, x)
-
-  gs = _sol1[1:nvar]
-  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
-  ys = nlp.ys
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
   In = Matrix(I, nvar, nvar)
@@ -400,7 +404,6 @@ function hess_coord!(
 
   #regularization term
   if ρ > 0.0
-    #J = jac(nlp.nlp, x)
     Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
     Hcrho = Hc + T(ρ) * A' * A
     Hx = (In - Pt) * Hs - Hs * Pt + 2 * T(σ) * Pt + Hcrho
@@ -441,24 +444,14 @@ function hprod!(
   @lencheck nlp.meta.nvar x v Hv
   increment!(nlp, :neval_hprod)
 
-  σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
-  τ = T(max(δ, 1e-14)) # should be a parameter in the solver structure
-
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  nlp.fx = main_obj(nlp, x)
+  σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
+  gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
-  nlp.gx .= main_grad(nlp, x)
   g = nlp.gx
-  nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
-
-  _sol1, _sol2 = linear_system2(nlp, x)
-
-  gs = _sol1[1:nvar]
-  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
-  ys = nlp.ys
 
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
@@ -466,18 +459,19 @@ function hprod!(
   pt_rhs1 = vcat(v, zeros(T, ncon))
   pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
   pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
+
   Ptv = v - pt_sol1[1:nvar]
   PtHsv = nlp.Hsv - pt_sol2[1:nvar]
-  HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
+  hprod!(nlp.nlp, x, -ys, Ptv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
-  Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv
+  Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
 
   if ρ > 0.0
-    Jv = jprod(nlp.nlp, x, v)
-    JtJv = jtprod(nlp.nlp, x, Jv)
-    Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
+    jprod!(nlp.nlp, x, v, nlp.Jv)
+    jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    Hv .+= T(ρ) * (Hcv + JtJv)
+    Hv .+= T(ρ) * (nlp.v + nlp.Jcρ)
   end
   if nlp.η > 0.0
     Hv .+= T(nlp.η) .* v
@@ -497,24 +491,16 @@ function hprod!(
   @lencheck nlp.meta.nvar x v Hv
   increment!(nlp, :neval_hprod)
 
-  σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
-  τ = T(max(δ, 1e-14)) # should be a parameter in the solver structure
-
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
 
-  nlp.fx = main_obj(nlp, x)
+  σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
+  τ = T(max(δ, 1e-14)) # should be a parameter in the solver structure
+
+  gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
-  nlp.gx .= main_grad(nlp, x)
   g = nlp.gx
-  nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
-
-  _sol1, _sol2 = linear_system2(nlp, x)
-
-  gs = _sol1[1:nvar]
-  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
-  ys = nlp.ys
 
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 
@@ -525,24 +511,24 @@ function hprod!(
   PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
-  Jv = jprod(nlp.nlp, x, v)
-  Jt = jac_op(nlp.nlp, x)'
-  invJtJJv = cgls(Jt, v, λ = τ)[1]
+  J = jac_op(nlp.nlp, x)
+  (invJtJJv, invJtJJvstats) = cgls(J', v, λ = τ)
   SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
 
-  Ssv = ghjvprod(nlp.nlp, x, gs, v)
-  JtJ = jac_op(nlp.nlp, x) * jac_op(nlp.nlp, x)'
+  ghjvprod!(nlp.nlp, x, gs, v, nlp.w) # Ssv = ghjvprod(nlp.nlp, x, gs, v)
+  Ssv = nlp.w
+  JtJ = J * J'
   (invJtJSsv, stats) = minres(JtJ, Ssv, λ = τ) #fix after Krylov.jl #256
-  JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
+  jtprod!(nlp.nlp, x, invJtJSsv, nlp.v) # JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
 
-  Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - JtinvJtJSsv - SsinvJtJJv
+  Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - nlp.v - SsinvJtJJv
 
   if ρ > 0.0
-    Jv = jprod(nlp.nlp, x, v)
-    JtJv = jtprod(nlp.nlp, x, Jv)
-    Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
+    jprod!(nlp.nlp, x, v, nlp.Jv)
+    jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    Hv .+= T(ρ) * (Hcv + JtJv)
+    Hv .+= T(ρ) * (nlp.v + nlp.Jcρ)
   end
   if nlp.η > 0.0
     Hv .+= T(nlp.η) .* v
@@ -550,23 +536,4 @@ function hprod!(
 
   Hv .*= obj_weight
   return Hv
-end
-
-# gs, ys, v, w = _compute_ys_gs!(nlp, x)
-function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
-
-  nlp.fx = main_obj(nlp, x)
-  nlp.gx .= main_grad(nlp, x)
-  nlp.cx .= main_cons(nlp, x)
-
-  _sol1, _sol2 = linear_system2(nlp, x)
-
-  gs = _sol1[1:nvar]
-  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
-
-  v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
-
-  return gs, nlp.ys, v, w
 end
