@@ -59,22 +59,26 @@ mutable struct FletcherPenaltyNLP{
   counters::Counters
   nlp::AbstractNLPModel
 
-  #Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
+  # Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
   fx::S
   cx::T
   gx::T
   ys::T
+  gs::T
+  xk::T # last iterate
 
-  #Pre-allocated space:
+  # Pre-allocated space:
   _sol1::T
   _sol2::T
   Hsv::T 
   Sstw::T
   Jcρ::T
 
+  # Problem parameter
   σ::P
   ρ::P
   δ::P
+  η::P
 
   qdsolver::QDS
   linear_system_solver::Function # to be removed
@@ -110,10 +114,13 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = 
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
-    IterativeSolver(nlp.meta.ncon, nlp.meta.nvar, S),
+    zero(typeof(σ)),
+    IterativeSolver(nlp.meta.ncon, nlp.meta.nvar, S(NaN)),
     linear_system_solver,
     hessian_approx,
   )
@@ -147,9 +154,12 @@ function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_appro
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
     σ,
     ρ,
     δ,
+    zero(typeof(σ)),
     IterativeSolver(nlp.meta.ncon, nlp.meta.nvar, S(NaN)),
     linear_system_solver,
     hessian_approx,
@@ -245,6 +255,9 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   nlp.ys .= _sol1[(nvar + 1):(nvar + nlp.nlp.meta.ncon)]
 
   fx = f - dot(c, nlp.ys) + T(nlp.ρ) / 2 * dot(c, c)
+  if nlp.η > 0.0
+    fx .+= T(nlp.η) / 2 * norm(x - nlp.xk)^2
+  end
 
   return fx
 end
@@ -280,9 +293,10 @@ function grad!(
   #regularization term
   if ρ > 0.0
     jtprod!(nlp.nlp, x, c * T(ρ), nlp.Jcρ)
-    gx .+= nlp.Jcρ # gs - Ysc + Jc
-  #else
-  #  gx .= gs - Ysc
+    gx .+= nlp.Jcρ
+  end
+  if nlp.η > 0.0
+    gx .+= nlp.η * (x - nlp.xk)
   end
 
   return gx
@@ -324,6 +338,10 @@ function objgrad!(
     jtprod!(nlp.nlp, x, c * T(ρ), nlp.Jcρ)
     gx .+= nlp.Jcρ # gs - Ysc + Jc
     fx += T(ρ) / 2 * dot(c, c)
+  end
+  if nlp.η > 0.0
+    fx .+= T(nlp.η) / 2 * norm(x - nlp.xk)^2
+    gx .+= nlp.η * (x - nlp.xk)
   end
 
   return fx, gx
@@ -551,4 +569,23 @@ function hprod!(
 
   Hv .*= obj_weight
   return Hv
+end
+
+# gs, ys, v, w = _compute_ys_gs!(nlp, x)
+function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
+
+  nlp.fx = main_obj(nlp, x)
+  nlp.gx .= main_grad(nlp, x)
+  nlp.cx .= main_cons(nlp, x)
+
+  _sol1, _sol2 = linear_system2(nlp, x)
+
+  gs = _sol1[1:nvar]
+  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
+
+  v, w = _sol2[1:nvar], _sol2[(nvar + 1):(nvar + ncon)]
+
+  return gs, nlp.ys, v, w
 end
