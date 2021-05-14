@@ -416,6 +416,10 @@ function hess_coord!(
     Hx += -AinvAtA * Ss - Ss' * invAtA * A
   end
 
+  if nlp.η > 0.0
+    Hx += T(nlp.η) * In
+  end
+
   k = 1
   for j = 1:nvar
     for i = j:nvar
@@ -426,35 +430,6 @@ function hess_coord!(
 
   return vals
 end
-
-#################################################################"
-# REMOVE
-function hess_coord!(
-  nlp::FletcherPenaltyNLP,
-  x::AbstractVector,
-  y::AbstractVector,
-  vals::AbstractVector;
-  obj_weight::Real = one(eltype(x)),
-)
-  @lencheck nlp.meta.nvar x
-  @lencheck nlp.meta.ncon y
-  @lencheck nlp.meta.nnzh vals
-  #This is an unconstrained optimization problem
-  return hess_coord!(nlp, x, vals; obj_weight = obj_weight)
-end
-
-function hprod!(
-  nlp::FletcherPenaltyNLP,
-  x::AbstractVector,
-  y::AbstractVector,
-  v::AbstractVector,
-  Hv::AbstractVector;
-  obj_weight::Real = one(eltype(x)),
-)
-  return hprod!(nlp, x, v, Hv, obj_weight = obj_weight)
-end
-# END REMOVE
-#################################################################"
 
 function hprod!(
   nlp::FletcherPenaltyNLP{S, Tt, Val{2}, P, QDS},
@@ -503,6 +478,9 @@ function hprod!(
     Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
     Hv .+= T(ρ) * (Hcv + JtJv)
+  end
+  if nlp.η > 0.0
+    Hv .+= T(nlp.η) .* v
   end
 
   Hv .*= obj_weight
@@ -565,6 +543,9 @@ function hprod!(
     Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
     Hv .+= T(ρ) * (Hcv + JtJv)
+  end
+  if nlp.η > 0.0
+    Hv .+= T(nlp.η) .* v
   end
 
   Hv .*= obj_weight
