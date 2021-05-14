@@ -390,29 +390,25 @@ function hess_coord!(
   f = nlp.fx
   g = nlp.gx
   c = nlp.cx
-  A = main_jac(nlp, x)
+  A = main_jac(nlp, x) # If used, this should be allocated probably
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
-  In = Matrix(I, nvar, nvar)
   Im = Matrix(I, ncon, ncon)
   τ = T(max(nlp.δ, 1e-14))
   invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) #Euh... wait !
-
   AinvAtA = A' * invAtA
   Pt = AinvAtA * A
 
+  Hx = Hs - Pt * Hs - Hs * Pt + 2 * T(σ) * Pt
   #regularization term
   if ρ > 0.0
     Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
-    Hcrho = Hc + T(ρ) * A' * A
-    Hx = (In - Pt) * Hs - Hs * Pt + 2 * T(σ) * Pt + Hcrho
-  else
-    Hx = (In - Pt) * Hs - Hs * Pt + 2 * T(σ) * Pt
+    Hx += Hc + T(ρ) * A' * A
   end
 
   if nlp.hessian_approx == Val(1)
-    Ss = Array{T, 2}(undef, ncon, nvar)
+    Ss = Array{T, 2}(undef, ncon, nvar) # should before
     for j = 1:ncon
       Ss[j, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
     end
@@ -420,6 +416,7 @@ function hess_coord!(
   end
 
   if nlp.η > 0.0
+    In = Matrix(I, nvar, nvar)
     Hx += T(nlp.η) * In
   end
 
@@ -461,17 +458,18 @@ function hprod!(
   pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
 
   Ptv = v - pt_sol1[1:nvar]
-  PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   hprod!(nlp.nlp, x, -ys, Ptv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
-  Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
+  # PtHsv = nlp.Hsv - pt_sol2[1:nvar]
+  # Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
+  Hv .= pt_sol2[1:nvar] - nlp.v + 2 * T(σ) * Ptv
 
   if ρ > 0.0
     jprod!(nlp.nlp, x, v, nlp.Jv)
     jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
     hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    Hv .+= T(ρ) * (nlp.v + nlp.Jcρ)
+    Hv .+= nlp.v + T(ρ) * nlp.Jcρ
   end
   if nlp.η > 0.0
     Hv .+= T(nlp.η) .* v
