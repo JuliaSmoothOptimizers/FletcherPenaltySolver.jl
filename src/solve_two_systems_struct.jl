@@ -6,7 +6,7 @@ that we are solving twice
 =#
 abstract type QDSolver end
 
-struct IterativeSolver{T<:AbstractFloat, S, SS<:KrylovSolver{T,S}} <: QDSolver
+struct IterativeSolver{T<:AbstractFloat, S, SS1<:KrylovSolver{T,S}, SS2<:KrylovSolver{T,S}} <: QDSolver
   solver::Function
   M # =opEye(), 
   #λ::T # =zero(T), 
@@ -18,7 +18,8 @@ struct IterativeSolver{T<:AbstractFloat, S, SS<:KrylovSolver{T,S}} <: QDSolver
   #history :: Bool=false
 
   #allocations
-  solver_struct::SS
+  solver_struct_least_square::SS1
+  solver_struct_least_norm::SS2
   # allocation of the linear operator, only one as the matrix is symmetric
   opr::Vector{T}
   Jv::Vector{T}
@@ -57,7 +58,8 @@ function IterativeSolver(
   atol::T = √eps(T),
   rtol::T = √eps(T),
   itmax::Integer = 5 * (m + n),
-  solver_struct::KrylovSolver{T,Vector{T}}=LsqrSolver(zeros(T, n, m), zeros(T,n)),
+  solver_struct_least_square::KrylovSolver{T,Vector{T}}=LsqrSolver(zeros(T, n, m), zeros(T, n)),
+  solver_struct_least_norm::KrylovSolver{T,Vector{T}}=CraigSolver(zeros(T, m, n), zeros(T, m)),
 ) where {T}
   return IterativeSolver(
     solver,
@@ -65,7 +67,8 @@ function IterativeSolver(
     atol,
     rtol,
     itmax,
-    solver_struct,
+    solver_struct_least_square,
+    solver_struct_least_norm,
     Vector{T}(undef, m + n), 
     Vector{T}(undef, m), 
     Vector{T}(undef, n),

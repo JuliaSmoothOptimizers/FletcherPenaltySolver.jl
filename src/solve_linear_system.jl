@@ -1,27 +1,55 @@
 function solve_two_least_squares(
-    nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS}},
+    nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
     x::AbstractVector{T},
     rhs1::AbstractVector,
     rhs2::AbstractVector
-) where {T, S, Tt, A, P, SS}
+) where {T, S, Tt, A, P, SS1, SS2}
   # rhs1 and rhs2 are both of size nlp.meta.nvar
   #=
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
   Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct, Aop', rhs1, λ = nlp.δ)
+  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs1, λ = nlp.δ)
   nlp.qdsolver.p1 .= rhs1 - Aop' * q1
   if !stats1.solved
     @warn "Failed solving 1st linear system with $(nlp.qdsolver.solver)."
   end
 
-  (q2, stats2) = lsqr!(nlp.qdsolver.solver_struct, Aop', rhs2, λ = nlp.δ)
+  (q2, stats2) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs2, λ = nlp.δ)
   nlp.qdsolver.p2 .= rhs2 - Aop' * q2
   if !stats2.solved
     @warn "Failed solving 2nd linear system with $(nlp.qdsolver.solver)."
   end
 
   return nlp.qdsolver.p1, q1, nlp.qdsolver.p2, q2
+end
+
+function solve_two_mixed(
+  nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
+  x::AbstractVector{T},
+  rhs1::AbstractVector,
+  rhs2::AbstractVector
+) where {T, S, Tt, A, P, SS1, SS2}
+  # rhs1 is of size nlp.meta.nvar
+  # rhs2 is of size nlp.meta.ncon
+  #=
+  We solve || ∇c' q - rhs || + δ || q ||^2
+  =#
+  Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs1, λ = nlp.δ)
+  nlp.qdsolver.p1 .= rhs1 - Aop' * q1
+  if !stats1.solved
+    @warn "Failed solving 1st linear system with $(nlp.qdsolver.solver)."
+  end
+
+  (p2, q2, stats2) = craig!(nlp.qdsolver.solver_struct_least_norm, Aop, rhs2, λ = nlp.δ)
+  nlp.qdsolver.p2 .= p2
+  nlp.qdsolver.q2 .= q2
+  if !stats2.solved
+    @warn "Failed solving 2nd linear system with $(nlp.qdsolver.solver)."
+  end
+
+  return nlp.qdsolver.p1, q1, nlp.qdsolver.p2, -q2
 end
 
 function solve_two_least_squares(

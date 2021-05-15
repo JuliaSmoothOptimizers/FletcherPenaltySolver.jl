@@ -242,14 +242,15 @@ end
   g = nlp.gx
   c = nlp.cx
   σ = nlp.σ
-  rhs1 = vcat(g, T(σ) * c)
-  rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
+  #rhs1 = vcat(g, T(σ) * c)
+  #rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
 
-  _sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
+  #_sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
+  (p1, q1, p2, q2) = solve_two_mixed(nlp, x, g, c)
   # nlp._sol1 .= _sol1
   # nlp._sol2 .= _sol2
 
-  return _sol1, _sol2
+  return p1, q1, p2, q2
 end
 
 # gs, ys, v, w = _compute_ys_gs!(nlp, x)
@@ -261,13 +262,13 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
   nlp.gx .= main_grad(nlp, x)
   nlp.cx .= main_cons(nlp, x)
 
-  _sol1, _sol2 = linear_system2(nlp, x)
+  p1, q1, p2, q2 = linear_system2(nlp, x)
 
-  nlp.gs .= _sol1[1:nvar]
-  nlp.ys .= _sol1[(nvar + 1):(nvar + ncon)]
+  nlp.gs .= p1 + T(nlp.σ) * p2 #_sol1[1:nvar]
+  nlp.ys .= q1 + T(nlp.σ) * q2 #_sol1[(nvar + 1):(nvar + ncon)]
 
-  nlp.v .=  _sol2[1:nvar]
-  nlp.w .= _sol2[(nvar + 1):(nvar + ncon)]
+  nlp.v .= p2 #_sol2[1:nvar]
+  nlp.w .= q2 #_sol2[(nvar + 1):(nvar + ncon)]
 
   return nlp.gs, nlp.ys, nlp.v, nlp.w
 end
