@@ -1,21 +1,21 @@
 function solve_two_least_squares(
-    nlp::FletcherPenaltyNLP{S, Tt, A, P, IterativeSolver{S}},
+    nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS}},
     x::AbstractVector{T},
     rhs1::AbstractVector,
     rhs2::AbstractVector
-) where {T, S, Tt, A, P}
+) where {T, S, Tt, A, P, SS}
   # rhs1 and rhs2 are both of size nlp.meta.nvar
   #=
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
   Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = lsqr(Aop', rhs1, λ = nlp.δ)
+  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct, Aop', rhs1, λ = nlp.δ)
   nlp.qdsolver.p1 .= rhs1 - Aop' * q1
   if !stats1.solved
     @warn "Failed solving 1st linear system with $(nlp.qdsolver.solver)."
   end
 
-  (q2, stats2) = lsqr(Aop', rhs2, λ = nlp.δ)
+  (q2, stats2) = lsqr!(nlp.qdsolver.solver_struct, Aop', rhs2, λ = nlp.δ)
   nlp.qdsolver.p2 .= rhs2 - Aop' * q2
   if !stats2.solved
     @warn "Failed solving 2nd linear system with $(nlp.qdsolver.solver)."
