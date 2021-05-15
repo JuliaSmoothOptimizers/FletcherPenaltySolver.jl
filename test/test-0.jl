@@ -8,7 +8,7 @@
   fp_sos =
     FletcherPenaltyNLP(sos, σ_0, FletcherPenaltyNLPSolver._solve_with_linear_operator, Val(2))
   fp_sos2 =
-    FletcherPenaltyNLP(sos, σ_0, FletcherPenaltyNLPSolver._solve_system_factorization_lu, Val(2))
+    FletcherPenaltyNLP(sos, σ_0, FletcherPenaltyNLPSolver._solve_ldlt_factorization, Val(2))
   solx = zeros(n)
   solx[findall(x -> mod(x, 2) == 1, 1:n)] = ones(Int(n / 2))
 

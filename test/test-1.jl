@@ -16,7 +16,7 @@ using OptimizationProblems, NLPModelsJuMP
   fp_sos =
     FletcherPenaltyNLP(nlp, σ_0, FletcherPenaltyNLPSolver._solve_with_linear_operator, Val(2))
   fp_sos2 =
-    FletcherPenaltyNLP(nlp, σ_0, FletcherPenaltyNLPSolver._solve_system_factorization_lu, Val(2))
+    FletcherPenaltyNLP(nlp, σ_0, FletcherPenaltyNLPSolver._solve_ldlt_factorization, Val(2))
 
   @time x1, f1, g1, H1 = lbfgs(fp_sos, x0, lsfunc = FletcherPenaltyNLPSolver.armijo_og)
   fp_sos.nlp.counters

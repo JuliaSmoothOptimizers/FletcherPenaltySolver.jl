@@ -183,6 +183,7 @@ end
 # iii) _solve_system_factorization_eigenvalue
 # iv)  _solve_system_factorization_lu
 include("solve_two_systems.jl")
+include("solve_linear_system.jl")
 
 include("linesearch.jl")
 
@@ -453,16 +454,18 @@ function hprod!(
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
-  pt_rhs1 = vcat(v, zeros(T, ncon))
-  pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
-  pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
+  #pt_rhs1 = vcat(v, zeros(T, ncon))
+  #pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
+  #pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
 
-  Ptv = v - pt_sol1[1:nvar]
+  (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
+  Ptv = v - p1
   hprod!(nlp.nlp, x, -ys, Ptv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
   # PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   # Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
-  Hv .= pt_sol2[1:nvar] - nlp.v + 2 * T(σ) * Ptv
+  # Hv .= pt_sol2[1:nvar] - nlp.v + 2 * T(σ) * Ptv
+  Hv .= p2 - nlp.v + 2 * T(σ) * Ptv
 
   if ρ > 0.0
     jprod!(nlp.nlp, x, v, nlp.Jv)
@@ -502,11 +505,13 @@ function hprod!(
 
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 
-  pt_rhs1 = vcat(v, zeros(T, ncon))
-  pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
-  pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
-  Ptv = v - pt_sol1[1:nvar]
-  PtHsv = nlp.Hsv - pt_sol2[1:nvar]
+  #pt_rhs1 = vcat(v, zeros(T, ncon))
+  #pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
+  #pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
+
+  (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
+  Ptv = v - p1
+  PtHsv = nlp.Hsv - p2
   HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
   J = jac_op(nlp.nlp, x)

@@ -12,8 +12,8 @@
     fcts = [
       :_solve_ldlt_factorization,
       :_solve_with_linear_operator,
-      :_solve_system_dense,
-      :_solve_system_factorization_lu,
+      #:_solve_system_dense,
+      #:_solve_system_factorization_lu,
     ]
 
     nlp_fps.δ = 1.0
