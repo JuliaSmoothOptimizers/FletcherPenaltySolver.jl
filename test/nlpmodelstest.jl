@@ -46,10 +46,9 @@ end
 =#
 @testset "NLP tests" begin
   nlp1 = ADNLPModel(x -> dot(x, x), zeros(10), x -> [sum(x) - 1.0], zeros(1), zeros(1))
-  demo_func = FletcherPenaltyNLPSolver._solve_ldlt_factorization
   problemset = [
-    FletcherPenaltyNLP(nlp1, 0.5, demo_func, Val(1)),
-    FletcherPenaltyNLP(nlp1, 0.5, demo_func, Val(2)),
+    FletcherPenaltyNLP(nlp1, 0.5, Val(1)),
+    FletcherPenaltyNLP(nlp1, 0.5, Val(2)),
   ]
   for nlp in problemset
     @testset "Problem $(nlp.meta.name)" begin

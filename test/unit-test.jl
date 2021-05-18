@@ -17,11 +17,10 @@ end
 @testset "Unit test: FletcherPenaltyNLP with 1st hessian approximation" begin
   n = 10
   nlp = ADNLPModel(x -> dot(x, x), zeros(n), x -> [sum(x) - 1.0], zeros(1), zeros(1)) #ne second derivatives of the constraints
-  demo_func = FletcherPenaltyNLPSolver._solve_with_linear_operator #_solve_ldlt_factorization
   fpnlp = FletcherPenaltyNLP(nlp)
   fpnlp = FletcherPenaltyNLP(nlp, σ_0 = 0.5)
-  fpnlp = FletcherPenaltyNLP(nlp, linear_system_solver = demo_func)
-  fpnlp = FletcherPenaltyNLP(nlp, 0.5, demo_func, Val(1))
+  fpnlp = FletcherPenaltyNLP(nlp)
+  fpnlp = FletcherPenaltyNLP(nlp, 0.5, Val(1))
 
   @test fpnlp.hessian_approx == Val(1)
 
@@ -87,8 +86,7 @@ end
   )
   @test equality_constrained(nlp)
 
-  demo_func = FletcherPenaltyNLPSolver._solve_with_linear_operator #_solve_ldlt_factorization
-  fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, demo_func, Val(1))
+  fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, Val(1))
 
   @test fpnlp.meta.ncon == 0
   @test fpnlp.meta.nvar == 2
@@ -157,11 +155,10 @@ end
 @testset "Unit test: FletcherPenaltyNLP with 2nd hessian approximation" begin
   n = 10
   nlp = ADNLPModel(x -> dot(x, x), zeros(n), x -> [sum(x) - 1.0], zeros(1), zeros(1)) #ne second derivatives of the constraints
-  demo_func = FletcherPenaltyNLPSolver._solve_with_linear_operator #_solve_ldlt_factorization
   fpnlp = FletcherPenaltyNLP(nlp)
   fpnlp = FletcherPenaltyNLP(nlp, σ_0 = 0.5)
-  fpnlp = FletcherPenaltyNLP(nlp, linear_system_solver = demo_func)
-  fpnlp = FletcherPenaltyNLP(nlp, 0.5, demo_func, Val(2))
+  fpnlp = FletcherPenaltyNLP(nlp)
+  fpnlp = FletcherPenaltyNLP(nlp, 0.5, Val(2))
 
   @test fpnlp.hessian_approx == Val(2)
 
@@ -229,8 +226,7 @@ end
   )
   @test equality_constrained(nlp)
 
-  demo_func = FletcherPenaltyNLPSolver._solve_with_linear_operator #_solve_ldlt_factorization
-  fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, demo_func, Val(2))
+  fpnlp = FletcherPenaltyNLP(nlp, 0.5, 0.1, 0.25, Val(2))
 
   @test fpnlp.meta.ncon == 0
   @test fpnlp.meta.nvar == 2

@@ -33,8 +33,6 @@ struct AlgoData{T <: Real}
   Δ::T #expected decrease in feasibility between two iterations
 
   #Functions used in the algorithm
-  linear_system_solver::Function
-
   unconstrained_solver::Function
   atol_sub::Function # (stp.meta.atol)
   rtol_sub::Function #(stp.meta.rtol)
@@ -54,7 +52,6 @@ function AlgoData(
   δ_0::Real = √eps(T),
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
-  linear_system_solver::Function = _solve_ldlt_factorization, #_solve_with_linear_operator,
   unconstrained_solver::Function = is_knitro_installed ? knitro : ipopt,
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,
@@ -72,7 +69,6 @@ function AlgoData(
     δ_0,
     yM,
     Δ,
-    linear_system_solver,
     unconstrained_solver,
     atol_sub,
     rtol_sub,

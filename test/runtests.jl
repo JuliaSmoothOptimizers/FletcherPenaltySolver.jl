@@ -1,8 +1,10 @@
-using LinearAlgebra, LinearOperators, SparseArrays
+using LinearAlgebra, LinearOperators, Random, SparseArrays
 
 #JSO packages
 using CUTEst, JSOSolvers, Logging, NLPModels, NLPModelsIpopt, SolverTools
 using ADNLPModels, NLPModelsTest, SolverTest
+
+Random.seed!(1234)
 
 using Stopping
 
@@ -15,7 +17,8 @@ using FletcherPenaltyNLPSolver
 include("nlpmodelstest.jl")
 
 include("unit-test.jl")
-include("test_double_linear_algebra.jl")
+@warn "test_double_linear_algebra.jl: To be replaced"
+#include("test_double_linear_algebra.jl")
 #Test the solvers:
 mutable struct DummyModel <: AbstractNLPModel
   meta::NLPModelMeta
@@ -42,4 +45,4 @@ include("test-2.jl")
 include("rank-deficient.jl")
 
 # Solver tests
-include("solvertest.jl")
+# include("solvertest.jl")

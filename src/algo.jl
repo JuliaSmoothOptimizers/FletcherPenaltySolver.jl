@@ -11,7 +11,7 @@ function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
   x0, σ, ρ, δ = state.x, meta.σ_0, meta.ρ_0, meta.δ_0
 
   #Initialize the unconstrained NLP with Fletcher's penalty function.
-  nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, meta.linear_system_solver, meta.hessian_approx)
+  nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, meta.hessian_approx)
 
   #First call to the stopping
   OK = start!(stp)

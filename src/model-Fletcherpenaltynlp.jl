@@ -33,14 +33,12 @@ and denote Ys the gradient of ys(x).
 
 `FletcherPenaltyNLP(:: AbstractNLPModel, :: Number, :: Function)`
 or
-`FletcherPenaltyNLP(:: AbstractNLPModel; σ_0 :: Real = 1.0, linear_system_solver :: Function = _solve_with_linear_operator)`
+`FletcherPenaltyNLP(:: AbstractNLPModel; σ_0 :: Real = 1.0)`
 
 Notes:
 - Evaluation of the obj, grad, objgrad functions evaluate functions from the orginial nlp.
 These values are stored in `fx`, `cx`, `gx`.
 - The value of the penalty vector `ys` is also stored.
-- `linear_system_solver(nlp, x, rhs1, Union{rhs2,nothing})` is a function that successively solve
-the two linear systems and returns the two solutions.
 
 TODO:
 - sparse structure of the hessian?
@@ -84,16 +82,14 @@ mutable struct FletcherPenaltyNLP{
   η::P
 
   qdsolver::QDS
-  linear_system_solver::Function # to be removed
 
   hessian_approx::A
 end
 
-function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; kwargs...)
+function FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
   return FletcherPenaltyNLP(
     nlp,
     σ,
-    linear_system_solver,
     hessian_approx,
     nlp.meta.x0;
     kwargs...
@@ -103,7 +99,6 @@ end
 function FletcherPenaltyNLP(
   nlp, 
   σ, 
-  linear_system_solver, 
   hessian_approx, 
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(NaN)), #IterativeSolver(nlp, S(NaN)),
@@ -145,18 +140,16 @@ function FletcherPenaltyNLP(
     zero(typeof(σ)),
     zero(typeof(σ)),
     qds,
-    linear_system_solver,
     hessian_approx,
   )
 end
 
-function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_approx; kwargs...)
+function FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx; kwargs...)
   return FletcherPenaltyNLP(
     nlp,
     σ,
     ρ,
     δ,
-    linear_system_solver,
     hessian_approx,
     nlp.meta.x0;
     kwargs...
@@ -168,7 +161,6 @@ function FletcherPenaltyNLP(
   σ,
   ρ,
   δ,
-  linear_system_solver,
   hessian_approx,
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(NaN)), #IterativeSolver(nlp, S(NaN)),
@@ -210,7 +202,6 @@ function FletcherPenaltyNLP(
     δ,
     zero(typeof(σ)),
     qds,
-    linear_system_solver,
     hessian_approx,
   )
 end
@@ -222,7 +213,7 @@ end
 # ii)  _solve_with_linear_operator
 # iii) _solve_system_factorization_eigenvalue
 # iv)  _solve_system_factorization_lu
-include("solve_two_systems.jl")
+#include("solve_two_systems.jl") #TO BE REMOVED
 include("solve_linear_system.jl")
 
 include("linesearch.jl")
@@ -232,7 +223,6 @@ function FletcherPenaltyNLP(
   σ_0::Real = one(eltype(nlp.meta.x0)),
   ρ_0::Real = zero(eltype(nlp.meta.x0)),
   δ_0::Real = zero(eltype(nlp.meta.x0)),
-  linear_system_solver::Function = _solve_with_linear_operator,
   hessian_approx = Val(2),
   x0 = nlp.meta.x0,
   kwargs...
@@ -242,7 +232,6 @@ function FletcherPenaltyNLP(
     σ_0,
     ρ_0,
     δ_0,
-    linear_system_solver,
     hessian_approx,
     x0;
     kwargs...
@@ -266,18 +255,6 @@ end
   return jac(nlp.nlp, x)
 end
 
-# no need to memoize as it is only used in obj
-function linear_system1(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
-  g = nlp.gx
-  c = nlp.cx
-  σ = nlp.σ
-  rhs1 = vcat(g, T(σ) * c)
-
-  _sol1 = nlp.linear_system_solver(nlp, x, rhs1, nothing)
-  #nlp._sol1 .= _sol1
-  return _sol1
-end
-
 # @memoize 
 function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   nvar = nlp.meta.nvar
@@ -288,7 +265,6 @@ function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   #rhs1 = vcat(g, T(σ) * c)
   #rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
 
-  #_sol1, _sol2 = nlp.linear_system_solver(nlp, x, rhs1, rhs2)
   (p1, q1, p2, q2) = solve_two_mixed(nlp, x, g, c)
   # nlp._sol1 .= _sol1
   # nlp._sol2 .= _sol2
@@ -499,10 +475,6 @@ function hprod!(
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
-  #pt_rhs1 = vcat(v, zeros(T, ncon))
-  #pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
-  #pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
-
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
   Ptv = v - p1
   hprod!(nlp.nlp, x, -ys, Ptv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
@@ -549,10 +521,6 @@ function hprod!(
   c = nlp.cx
 
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
-
-  #pt_rhs1 = vcat(v, zeros(T, ncon))
-  #pt_rhs2 = vcat(nlp.Hsv, zeros(T, ncon))
-  #pt_sol1, pt_sol2 = nlp.linear_system_solver(nlp, x, pt_rhs1, pt_rhs2)
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
   Ptv = v - p1
