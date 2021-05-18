@@ -5,6 +5,9 @@ using CUTEst, NLPModels, NLPModelsKnitro, NLPModelsIpopt, SolverBenchmark, Solve
 using FletcherPenaltyNLPSolver
 #
 using Dates, JLD2
+using Random
+
+Random.seed!(1234)
 
 function runcutest(; today::String = string(today()))
 
@@ -59,6 +62,21 @@ function runcutest(; today::String = string(today()))
         max_time = max_time,
         max_iter = typemax(Int64),
         max_eval = typemax(Int64),
+        atol_sub = atol -> atol,
+        rtol_sub = rtol -> rtol,
+      ),
+    :FPSFF =>
+      nlp -> fps_solve(
+        nlp,
+        nlp.meta.x0,
+        atol = 1e-5,
+        rtol = 1e-5,
+        max_time = max_time,
+        max_iter = typemax(Int64),
+        max_eval = typemax(Int64),
+        linear_system_solver = FletcherPenaltyNLPSolver._solve_with_linear_operator,
+        atol_sub = atol -> atol,
+        rtol_sub = rtol -> rtol,
       ),
   )
 
@@ -69,7 +87,7 @@ function runcutest(; today::String = string(today()))
 
   stats = bmark_solvers(solvers, cutest_problems)
 
-  @save "$(today)_$(list)_$(string(length(pnames))).jld2" stats
+  @save "$(today)_bis_$(list)_$(string(length(pnames))).jld2" stats
 
   return stats
 end

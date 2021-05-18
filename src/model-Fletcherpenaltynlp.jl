@@ -97,7 +97,6 @@ function FletcherPenaltyNLP(
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
-
   nvar = nlp.meta.nvar
 
   meta = NLPModelMeta(

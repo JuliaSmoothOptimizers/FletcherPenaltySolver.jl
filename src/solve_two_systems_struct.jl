@@ -7,10 +7,10 @@ that we are solving twice
 abstract type QDSolver end
 
 struct IterativeSolver{
-  T<:AbstractFloat, 
+  T <: AbstractFloat, 
   S, 
-  SS1<:KrylovSolver{T,S}, 
-  SS2<:KrylovSolver{T,S}
+  SS1 <: KrylovSolver{T, S}, 
+  SS2 <: KrylovSolver{T, S}
 } <: QDSolver
   # parameters for least-square solve
   # ls_M # =opEye(), 
@@ -76,17 +76,17 @@ function IterativeSolver(
   ln_atol::T = √eps(T),
   ln_rtol::T = √eps(T),
   ln_btol::T = √eps(T),
-  ln_conlim::T = 1/√eps(T),
+  ln_conlim::T = 1 / √eps(T),
   ln_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
-  solver_struct_least_square::KrylovSolver{T,Vector{T}}=LsqrSolver(
+  solver_struct_least_square::KrylovSolver{T, Vector{T}} = LsqrSolver(
     zeros(T, nlp.meta.nvar, nlp.meta.ncon),
     zeros(T, nlp.meta.nvar),
   ),
-  solver_struct_least_norm::KrylovSolver{T,Vector{T}}=CraigSolver(
+  solver_struct_least_norm::KrylovSolver{T, Vector{T}} = CraigSolver(
     zeros(T, nlp.meta.ncon, nlp.meta.nvar),
     zeros(T, nlp.meta.ncon),
   ),
-  kwargs...
+  kwargs...,
 ) where {T}
   return IterativeSolver(
     # M,
@@ -128,7 +128,7 @@ struct LDLtSolver <: QDSolver
   vals
 end
 
-function LDLtSolver(nlp, ::T; kwargs...) where {T<:Number}
+function LDLtSolver(nlp, ::T; kwargs...) where {T <: Number}
   nnzj = nlp.meta.nnzj
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 

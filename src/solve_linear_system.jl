@@ -1,8 +1,8 @@
 function solve_two_least_squares(
-    nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
-    x::AbstractVector{T},
-    rhs1::AbstractVector,
-    rhs2::AbstractVector,
+  nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
+  x::AbstractVector{T},
+  rhs1::AbstractVector,
+  rhs2::AbstractVector,
 ) where {T, S, Tt, A, P, SS1, SS2}
   # rhs1 and rhs2 are both of size nlp.meta.nvar
   #=
@@ -144,9 +144,9 @@ function solve_two_least_squares(
   end
 
   return sol[1:nvar, 1],
-  sol[nvar+1:nvar+ncon, 1],
+  sol[(nvar + 1):(nvar + ncon), 1],
   sol[1:nvar, 2],
-  sol[nvar+1:nvar+ncon, 2]
+  sol[(nvar + 1):(nvar + ncon), 2]
 end
 
 function solve_two_mixed(
@@ -197,7 +197,7 @@ function solve_two_mixed(
   end
 
   return sol[1:nvar, 1],
-  sol[nvar+1:nvar+ncon, 1],
+  sol[(nvar + 1):(nvar + ncon), 1],
   sol[1:nvar, 2],
-  sol[nvar+1:nvar+ncon, 2]
+  sol[(nvar + 1):(nvar + ncon), 2]
 end
