@@ -99,9 +99,9 @@ version = "0.8.3"
 
 [[ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "e6b23566e025d3b0d9ccc397f5c7a134af552e27"
+git-tree-sha1 = "9b0375dc013ab0fc472b37cb8b18eed66b83f76b"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "0.9.42"
+version = "0.9.43"
 
 [[CodecBzip2]]
 deps = ["Bzip2_jll", "Libdl", "TranscodingStreams"]
@@ -257,8 +257,8 @@ uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
 
 [[FletcherPenaltyNLPSolver]]
-deps = ["ADNLPModels", "CUTEst", "Ipopt", "JSOSolvers", "Krylov", "LDLFactorizations", "LinearAlgebra", "LinearOperators", "Logging", "Memoize", "NLPModels", "NLPModelsIpopt", "NLPModelsJuMP", "NLPModelsKnitro", "NLPModelsModifiers", "NLPModelsTest", "OptimizationProblems", "SolverBenchmark", "SolverCore", "SolverTest", "SolverTools", "SparseArrays", "Stopping"]
-git-tree-sha1 = "6618cc4d312992438f106ecb2d81c74ccfb701b3"
+deps = ["ADNLPModels", "BenchmarkTools", "CUTEst", "FastClosures", "Ipopt", "JSOSolvers", "Krylov", "LDLFactorizations", "LinearAlgebra", "LinearOperators", "Logging", "Memoize", "NLPModels", "NLPModelsIpopt", "NLPModelsJuMP", "NLPModelsKnitro", "NLPModelsModifiers", "NLPModelsTest", "OptimizationProblems", "SolverBenchmark", "SolverCore", "SolverTest", "SolverTools", "SparseArrays", "Stopping"]
+git-tree-sha1 = "9974dee38aceabb1fbe7ba3158376c47181d9162"
 repo-rev = "main"
 repo-url = "https://github.com/tmigot/FletcherPenaltyNLPSolver"
 uuid = "e59f0261-166d-4fee-8bf3-5e50457de5db"
@@ -432,10 +432,10 @@ uuid = "4076af6c-e467-56ae-b986-b466b2749572"
 version = "0.21.8"
 
 [[KNITRO]]
-deps = ["Libdl", "MathOptInterface", "MathProgBase", "SparseArrays"]
-git-tree-sha1 = "b14c5f5e72b706c68e44931a9b19f4e1abb8e8ac"
+deps = ["Libdl", "MathOptInterface", "SparseArrays"]
+git-tree-sha1 = "88c9bba20c0834c79476a7f28cedfc8c9931e4db"
 uuid = "67920dd8-b58e-52a8-8622-53c4cffbe346"
-version = "0.9.3"
+version = "0.10.0"
 
 [[Krylov]]
 deps = ["LinearAlgebra", "LinearOperators", "Printf", "SparseArrays"]
@@ -924,9 +924,9 @@ version = "1.3.0"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "fb46e45ef2cade8be20bb445b3ffeca3c6d6f7d3"
+git-tree-sha1 = "c635017268fd51ed944ec429bcc4ad010bcea900"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.1.3"
+version = "1.2.0"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
