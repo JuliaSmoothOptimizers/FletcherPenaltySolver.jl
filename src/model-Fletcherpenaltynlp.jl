@@ -89,8 +89,26 @@ mutable struct FletcherPenaltyNLP{
   hessian_approx::A
 end
 
-function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = nlp.meta.x0)
-  S = eltype(x0)
+function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; kwargs...)
+  return FletcherPenaltyNLP(
+    nlp,
+    σ,
+    linear_system_solver,
+    hessian_approx,
+    nlp.meta.x0;
+    kwargs...
+  )
+end
+
+function FletcherPenaltyNLP(
+  nlp, 
+  σ, 
+  linear_system_solver, 
+  hessian_approx, 
+  x0::AbstractVector{S};
+  qds = IterativeSolver(nlp, S(NaN)),
+) where {S}
+
   nvar = nlp.meta.nvar
 
   meta = NLPModelMeta(
@@ -126,14 +144,36 @@ function FletcherPenaltyNLP(nlp, σ, linear_system_solver, hessian_approx; x0 = 
     zero(typeof(σ)),
     zero(typeof(σ)),
     zero(typeof(σ)),
-    IterativeSolver(nlp.meta.ncon, nlp.meta.nvar, S(NaN)),
+    qds,
     linear_system_solver,
     hessian_approx,
   )
 end
 
-function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_approx; x0 = nlp.meta.x0)
-  S = eltype(x0)
+function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_approx; kwargs...)
+  return FletcherPenaltyNLP(
+    nlp,
+    σ,
+    ρ,
+    δ,
+    linear_system_solver,
+    hessian_approx,
+    nlp.meta.x0;
+    kwargs...
+  )
+end
+
+function FletcherPenaltyNLP(
+  nlp,
+  σ,
+  ρ,
+  δ,
+  linear_system_solver,
+  hessian_approx,
+  x0::AbstractVector{S};
+  qds = IterativeSolver(nlp, S(NaN)),
+) where {S}
+
   nvar = nlp.meta.nvar
 
   meta = NLPModelMeta(
@@ -169,7 +209,7 @@ function FletcherPenaltyNLP(nlp, σ, ρ, δ, linear_system_solver, hessian_appro
     ρ,
     δ,
     zero(typeof(σ)),
-    IterativeSolver(nlp.meta.ncon, nlp.meta.nvar, S(NaN)),
+    qds,
     linear_system_solver,
     hessian_approx,
   )
@@ -190,20 +230,22 @@ include("linesearch.jl")
 function FletcherPenaltyNLP(
   nlp::AbstractNLPModel;
   σ_0::Real = one(eltype(nlp.meta.x0)),
-  rho_0::Real = zero(eltype(nlp.meta.x0)),
-  delta_0::Real = zero(eltype(nlp.meta.x0)),
+  ρ_0::Real = zero(eltype(nlp.meta.x0)),
+  δ_0::Real = zero(eltype(nlp.meta.x0)),
   linear_system_solver::Function = _solve_with_linear_operator,
   hessian_approx = Val(2),
   x0 = nlp.meta.x0,
+  kwargs...
 )
   return FletcherPenaltyNLP(
     nlp,
     σ_0,
-    rho_0,
-    delta_0,
+    ρ_0,
+    δ_0,
     linear_system_solver,
-    hessian_approx;
-    x0 = nlp.meta.x0,
+    hessian_approx,
+    x0;
+    kwargs...
   )
 end
 

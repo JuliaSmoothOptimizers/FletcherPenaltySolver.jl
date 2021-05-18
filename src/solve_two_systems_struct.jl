@@ -50,16 +50,15 @@ end
 =#
 
 function IterativeSolver(
-  m,
-  n,
+  nlp::AbstractNLPModel,
   ::T;
   solver=cg,
   M = opEye(),
   atol::T = √eps(T),
   rtol::T = √eps(T),
-  itmax::Integer = 5 * (m + n),
-  solver_struct_least_square::KrylovSolver{T,Vector{T}}=LsqrSolver(zeros(T, n, m), zeros(T, n)),
-  solver_struct_least_norm::KrylovSolver{T,Vector{T}}=CraigSolver(zeros(T, m, n), zeros(T, m)),
+  itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+  solver_struct_least_square::KrylovSolver{T,Vector{T}}=LsqrSolver(zeros(T, nlp.meta.nvar, nlp.meta.ncon), zeros(T, nlp.meta.nvar)),
+  solver_struct_least_norm::KrylovSolver{T,Vector{T}}=CraigSolver(zeros(T, nlp.meta.ncon, nlp.meta.nvar), zeros(T, nlp.meta.ncon)),
 ) where {T}
   return IterativeSolver(
     solver,
@@ -69,13 +68,13 @@ function IterativeSolver(
     itmax,
     solver_struct_least_square,
     solver_struct_least_norm,
-    Vector{T}(undef, m + n), 
-    Vector{T}(undef, m), 
-    Vector{T}(undef, n),
-    Vector{T}(undef, n),
-    Vector{T}(undef, m),
-    Vector{T}(undef, n),
-    Vector{T}(undef, m),
+    Vector{T}(undef, nlp.meta.ncon + nlp.meta.nvar), 
+    Vector{T}(undef, nlp.meta.ncon), 
+    Vector{T}(undef, nlp.meta.nvar),
+    Vector{T}(undef, nlp.meta.nvar),
+    Vector{T}(undef, nlp.meta.ncon),
+    Vector{T}(undef, nlp.meta.nvar),
+    Vector{T}(undef, nlp.meta.ncon),
   )
 end
 
@@ -96,8 +95,8 @@ struct LDLtSolver <: QDSolver
   cols
   vals
 end
-#=
-function LDLtSolver(nlp, ::T)
+
+function LDLtSolver(nlp, ::T) where {T}
   nnzj = nlp.meta.nnzj
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 
@@ -107,7 +106,6 @@ function LDLtSolver(nlp, ::T)
   vals = zeros(T, nnz)
   return LDLtSolver(nnz, rows, cols, vals)
 end
-=#
 
 struct DirectSolver <: QDSolver end
 #=
