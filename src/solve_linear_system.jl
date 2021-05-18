@@ -9,13 +9,13 @@ function solve_two_least_squares(
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
   Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs1, λ = nlp.δ)
+  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs1, λ = √nlp.δ)
   nlp.qdsolver.p1 .= rhs1 - Aop' * q1
   if !stats1.solved
     @warn "Failed solving 1st linear system with $(nlp.qdsolver.solver)."
   end
 
-  (q2, stats2) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs2, λ = nlp.δ)
+  (q2, stats2) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs2, λ = √nlp.δ)
   nlp.qdsolver.p2 .= rhs2 - Aop' * q2
   if !stats2.solved
     @warn "Failed solving 2nd linear system with $(nlp.qdsolver.solver)."
@@ -36,7 +36,8 @@ function solve_two_mixed(
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
   Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs1, λ = nlp.δ, atol = 1e-14, rtol = 1e-14)
+  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs1, λ = √nlp.δ, atol = 1e-14, rtol = 1e-14)
+  nlp.qdsolver.q1 .= q1
   nlp.qdsolver.p1 .= rhs1 - Aop' * q1
   if !stats1.solved
     @warn "Failed solving 1st linear system with $(nlp.qdsolver.solver)."
