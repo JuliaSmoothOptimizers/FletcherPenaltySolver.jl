@@ -232,8 +232,7 @@ end
   return jac(nlp.nlp, x)
 end
 
-# @memoize 
-function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+@memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
   g = nlp.gx

@@ -12,13 +12,24 @@ struct IterativeSolver{
   SS1<:KrylovSolver{T,S}, 
   SS2<:KrylovSolver{T,S}
 } <: QDSolver
-  solver::Function
-  M # =opEye(), 
+  # parameters for least-square solve
+  # ls_M # =opEye(), 
   #λ::T # =zero(T), 
-  atol::T # =√eps(T), 
-  rtol::T # =√eps(T),
+  ls_atol::T # =√eps(T), 
+  ls_rtol::T # =√eps(T),
   #radius :: T=zero(T), 
-  itmax::Integer # =0, 
+  ls_itmax::Integer # =0, 
+  #verbose :: Int=0, 
+  #history :: Bool=false
+
+  # parameters for least-norm solve
+  # ln_N # =opEye(), 
+  # λ::T # =zero(T), 
+  ln_atol::T # =√eps(T), 
+  ln_rtol::T # =√eps(T),
+  ln_btol::T # =√eps(T),
+  ln_conlim::T # =1/√eps(T)
+  ln_itmax::Integer # =0, 
   #verbose :: Int=0, 
   #history :: Bool=false
 
@@ -26,6 +37,7 @@ struct IterativeSolver{
   solver_struct_least_square::SS1
   solver_struct_least_norm::SS2
   # allocation of the linear operator, only one as the matrix is symmetric
+  # ToDo: Il faudrait faire le tri ici car tout n'est pas utilisé
   opr::Vector{T}
   Jv::Vector{T}
   Jtv::Vector{T}
@@ -57,11 +69,15 @@ end
 function IterativeSolver(
   nlp::AbstractNLPModel,
   ::T;
-  solver = cg,
-  M = opEye(),
-  atol::T = √eps(T),
-  rtol::T = √eps(T),
-  itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+  # M = opEye(),
+  ls_atol::T = √eps(T),
+  ls_rtol::T = √eps(T),
+  ls_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+  ln_atol::T = √eps(T),
+  ln_rtol::T = √eps(T),
+  ln_btol::T = √eps(T),
+  ln_conlim::T = 1/√eps(T),
+  ln_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
   solver_struct_least_square::KrylovSolver{T,Vector{T}}=LsqrSolver(
     zeros(T, nlp.meta.nvar, nlp.meta.ncon),
     zeros(T, nlp.meta.nvar),
@@ -73,11 +89,15 @@ function IterativeSolver(
   kwargs...
 ) where {T}
   return IterativeSolver(
-    solver,
-    M,
-    atol,
-    rtol,
-    itmax,
+    # M,
+    ls_atol,
+    ls_rtol,
+    ls_itmax,
+    ln_atol,
+    ln_rtol,
+    ln_btol,
+    ln_conlim,
+    ln_itmax,
     solver_struct_least_square,
     solver_struct_least_norm,
     Vector{T}(undef, nlp.meta.ncon + nlp.meta.nvar),
@@ -125,18 +145,6 @@ struct DirectSolver <: QDSolver end
  - in-place LU factorization ?
 =#
 struct LUSolver <: QDSolver end
-
-function solve(A, b::AbstractVector, qdsolver::IterativeSolver; kwargs...)
-  return qdsolver.solver(
-    A,
-    b;
-    M = qdsolver.M,
-    atol = qdsolver.atol,
-    rtol = qdsolver.rtol,
-    itmax = qdsolver.itmax,
-    kwargs...,
-  )
-end
 
 #=
 Another solve function for Block systems.

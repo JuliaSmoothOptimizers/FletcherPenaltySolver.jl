@@ -95,10 +95,10 @@ mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver}
 end
 
 #Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
-function FPSSSolver(nlp::AbstractNLPModel, ::T; la_solver = :ldlt, kwargs...) where {T}
+function FPSSSolver(nlp::AbstractNLPModel, ::T; qds_solver = :ldlt, kwargs...) where {T}
   meta = AlgoData(T; kwargs...)
   workspace = ()
-  qdsolver = qdsolver_correspondence[la_solver](nlp, zero(T); kwargs...)
+  qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
   unconstrained_solver = KnitroSolver()
   return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver)
 end
