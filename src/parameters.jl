@@ -81,15 +81,26 @@ AlgoData(; kwargs...) = AlgoData(Float64; kwargs...)
 
 abstract type UnconstrainedSolver end
 
-mutable struct KnitroSolver end
-mutable struct IpoptSolver end
-mutable struct LBFGSSolver end
+mutable struct KnitroSolver <: UnconstrainedSolver end
+mutable struct IpoptSolver <: UnconstrainedSolver end
+mutable struct LBFGSSolver <: UnconstrainedSolver end
+
+const qdsolver_correspondence = Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 
 mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver}
   meta::AlgoData{T} # AlgoData
   workspace # allocated space for the solver itself
   qdsolver::QDS # solver structure for the linear algebra part, contains allocation for this par
   unconstrained_solver::US # should be a structure/named typle, with everything related to unconstrained
+end
+
+#Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
+function FPSSSolver(nlp::AbstractNLPModel, ::T; la_solver = :ldlt, kwargs...) where {T}
+  meta = AlgoData(T; kwargs...)
+  workspace = ()
+  qdsolver = qdsolver_correspondence[la_solver](nlp, zero(T); kwargs...)
+  unconstrained_solver = KnitroSolver()
+  return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver)
 end
 
 #=

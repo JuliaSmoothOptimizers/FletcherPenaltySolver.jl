@@ -55,7 +55,7 @@ function Fletcher_penalty_optimality_check(pb::AbstractNLPModel, state::NLPAtX)
 end
 
 include("parameters.jl")
-export AlgoData
+export AlgoData, FPSSSolver
 
 ###############################
 #
@@ -100,7 +100,8 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
   if has_inequalities(nlp)
     nlp = SlackModel(nlp)
   end
-  meta = AlgoData(T; kwargs...)
+  #meta = AlgoData(T; kwargs...)
+  meta = FPSSSolver(nlp, T(0); kwargs...)
 
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?

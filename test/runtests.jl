@@ -31,7 +31,7 @@ end
     zeros(1),
   )
   stp = NLPStopping(nlp)
-  meta = AlgoData(Float64)
+  meta = FPSSSolver(nlp, 0.0)
   @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(stp, meta)
 end
 #On a toy rosenbrock variation.

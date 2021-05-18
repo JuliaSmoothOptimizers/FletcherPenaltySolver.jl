@@ -1,4 +1,8 @@
-function fps_solve(stp::NLPStopping, meta::AlgoData{T}) where {T}
+function fps_solve(
+  stp::NLPStopping, 
+  fpssolver::FPSSSolver{T, QDS, US}
+) where {T, QDS, US}
+  meta = fpssolver.meta
   if !(stp.pb.meta.minimize)
     error("fps_solve only works for minimization problem")
   end

@@ -70,6 +70,7 @@ function IterativeSolver(
     zeros(T, nlp.meta.ncon, nlp.meta.nvar),
     zeros(T, nlp.meta.ncon),
   ),
+  kwargs...
 ) where {T}
   return IterativeSolver(
     solver,
@@ -107,7 +108,7 @@ struct LDLtSolver <: QDSolver
   vals
 end
 
-function LDLtSolver(nlp, ::T) where {T}
+function LDLtSolver(nlp, ::T; kwargs...) where {T<:Number}
   nnzj = nlp.meta.nnzj
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 
@@ -124,13 +125,6 @@ struct DirectSolver <: QDSolver end
  - in-place LU factorization ?
 =#
 struct LUSolver <: QDSolver end
-
-const qdsolvers = Dict(
-  :Iterative => :_solve_with_linear_operator,
-  :LDLt => :_solve_ldlt_factorization,
-  #:Direct => :_solve_system_dense,
-  #:LU => :_solve_system_factorization_lu,
-)
 
 function solve(A, b::AbstractVector, qdsolver::IterativeSolver; kwargs...)
   return qdsolver.solver(
