@@ -236,7 +236,8 @@ function linear_system1(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   return _sol1
 end
 
-@memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+# @memoize 
+function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
   g = nlp.gx
@@ -284,8 +285,9 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   nlp.cx .= main_cons(nlp, x)
   c = nlp.cx
 
-  _sol1 = linear_system1(nlp, x)
-  nlp.ys .= _sol1[(nvar + 1):(nvar + nlp.nlp.meta.ncon)]
+  #_sol1 = linear_system1(nlp, x)
+  #nlp.ys .= _sol1[(nvar + 1):(nvar + nlp.nlp.meta.ncon)]
+  _, ys, _, _ = _compute_ys_gs!(nlp, x)
 
   fx = f - dot(c, nlp.ys) + T(nlp.ρ) / 2 * dot(c, c)
   if nlp.η > 0.0
