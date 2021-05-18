@@ -2,7 +2,7 @@ function solve_two_least_squares(
     nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
     x::AbstractVector{T},
     rhs1::AbstractVector,
-    rhs2::AbstractVector
+    rhs2::AbstractVector,
 ) where {T, S, Tt, A, P, SS1, SS2}
   # rhs1 and rhs2 are both of size nlp.meta.nvar
   #=
@@ -30,7 +30,7 @@ function solve_two_mixed(
   nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
   x::AbstractVector{T},
   rhs1::AbstractVector,
-  rhs2::AbstractVector
+  rhs2::AbstractVector,
 ) where {T, S, Tt, A, P, SS1, SS2}
   # rhs1 is of size nlp.meta.nvar
   # rhs2 is of size nlp.meta.ncon
@@ -38,7 +38,14 @@ function solve_two_mixed(
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
   Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = lsqr!(nlp.qdsolver.solver_struct_least_square, Aop', rhs1, λ = √nlp.δ, atol = 1e-14, rtol = 1e-14)
+  (q1, stats1) = lsqr!(
+    nlp.qdsolver.solver_struct_least_square,
+    Aop',
+    rhs1,
+    λ = √nlp.δ,
+    atol = 1e-14,
+    rtol = 1e-14,
+  )
   nlp.qdsolver.q1 .= q1
   nlp.qdsolver.p1 .= rhs1 - Aop' * q1
   if !stats1.solved
@@ -47,12 +54,12 @@ function solve_two_mixed(
 
   if nlp.δ != 0.0
     (p2, q2, stats2) = craig!(
-      nlp.qdsolver.solver_struct_least_norm, 
-      Aop, 
-      -rhs2, 
-      M = 1/nlp.δ * I, # improve
+      nlp.qdsolver.solver_struct_least_norm,
+      Aop,
+      -rhs2,
+      M = 1 / nlp.δ * I, # improve
       sqd = true,
-      atol = 1e-14, 
+      atol = 1e-14,
       rtol = 1e-14,
     )
   else
@@ -70,10 +77,10 @@ function solve_two_mixed(
 end
 
 function solve_two_least_squares(
-    nlp::FletcherPenaltyNLP{S, Tt, A, P, LDLtSolver},
-    x::AbstractVector{T},
-    rhs1::AbstractVector,
-    rhs2::AbstractVector
+  nlp::FletcherPenaltyNLP{S, Tt, A, P, LDLtSolver},
+  x::AbstractVector{T},
+  rhs1::AbstractVector,
+  rhs2::AbstractVector,
 ) where {T, S, Tt, A, P}
   #set the memory for the matrix in the FletcherPenaltyNLP
   nnzj = nlp.nlp.meta.nnzj
@@ -116,20 +123,22 @@ function solve_two_least_squares(
     @warn "_solve_ldlt_factorization: failed _factorization"
   end
 
-  return sol[1:nvar, 1], sol[nvar+1:nvar+ncon, 1], sol[1:nvar, 2], sol[nvar+1:nvar+ncon, 2]
+  return sol[1:nvar, 1],
+  sol[nvar+1:nvar+ncon, 1],
+  sol[1:nvar, 2],
+  sol[nvar+1:nvar+ncon, 2]
 end
 
 function solve_two_mixed(
   nlp::FletcherPenaltyNLP{S, Tt, A, P, LDLtSolver},
   x::AbstractVector{T},
   rhs1::AbstractVector,
-  rhs2::AbstractVector
+  rhs2::AbstractVector,
 ) where {T, S, Tt, A, P}
-  
-  #set the memory for the matrix in the FletcherPenaltyNLP
+  # set the memory for the matrix in the FletcherPenaltyNLP
   nnzj = nlp.nlp.meta.nnzj
   nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
-  
+
   rhs1 = vcat(rhs1, zeros(T, nlp.nlp.meta.ncon))
   rhs2 = vcat(zeros(T, nlp.meta.nvar), rhs2)
 
@@ -167,5 +176,8 @@ function solve_two_mixed(
     @warn "_solve_ldlt_factorization: failed _factorization"
   end
 
-  return sol[1:nvar, 1], sol[nvar+1:nvar+ncon, 1], sol[1:nvar, 2], sol[nvar+1:nvar+ncon, 2]
+  return sol[1:nvar, 1],
+  sol[nvar+1:nvar+ncon, 1],
+  sol[1:nvar, 2],
+  sol[nvar+1:nvar+ncon, 2]
 end

@@ -6,7 +6,12 @@ that we are solving twice
 =#
 abstract type QDSolver end
 
-struct IterativeSolver{T<:AbstractFloat, S, SS1<:KrylovSolver{T,S}, SS2<:KrylovSolver{T,S}} <: QDSolver
+struct IterativeSolver{
+  T<:AbstractFloat, 
+  S, 
+  SS1<:KrylovSolver{T,S}, 
+  SS2<:KrylovSolver{T,S}
+} <: QDSolver
   solver::Function
   M # =opEye(), 
   #λ::T # =zero(T), 
@@ -29,7 +34,7 @@ struct IterativeSolver{T<:AbstractFloat, S, SS1<:KrylovSolver{T,S}, SS2<:KrylovS
   p2::Vector{T} # part 1: solution of 2nd LS
   q2::Vector{T} # part 2: solution of 2nd LS
 end
- 
+
 # import Krylov.LsqrSolver
 #=
 mutable struct LsqrSolver2{T,S} <: KrylovSolver{T,S}
@@ -52,13 +57,19 @@ end
 function IterativeSolver(
   nlp::AbstractNLPModel,
   ::T;
-  solver=cg,
+  solver = cg,
   M = opEye(),
   atol::T = √eps(T),
   rtol::T = √eps(T),
   itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
-  solver_struct_least_square::KrylovSolver{T,Vector{T}}=LsqrSolver(zeros(T, nlp.meta.nvar, nlp.meta.ncon), zeros(T, nlp.meta.nvar)),
-  solver_struct_least_norm::KrylovSolver{T,Vector{T}}=CraigSolver(zeros(T, nlp.meta.ncon, nlp.meta.nvar), zeros(T, nlp.meta.ncon)),
+  solver_struct_least_square::KrylovSolver{T,Vector{T}}=LsqrSolver(
+    zeros(T, nlp.meta.nvar, nlp.meta.ncon),
+    zeros(T, nlp.meta.nvar),
+  ),
+  solver_struct_least_norm::KrylovSolver{T,Vector{T}}=CraigSolver(
+    zeros(T, nlp.meta.ncon, nlp.meta.nvar),
+    zeros(T, nlp.meta.ncon),
+  ),
 ) where {T}
   return IterativeSolver(
     solver,
@@ -68,8 +79,8 @@ function IterativeSolver(
     itmax,
     solver_struct_least_square,
     solver_struct_least_norm,
-    Vector{T}(undef, nlp.meta.ncon + nlp.meta.nvar), 
-    Vector{T}(undef, nlp.meta.ncon), 
+    Vector{T}(undef, nlp.meta.ncon + nlp.meta.nvar),
+    Vector{T}(undef, nlp.meta.ncon),
     Vector{T}(undef, nlp.meta.nvar),
     Vector{T}(undef, nlp.meta.nvar),
     Vector{T}(undef, nlp.meta.ncon),
@@ -89,7 +100,7 @@ nnzj = nlp.nlp.meta.nnzj
 
 + The LDLFactorizationStruct
 =#
-struct LDLtSolver <: QDSolver 
+struct LDLtSolver <: QDSolver
   nnz
   rows
   cols
@@ -123,12 +134,12 @@ const qdsolvers = Dict(
 
 function solve(A, b::AbstractVector, qdsolver::IterativeSolver; kwargs...)
   return qdsolver.solver(
-    A, 
+    A,
     b;
     M = qdsolver.M,
     atol = qdsolver.atol,
     rtol = qdsolver.rtol,
-    itmax = qdsolver.itmax, 
+    itmax = qdsolver.itmax,
     kwargs...,
   )
 end

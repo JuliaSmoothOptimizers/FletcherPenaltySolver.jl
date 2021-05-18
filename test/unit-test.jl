@@ -13,7 +13,6 @@ function test_memoization(fpnlp)
 
 end
 
-
 @testset "Unit test: FletcherPenaltyNLP with 1st hessian approximation" begin
   n = 10
   nlp = ADNLPModel(x -> dot(x, x), zeros(n), x -> [sum(x) - 1.0], zeros(1), zeros(1)) #ne second derivatives of the constraints

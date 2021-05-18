@@ -11,7 +11,7 @@ function _solve_with_linear_operator( # linear_system_solver
   nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
   Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
   # only one as the matrix is symmetric
-  function Mp!(r, v) 
+  function Mp!(r, v)
     nlp.qdsolver.Jtv .= v[1:n] + Aop' * v[(n + 1):nn]
     nlp.qdsolver.Jv .= Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
     r .= vcat(nlp.qdsolver.Jtv, nlp.qdsolver.Jv) # necessary ?
@@ -47,7 +47,7 @@ function _solve_with_linear_operator(
   nn = nlp.nlp.meta.ncon + nlp.nlp.meta.nvar
   Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
   # only one as the matrix is symmetric
-  function Mp!(r, v) 
+  function Mp!(r, v)
     nlp.qdsolver.Jtv .= v[1:n] + Aop' * v[(n + 1):nn]
     nlp.qdsolver.Jv .= Aop * v[1:n] - nlp.δ * v[(n + 1):nn]
     r .= vcat(nlp.qdsolver.Jtv, nlp.qdsolver.Jv) # necessary ?

@@ -4,10 +4,14 @@ using BenchmarkTools
 
 Random.seed!(1234)
 
-nlp = ADNLPModel(x -> (x[1] - 1.0)^2 + 100 * (x[2] - x[1]^2)^2, 
-                [-1.2; 1.0],
-                x -> [sum(x) - 2], [0.0], [0.0],
-                name = "Rosenbrock with ∑x = 2")
+nlp = ADNLPModel(
+  x -> (x[1] - 1.0)^2 + 100 * (x[2] - x[1]^2)^2, 
+  [-1.2; 1.0],
+  x -> [sum(x) - 2], 
+  [0.0], 
+  [0.0],
+  name = "Rosenbrock with ∑x = 2",
+)
 
 # problem with the 2nd approximation:
 @time fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(2), max_iter = 30)

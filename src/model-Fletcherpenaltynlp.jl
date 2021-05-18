@@ -70,7 +70,7 @@ mutable struct FletcherPenaltyNLP{
   w::T #2nd linear system
   _sol1::T
   _sol2::T
-  Hsv::T 
+  Hsv::T
   Sstw::T
   Jcρ::T
   Jv::T
@@ -87,19 +87,13 @@ mutable struct FletcherPenaltyNLP{
 end
 
 function FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
-  return FletcherPenaltyNLP(
-    nlp,
-    σ,
-    hessian_approx,
-    nlp.meta.x0;
-    kwargs...
-  )
+  return FletcherPenaltyNLP(nlp, σ, hessian_approx, nlp.meta.x0; kwargs...)
 end
 
 function FletcherPenaltyNLP(
-  nlp, 
-  σ, 
-  hessian_approx, 
+  nlp,
+  σ,
+  hessian_approx,
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(NaN)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
@@ -145,15 +139,7 @@ function FletcherPenaltyNLP(
 end
 
 function FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx; kwargs...)
-  return FletcherPenaltyNLP(
-    nlp,
-    σ,
-    ρ,
-    δ,
-    hessian_approx,
-    nlp.meta.x0;
-    kwargs...
-  )
+  return FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx, nlp.meta.x0; kwargs...)
 end
 
 function FletcherPenaltyNLP(
@@ -165,7 +151,6 @@ function FletcherPenaltyNLP(
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(NaN)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
-
   nvar = nlp.meta.nvar
 
   meta = NLPModelMeta(
@@ -225,17 +210,9 @@ function FletcherPenaltyNLP(
   δ_0::Real = zero(eltype(nlp.meta.x0)),
   hessian_approx = Val(2),
   x0 = nlp.meta.x0,
-  kwargs...
+  kwargs...,
 )
-  return FletcherPenaltyNLP(
-    nlp,
-    σ_0,
-    ρ_0,
-    δ_0,
-    hessian_approx,
-    x0;
-    kwargs...
-  )
+  return FletcherPenaltyNLP(nlp, σ_0, ρ_0, δ_0, hessian_approx, x0; kwargs...)
 end
 
 @memoize function main_obj(nlp::FletcherPenaltyNLP, x::AbstractVector)
