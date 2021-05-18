@@ -106,7 +106,7 @@ function FletcherPenaltyNLP(
   linear_system_solver, 
   hessian_approx, 
   x0::AbstractVector{S};
-  qds = IterativeSolver(nlp, S(NaN)),
+  qds = LDLtSolver(nlp, S(NaN)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
 
   nvar = nlp.meta.nvar
@@ -171,7 +171,7 @@ function FletcherPenaltyNLP(
   linear_system_solver,
   hessian_approx,
   x0::AbstractVector{S};
-  qds = IterativeSolver(nlp, S(NaN)),
+  qds = LDLtSolver(nlp, S(NaN)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
 
   nvar = nlp.meta.nvar

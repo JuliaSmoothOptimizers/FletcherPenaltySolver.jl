@@ -75,11 +75,12 @@ function solve_two_least_squares(
     rhs1::AbstractVector,
     rhs2::AbstractVector
 ) where {T, S, Tt, A, P}
-  rhs1 = vcat(rhs1, zeros(T, ncon))
-  rhs2 = vcat(rhs2, zeros(T, ncon))
   #set the memory for the matrix in the FletcherPenaltyNLP
   nnzj = nlp.nlp.meta.nnzj
   nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
+
+  rhs1 = vcat(rhs1, zeros(T, ncon))
+  rhs2 = vcat(rhs2, zeros(T, ncon))
 
   nnz = nvar + nnzj + ncon
   rows = zeros(Int, nnz)
@@ -124,11 +125,13 @@ function solve_two_mixed(
   rhs1::AbstractVector,
   rhs2::AbstractVector
 ) where {T, S, Tt, A, P}
-  rhs1 = vcat(rhs1, zeros(T, nlp.nlp.meta.ncon))
-  rhs2 = vcat(zeros(T, nlp.meta.nvar), rhs2)
+  
   #set the memory for the matrix in the FletcherPenaltyNLP
   nnzj = nlp.nlp.meta.nnzj
   nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
+  
+  rhs1 = vcat(rhs1, zeros(T, nlp.nlp.meta.ncon))
+  rhs2 = vcat(zeros(T, nlp.meta.nvar), rhs2)
 
   nnz = nvar + nnzj + ncon
   rows = zeros(Int, nnz)
