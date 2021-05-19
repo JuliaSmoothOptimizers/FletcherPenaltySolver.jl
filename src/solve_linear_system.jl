@@ -111,6 +111,8 @@ function solve_two_least_squares(
   cols = nlp.qdsolver.cols # zeros(Int, nnz)
   vals = nlp.qdsolver.vals # zeros(T, nnz)
 
+  #=
+  # WE TRUST THAT two_mixed has been run just before and allocated
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
   @views jac_coord!(nlp.nlp, x, vals[nnz_idx])
@@ -120,6 +122,7 @@ function solve_two_least_squares(
 
   M = Symmetric(sparse(rows, cols, vals, nvar + ncon, nvar + ncon), :U)
   ldl_factorize!(M, nlp.qdsolver.str)
+  =#
   nlp.qdsolver.sol[1:nvar, 1] .= rhs1
   nlp.qdsolver.sol[(nvar + 1):(nvar + ncon), 1] .= 0
   nlp.qdsolver.sol[1:nvar, 2] .= rhs2
@@ -167,7 +170,7 @@ function solve_two_mixed(
   nlp.qdsolver.sol[1:nvar, 2] .= 0
   nlp.qdsolver.sol[(nvar + 1):(nvar + ncon), 2] .= rhs2
   sol = nlp.qdsolver.sol
-  
+
   if factorized(nlp.qdsolver.str)
     ldiv!(nlp.qdsolver.str, sol)
   else
