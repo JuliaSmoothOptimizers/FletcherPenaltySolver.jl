@@ -7,10 +7,10 @@ that we are solving twice
 abstract type QDSolver end
 
 struct IterativeSolver{
-  T <: AbstractFloat, 
-  S, 
-  SS1 <: KrylovSolver{T, S}, 
-  SS2 <: KrylovSolver{T, S}
+  T <: AbstractFloat,
+  S,
+  SS1 <: KrylovSolver{T, S},
+  SS2 <: KrylovSolver{T, S},
 } <: QDSolver
   # parameters for least-square solve
   # ls_M # =opEye(), 

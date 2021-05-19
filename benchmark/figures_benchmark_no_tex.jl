@@ -13,9 +13,9 @@ using Random
 gr() #pgfplots()
 
 function figure()
-  names = ["2021-05-13_bis__FPS_FPSFF_knitro_ipopt_45"]
+  names = ["2021-05-19_bis__FPS_FPSFF_knitro_ipopt_45"]
 
-  tod = string(today())*"_bis"
+  tod = string(today())
   dsolvers = [:ipopt, :knitro, :FPS, :FPSFF]
   list = ""
   for solver in dsolvers
