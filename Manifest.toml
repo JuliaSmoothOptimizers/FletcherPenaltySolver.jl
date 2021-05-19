@@ -433,9 +433,9 @@ version = "0.10.0"
 
 [[Krylov]]
 deps = ["LinearAlgebra", "LinearOperators", "Printf", "SparseArrays"]
-git-tree-sha1 = "e8dc5feaf0480d1d8b57408501b0c6cf00dd907a"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaSmoothOptimizers/Krylov.jl"
+git-tree-sha1 = "6fbe6b91f3bc5eb484ba3b32cbd8fd2691d20b9e"
+repo-rev = "solver"
+repo-url = "https://github.com/amontoison/Krylov.jl"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
 version = "0.7.0"
 

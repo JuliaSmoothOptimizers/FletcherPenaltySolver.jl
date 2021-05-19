@@ -78,16 +78,18 @@ function IterativeSolver(
   ln_btol::T = √eps(T),
   ln_conlim::T = 1 / √eps(T),
   ln_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
-  solver_struct_least_square::KrylovSolver{T, Vector{T}} = LsqrSolver(
-    zeros(T, nlp.meta.nvar, nlp.meta.ncon),
-    zeros(T, nlp.meta.nvar),
+  solver_struct_least_square::KrylovSolver{T, S} = LsqrSolver(
+    nlp.meta.nvar,
+    nlp.meta.ncon,
+    Vector{T},
   ),
-  solver_struct_least_norm::KrylovSolver{T, Vector{T}} = CraigSolver(
-    zeros(T, nlp.meta.ncon, nlp.meta.nvar),
-    zeros(T, nlp.meta.ncon),
+  solver_struct_least_norm::KrylovSolver{T, S} = CraigSolver(
+    nlp.meta.nvar,
+    nlp.meta.ncon,
+    Vector{T},
   ),
   kwargs...,
-) where {T}
+) where {T,S}
   return IterativeSolver(
     # M,
     ls_atol,
