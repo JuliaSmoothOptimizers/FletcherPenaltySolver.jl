@@ -36,6 +36,7 @@ struct AlgoData{T <: Real}
 
   #Functions used in the algorithm
   unconstrained_solver::Function
+  subpb_unbounded_threshold
   atol_sub::Function # (stp.meta.atol)
   rtol_sub::Function #(stp.meta.rtol)
 
@@ -47,16 +48,17 @@ function AlgoData(
   T::DataType;
   σ_0::Real = one(T),
   σ_max::Real = 1 / eps(T),
-  σ_update::Real = T(1.5),
+  σ_update::Real = T(2),
   ρ_0::Real = one(T),
   ρ_max::Real = 1 / eps(T),
-  ρ_update::Real = T(1.5),
+  ρ_update::Real = T(2),
   δ_0::Real = √eps(T),
   η_1::Real = zero(T),
   η_update::Real = one(T),
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
   unconstrained_solver::Function = is_knitro_installed ? knitro : ipopt,
+  subpb_unbounded_threshold::Real = 1e10, # 1 / √eps(T),
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,
   hessian_approx = Val(2),
@@ -76,6 +78,7 @@ function AlgoData(
     yM,
     Δ,
     unconstrained_solver,
+    subpb_unbounded_threshold,
     atol_sub,
     rtol_sub,
     hessian_approx,
