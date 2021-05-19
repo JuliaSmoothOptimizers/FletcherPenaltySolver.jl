@@ -21,7 +21,7 @@ function solve_two_least_squares(
   # nlp.qdsolver.q1 .= q1
   nlp.qdsolver.p1 .= rhs1 - Aop' * q1
   if !stats1.solved
-    @warn "Failed solving 1st linear system with $(nlp.qdsolver.solver)."
+    @warn "Failed solving 1st linear system."
   end
 
   (q2, stats2) = lsqr!(
@@ -36,7 +36,7 @@ function solve_two_least_squares(
   # nlp.qdsolver.q2 .= q2
   nlp.qdsolver.p2 .= rhs2 - Aop' * q2
   if !stats2.solved
-    @warn "Failed solving 2nd linear system with $(nlp.qdsolver.solver)."
+    @warn "Failed solving 2nd linear system."
   end
 
   return nlp.qdsolver.p1, q1, nlp.qdsolver.p2, q2
@@ -66,7 +66,7 @@ function solve_two_mixed(
   # nlp.qdsolver.q1 .= q1
   nlp.qdsolver.p1 .= rhs1 - Aop' * q1
   if !stats1.solved
-    @warn "Failed solving 1st linear system with $(nlp.qdsolver.solver)."
+    @warn "Failed solving 1st linear system."
   end
 
   if nlp.δ != 0.0
@@ -89,8 +89,7 @@ function solve_two_mixed(
   # nlp.qdsolver.q2 .= q2
 
   if !stats2.solved
-    @warn "Failed solving 2nd linear system with $(nlp.qdsolver.solver)."
-    @show stats2
+    @warn "Failed solving 2nd linear system."
   end
 
   return nlp.qdsolver.p1, q1, nlp.qdsolver.p2, q2
