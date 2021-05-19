@@ -32,7 +32,7 @@ function fps_solve(
   )
 
   nc0 = norm(state.cx, Inf)
-  Δ = 0.95 #expected decrease in feasibility
+  Δ = meta.Δ # 0.95 #expected decrease in feasibility
   unsuccessful_subpb = 0 #number of consecutive failed subproblem solve.
   unbounded_subpb = 0 #number of consecutive failed subproblem solve.
   stalling = 0 #number of consecutive successful subproblem solve without progress

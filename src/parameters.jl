@@ -25,6 +25,8 @@ struct AlgoData{T <: Real}
   ρ_max::T
   ρ_update::T
   δ_0::T
+  η_1::T
+  η_update::T
 
   #Bound on the Lagrange multipliers
   yM::T
@@ -50,6 +52,8 @@ function AlgoData(
   ρ_max::Real = 1 / eps(T),
   ρ_update::Real = T(1.5),
   δ_0::Real = √eps(T),
+  η_1::Real = zero(T),
+  η_update::Real = one(T),
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
   unconstrained_solver::Function = is_knitro_installed ? knitro : ipopt,
@@ -67,6 +71,8 @@ function AlgoData(
     ρ_max,
     ρ_update,
     δ_0,
+    η_1,
+    η_update,
     yM,
     Δ,
     unconstrained_solver,
