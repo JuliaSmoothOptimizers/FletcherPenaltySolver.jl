@@ -126,9 +126,18 @@ struct LDLtSolver <: QDSolver
   rows
   cols
   vals
+  str # LDLFactorization{T <: Real, Ti <: Integer, Tn <: Integer, Tp <: Integer}
+  sol
 end
 
-function LDLtSolver(nlp, ::T; kwargs...) where {T <: Number}
+function LDLtSolver(
+  nlp,
+  ::T;
+  ldlt_tol = √eps(T),
+  ldlt_r1 = √eps(T),
+  ldlt_r2 = -√eps(T),
+  kwargs...,
+) where {T <: Number}
   nnzj = nlp.meta.nnzj
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 
@@ -136,7 +145,30 @@ function LDLtSolver(nlp, ::T; kwargs...) where {T <: Number}
   rows = zeros(Int, nnz)
   cols = zeros(Int, nnz)
   vals = zeros(T, nnz)
-  return LDLtSolver(nnz, rows, cols, vals)
+
+  # I (1:nvar, 1:nvar)
+  nnz_idx = 1:nvar
+  rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
+  vals[nnz_idx] .= ones(T, nvar)
+  # J (nvar .+ 1:ncon, 1:nvar)
+  nnz_idx = nvar .+ (1:nnzj)
+  @views jac_structure!(nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
+  cols[nnz_idx] .+= nvar
+  # -δI (nvar .+ 1:ncon, nvar .+ 1:ncon)
+  nnz_idx = nvar .+ nnzj .+ (1:ncon)
+  rows[nnz_idx] .= nvar .+ (1:ncon)
+  cols[nnz_idx] .= nvar .+ (1:ncon)
+
+  M = Symmetric(sparse(rows, cols, vals, nvar + ncon, nvar + ncon), :U)
+  Str = ldl_analyze(M)
+  Str.n_d = nvar
+  Str.tol = ldlt_tol
+  Str.r1 = ldlt_r1
+  Str.r2 = ldlt_r2 #regularization < 0
+
+  sol = zeros(T, nvar + ncon, 2) # the store the 2 rhs
+
+  return LDLtSolver(nnz, rows, cols, vals, Str, sol)
 end
 
 struct DirectSolver <: QDSolver end

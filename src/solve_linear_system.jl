@@ -78,7 +78,7 @@ function solve_two_mixed(
       sqd = true,
       atol = nlp.qdsolver.ln_atol,
       rtol = nlp.qdsolver.ln_rtol,
-      btol = nlp.qdsolver.ln_tol,
+      btol = nlp.qdsolver.ln_btol,
       conlim = nlp.qdsolver.ln_conlim,
       itmax = nlp.qdsolver.ln_itmax,
     )
@@ -106,39 +106,27 @@ function solve_two_least_squares(
   nnzj = nlp.nlp.meta.nnzj
   nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
 
-  rhs1 = vcat(rhs1, zeros(T, ncon))
-  rhs2 = vcat(rhs2, zeros(T, ncon))
+  # nnz = nvar + nnzj + ncon
+  rows = nlp.qdsolver.rows # zeros(Int, nnz)
+  cols = nlp.qdsolver.cols # zeros(Int, nnz)
+  vals = nlp.qdsolver.vals # zeros(T, nnz)
 
-  nnz = nvar + nnzj + ncon
-  rows = zeros(Int, nnz)
-  cols = zeros(Int, nnz)
-  vals = zeros(T, nnz)
-
-  # I (1:nvar, 1:nvar)
-  nnz_idx = 1:nvar
-  rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
-  vals[nnz_idx] = ones(T, nvar)
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
-  @views jac_structure!(nlp.nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
-  cols[nnz_idx] .+= nvar
   @views jac_coord!(nlp.nlp, x, vals[nnz_idx])
   # -δI (nvar .+ 1:ncon, nvar .+ 1:ncon)
   nnz_idx = nvar .+ nnzj .+ (1:ncon)
-  rows[nnz_idx] .= nvar .+ (1:ncon)
-  cols[nnz_idx] .= nvar .+ (1:ncon)
   vals[nnz_idx] .= -nlp.δ
 
   M = Symmetric(sparse(rows, cols, vals, nvar + ncon, nvar + ncon), :U)
-  Str = ldl_analyze(M)
-  Str.n_d = nvar
-  Str.tol = √eps(T)
-  Str.r1 = √eps(T)
-  Str.r2 = -√eps(T) #regularization
-  ldl_factorize!(M, Str)
-  sol = hcat(rhs1, rhs2)
-  if factorized(Str)
-    ldiv!(Str, sol)
+  ldl_factorize!(M, nlp.qdsolver.str)
+  nlp.qdsolver.sol[1:nvar, 1] .= rhs1
+  nlp.qdsolver.sol[(nvar + 1):(nvar + ncon), 1] .= 0
+  nlp.qdsolver.sol[1:nvar, 2] .= rhs2
+  nlp.qdsolver.sol[(nvar + 1):(nvar + ncon), 2] .= 0
+  sol = nlp.qdsolver.sol
+  if factorized(nlp.qdsolver.str)
+    ldiv!(nlp.qdsolver.str, sol)
   else
     @warn "_solve_ldlt_factorization: failed _factorization"
   end
@@ -159,39 +147,29 @@ function solve_two_mixed(
   nnzj = nlp.nlp.meta.nnzj
   nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
 
-  rhs1 = vcat(rhs1, zeros(T, nlp.nlp.meta.ncon))
-  rhs2 = vcat(zeros(T, nlp.meta.nvar), rhs2)
+  # nnz = nvar + nnzj + ncon
+  rows = nlp.qdsolver.rows # zeros(Int, nnz)
+  cols = nlp.qdsolver.cols # zeros(Int, nnz)
+  vals = nlp.qdsolver.vals # zeros(T, nnz)
 
-  nnz = nvar + nnzj + ncon
-  rows = zeros(Int, nnz)
-  cols = zeros(Int, nnz)
-  vals = zeros(T, nnz)
-
-  # I (1:nvar, 1:nvar)
-  nnz_idx = 1:nvar
-  rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
-  vals[nnz_idx] = ones(T, nvar)
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
-  @views jac_structure!(nlp.nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
-  cols[nnz_idx] .+= nvar
   @views jac_coord!(nlp.nlp, x, vals[nnz_idx])
   # -δI (nvar .+ 1:ncon, nvar .+ 1:ncon)
   nnz_idx = nvar .+ nnzj .+ (1:ncon)
-  rows[nnz_idx] .= nvar .+ (1:ncon)
-  cols[nnz_idx] .= nvar .+ (1:ncon)
   vals[nnz_idx] .= -nlp.δ
 
   M = Symmetric(sparse(rows, cols, vals, nvar + ncon, nvar + ncon), :U)
-  Str = ldl_analyze(M)
-  Str.n_d = nvar
-  Str.tol = √eps(T)
-  Str.r1 = √eps(T)
-  Str.r2 = -√eps(T) #regularization
-  ldl_factorize!(M, Str)
-  sol = hcat(rhs1, rhs2)
-  if factorized(Str)
-    ldiv!(Str, sol)
+  ldl_factorize!(M, nlp.qdsolver.str)
+
+  nlp.qdsolver.sol[1:nvar, 1] .= rhs1
+  nlp.qdsolver.sol[(nvar + 1):(nvar + ncon), 1] .= 0
+  nlp.qdsolver.sol[1:nvar, 2] .= 0
+  nlp.qdsolver.sol[(nvar + 1):(nvar + ncon), 2] .= rhs2
+  sol = nlp.qdsolver.sol
+  
+  if factorized(nlp.qdsolver.str)
+    ldiv!(nlp.qdsolver.str, sol)
   else
     @warn "_solve_ldlt_factorization: failed _factorization"
   end
