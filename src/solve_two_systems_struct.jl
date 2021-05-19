@@ -84,8 +84,8 @@ function IterativeSolver(
     Vector{T},
   ),
   solver_struct_least_norm::KrylovSolver{T, S} = CraigSolver(
-    nlp.meta.nvar,
     nlp.meta.ncon,
+    nlp.meta.nvar,
     Vector{T},
   ),
   kwargs...,
