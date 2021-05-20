@@ -58,7 +58,7 @@ function AlgoData(
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
   unconstrained_solver::Function = is_knitro_installed ? knitro : ipopt,
-  subpb_unbounded_threshold::Real = 1e10, # 1 / √eps(T),
+  subpb_unbounded_threshold::Real = 1 / √eps(T),
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,
   hessian_approx = Val(2),
