@@ -28,7 +28,7 @@ function fps_solve(
     max_iter = 10000,
     atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
     rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
-    unbounded_threshold = 1e20,
+    unbounded_threshold = meta.subpb_unbounded_threshold,
   )
 
   nc0 = norm(state.cx, Inf)
@@ -36,7 +36,7 @@ function fps_solve(
   unsuccessful_subpb = 0 #number of consecutive failed subproblem solve.
   unbounded_subpb = 0 #number of consecutive failed subproblem solve.
   stalling = 0 #number of consecutive successful subproblem solve without progress
-  restoration_phase = false
+  feasibility_phase, restoration_phase = false, false
 
   @info log_header(
     [:iter, :step, :f, :c, :score, :σ, :stat],
@@ -64,54 +64,25 @@ function fps_solve(
         gx = sub_stp.pb.gx,
         cx = sub_stp.pb.cx,
         lambda = sub_stp.pb.ys,
-        res = grad(sub_stp.pb, sub_stp.current_state.x),
+        res = grad(sub_stp.pb, sub_stp.current_state.x), # Shouldn't this be returned by the solver?
       )
-
-      @info log_row(
-        Any[
-          stp.meta.nb_of_stop,
-          "Optml",
-          state.fx,
-          norm(state.cx),
-          sub_stp.current_state.current_score,
-          σ,
-          status(sub_stp),
-        ],
-      )
+      go_log(stp, sub_stp, state.fx, norm(state.cx), "Optml")
     elseif sub_stp.meta.unbounded
+      stalling, unsuccessful_subpb = 0, 0
       unbounded_subpb += 1
       ncx = norm(sub_stp.pb.cx, Inf)
       feas_tol = stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0)
       feas = ncx < norm(feas_tol, Inf)
       if feas
-        stp.meta.unbounded_pb = true #unbounded
+        stp.meta.unbounded_pb = true
       end
-      #@show sub_stp.current_state.x, sub_stp.pb.ys, sub_stp.pb.δ
-      @info log_row(
-        Any[
-          stp.meta.nb_of_stop,
-          "Unbdd",
-          sub_stp.current_state.fx,
-          ncx,
-          sub_stp.current_state.current_score,
-          σ,
-          status(sub_stp),
-        ],
-      )
+      go_log(stp, sub_stp, sub_stp.current_state.fx, ncx, "Unbdd")
     elseif sub_stp.meta.tired || sub_stp.meta.resources
+      stalling, unbounded_subpb = 0, 0
       unsuccessful_subpb += 1
-      @info log_row(
-        Any[
-          stp.meta.nb_of_stop,
-          "Tired",
-          sub_stp.current_state.fx,
-          norm(sub_stp.pb.cx),
-          sub_stp.current_state.current_score,
-          σ,
-          status(sub_stp),
-        ],
-      )
+      go_log(stp, sub_stp, sub_stp.current_state.fx, norm(sub_stp.pb.cx), "Tired")
     elseif sub_stp.meta.iteration_limit || sub_stp.meta.stalled
+      stalling, unbounded_subpb = 0, 0
       unsuccessful_subpb += 1
       #=
             Stopping.update!(state, x      = sub_stp.current_state.x,
@@ -121,17 +92,7 @@ function fps_solve(
                                     lambda = sub_stp.pb.ys,
                                     res    = grad(sub_stp.pb, sub_stp.current_state.x))
       =#
-      @info log_row(
-        Any[
-          stp.meta.nb_of_stop,
-          "Stlld",
-          state.fx,
-          norm(state.cx),
-          sub_stp.current_state.current_score,
-          σ,
-          status(sub_stp),
-        ],
-      )
+      go_log(stp, sub_stp, state.fx, norm(state.cx), "Stlld")
     else #exception of unexpected failure
       stp.meta.fail_sub_pb = true
       @warn "Exception of unexpected failure: $(status(sub_stp, list = true))"
@@ -139,161 +100,89 @@ function fps_solve(
     end
 
     #Check optimality conditions: either stop! is true OR the penalty parameter is too small
-    stp.meta.fail_sub_pb = σ > meta.σ_max || ρ > meta.ρ_max #stp.meta.stalled 
+    stp.meta.fail_sub_pb = stp.meta.fail_sub_pb || (σ > meta.σ_max || ρ > meta.ρ_max) 
     OK = stop!(stp)
 
-    #update the penalty parameter if necessary
     if !OK
-      ncx = norm(state.cx) #careful as this is not always updated
+      ncx = norm(state.cx) #!!! careful as this is not always updated
       feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
-      if (sub_stp.meta.optimal || sub_stp.meta.suboptimal) && feas #we need to tighten the tolerances
-        sub_stp.meta.atol /= 10
-        sub_stp.meta.rtol /= 10
-        stalling, unsuccessful_subpb = 0, 0
-        @info log_row(
-          Any[
-            stp.meta.nb_of_stop,
-            "D-ϵ",
-            state.fx,
-            ncx,
-            sub_stp.current_state.current_score,
-            σ,
-            status(sub_stp),
-          ],
-        )
-      elseif restoration_phase && !feas && stalling >= 3 #or sub_stp.meta.optimal
-        #Can"t escape this infeasible stationary point.
-        stp.meta.suboptimal = true
-        OK = true
-      elseif unbounded_subpb >= 3 #&& !restoration_phase # && !feas #Tanj: how can we get here???
-        # Is that really useful ??????
-        restoration_phase = true
-        state.x += min(max(stp.meta.atol, 1 / σ, 1e-3), 1.0) * rand(stp.pb.meta.nvar)
+      if (sub_stp.meta.optimal || sub_stp.meta.suboptimal) 
+        if feas #we need to tighten the tolerances
+          sub_stp.meta.atol /= 10
+          sub_stp.meta.rtol /= 10
+          go_log(stp, sub_stp, state.fx, ncx, "D-ϵ")
+        elseif !feasibility_phase && (stalling ≥ 3 || sub_stp.meta.atol < eps(T))
+          #we are most likely stuck at an infeasible stationary point.
+          #or an undetected unbounded problem
+          feasibility_phase = true
+          unbounded_subpb = 0
+          restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
 
-        #Go back to three iterations ago
-        #=
-        σ = max(σ/meta.σ_update^(1.5), meta.σ_0)
-        sub_stp.pb.σ = σ
-        sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
-        =#
-        #reinitialize the State(s) as the problem changed
-        reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
-
-        unbounded_subpb = 0
-        @info log_row(
-          Any[
-            stp.meta.nb_of_stop,
-            "R-Unbdd",
-            state.fx,
-            norm(state.cx),
-            sub_stp.current_state.current_score,
-            σ,
-            status(sub_stp),
-          ],
-        ) #why state.fx if we just reinit it?
-      #=
-      elseif sub_stp.meta.unbounded #unbounded subproblem no restoration
-        σ *= meta.σ_update
-        sub_stp.pb.σ = σ
-        #reinitialize the State(s) as the problem changed
-        reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
-        @info log_row(Any[stp.meta.nb_of_stop, "noR-Unbdd", 
-                     state.fx, norm(state.cx), sub_stp.current_state.current_score, 
-                     σ, status(sub_stp)])
-      =#
-      elseif (stalling >= 3 || unsuccessful_subpb >= 3) && !feas
-        #we are most likely stuck at an infeasible stationary point.
-        #or an undetected unbounded problem
-        restoration_phase = true
-        ##################################################################
-        #
-        # Add a restoration step here
-        #
-        ρ = feas_tol #by default, we just want a feasible point.
-        Jx = jac_op(stp.pb, state.x)
-        z, cz, normcz, Jz, status_feas =
-          feasibility_step(stp.pb, state.x, state.cx, ncx, Jx, ρ, feas_tol)
-        if status_feas == :success
-          Stopping.update!(stp.current_state, x = z, cx = cz)
+          stalling, unsuccessful_subpb = 0, 0
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
+        elseif stalling ≥ 3 || sub_stp.meta.atol < eps(T)
+          # infeasible stationary point
+          stp.meta.suboptimal = true
+          Ok = true
         else
-          #randomization step:
-          state.x += min(max(stp.meta.atol, 1 / σ, 1e-3), 1.0) * rand(stp.pb.meta.nvar)
+          # update parameters to increase feasibility
+          update_parameters!(meta, sub_stp, feas)
+          go_log(stp, sub_stp, state.fx, ncx, "D")
         end
-        #
-        # End of restoration step
-        #
-        ###################################################################
-        #Go back to three iterations ago
-        σ = max(σ / meta.σ_update^(1.5), meta.σ_0)
-        sub_stp.pb.σ = σ
-        sub_stp.pb.ρ = max(ρ / meta.ρ_update^(1.5), meta.ρ_0)
-        #reinitialize the State(s) as the problem changed
-        reinit!(sub_stp.current_state, x = state.x) #reinitialize the State (keeping x)
+      elseif sub_stp.meta.unbounded
+        if !feasibility_phase && unbounded_subpb ≥ 3 && !feas
+          #we are most likely stuck at an infeasible stationary point.
+          #or an undetected unbounded problem
+          feasibility_phase = true
+          unbounded_subpb = 0
+          restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
 
-        stalling, unsuccessful_subpb = 0, 0
-        @info log_row(
-          Any[
-            stp.meta.nb_of_stop,
-            "R",
-            state.fx,
-            norm(state.cx),
-            sub_stp.current_state.current_score,
-            σ,
-            status(sub_stp),
-          ],
-        ) #why state.fx if we just reinit it?
-      elseif (ncx > Δ * nc0 || sub_stp.meta.optimal || sub_stp.meta.suboptimal) && !feas
-        σ *= meta.σ_update
-        sub_stp.pb.σ = σ
-        sub_stp.pb.ρ *= meta.ρ_update
-        #reinitialize the State(s) as the problem changed
-        reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
-        @info log_row(
-          Any[
-            stp.meta.nb_of_stop,
-            "D",
-            state.fx,
-            norm(state.cx),
-            sub_stp.current_state.current_score,
-            σ,
-            status(sub_stp),
-          ],
-        )
-      elseif stalling >= 3 || unsuccessful_subpb >= 3 #but feas is true
-        #probably, an undetected unbounded problem
-        σ *= meta.σ_update
-        sub_stp.pb.σ = σ
-        sub_stp.pb.ρ *= meta.ρ_update
-        #reinitialize the State(s) as the problem changed
-        reinit!(sub_stp.current_state) #reinitialize the State (keeping x)
-        @info log_row(
-          Any[
-            stp.meta.nb_of_stop,
-            "F-D",
-            state.fx,
-            norm(state.cx),
-            sub_stp.current_state.current_score,
-            σ,
-            status(sub_stp),
-          ],
-        )
+          stalling, unsuccessful_subpb = 0, 0
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
+        elseif !restoration_phase && unbounded_subpb ≥ 3
+          restoration_phase = true
+          unbounded_subpb = 0
+          random_restoration!(meta, stp, sub_stp)
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R-Unbdd")
+        else
+          # update parameters to increase feasibility
+          update_parameters!(meta, sub_stp, feas)
+          go_log(stp, sub_stp, state.fx, ncx, "D")
+        end
+      elseif sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.iteration_limit || sub_stp.meta.stalled
+        if !restoration_phase && unsuccessful_subpb ≥ 3 && feas
+          restoration_phase = true
+          unsuccessful_subpb = 0
+          random_restoration!(meta, stp, sub_stp)
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R-Unscc")
+        elseif !feasibility_phase && unsuccessful_subpb ≥ 3 && !feas
+          #we are most likely stuck at an infeasible stationary point.
+          #or an undetected unbounded problem
+          feasibility_phase = true
+          unsuccessful_subpb = 0
+          restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
+
+          stalling, unsuccessful_subpb = 0, 0
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
+        else
+          # update parameters to increase feasibility
+          update_parameters!(meta, sub_stp, feas)
+          go_log(stp, sub_stp, state.fx, ncx, "D")
+        end
       else
-        #=
         @show "Euh... How?",
+        stp.pb.meta.name
         stalling,
         unsuccessful_subpb,
         unbounded_subpb,
         sub_stp.meta.unbounded,
         feas
-        =#
-        # ("Euh... How?", 0, 2, 0, false, false) -> and then R steps which never increase sigma
       end
       nc0 = copy(ncx)
     end
   end #end of main loop
 
-  #  @show status(stp), restoration_phase
   return GenericExecutionStats(
     status_stopping_to_stats(stp),
     stp.pb,
@@ -306,4 +195,69 @@ function fps_solve(
     elapsed_time = stp.current_state.current_time - stp.meta.start_time,
     solver_specific = Dict(:stp => stp, :restoration => restoration_phase),
   )
+end
+
+function restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
+  # by default, we just want a feasible point
+  ϵ_feas = feas_tol
+  Jx = jac_op(stp.pb, stp.current_state.x)
+  z, cz, normcz, Jz, status_feas =
+    feasibility_step(stp.pb, stp.current_state.x, stp.current_state.cx, ncx, Jx, ϵ_feas, feas_tol)
+  if status_feas == :success
+    Stopping.update!(stp.current_state, x = z, cx = cz)
+  else
+    #randomization step:
+    σ = sub_stp.pb.σ
+    radius = min(max(stp.meta.atol, 1 / σ, 1e-3), 1.0)
+    stp.current_state.x .+= radius * rand(stp.pb.meta.nvar)
+  end
+
+  # Go back to three iterations ago
+  # σ = max(σ / meta.σ_update^(1.5), meta.σ_0)
+  # sub_stp.pb.σ = σ
+  # sub_stp.pb.ρ = max(ρ / meta.ρ_update^(1.5), meta.ρ_0)
+
+  # reinitialize the State(s) as the problem changed
+  reinit!(sub_stp.current_state, x = stp.current_state.x) #reinitialize the State (keeping x)
+  # Should we also update the stp.current_state ??
+end
+
+function random_restoration!(meta, stp, sub_stp)
+  σ = sub_stp.pb.σ
+  radius = min(max(stp.meta.atol, 1 / σ, 1e-3), 1.0)
+  stp.current_state.x .+= radius * rand(stp.pb.meta.nvar)
+
+  # Go back to three iterations ago
+  # σ = max(σ/meta.σ_update^(1.5), meta.σ_0)
+  # sub_stp.pb.σ = σ
+  # sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
+  
+  # reinitialize the State(s) as the problem changed
+  reinit!(sub_stp.current_state, x = stp.current_state.x) #reinitialize the State (keeping x)
+  # Should we also update the stp.state ??
+end
+
+function update_parameters!(meta, sub_stp, feas)
+  # update parameters to increase feasibility
+  # Do something different if ncx > Δ * nc0 ?
+  sub_stp.pb.σ *= meta.σ_update
+  if !feas # Do we really come here with a feasible point ?
+    sub_stp.pb.ρ *= meta.ρ_update
+  end
+  #reinitialize the State(s) as the problem changed
+  reinit!(sub_stp.current_state) #reinitialize the state (keeping x)
+end
+
+function go_log(stp, sub_stp, fx, ncx, mess::String)
+  @info log_row(
+        Any[
+          stp.meta.nb_of_stop,
+          mess,
+          fx,
+          ncx,
+          sub_stp.current_state.current_score,
+          sub_stp.pb.σ,
+          status(sub_stp),
+        ],
+      )
 end
