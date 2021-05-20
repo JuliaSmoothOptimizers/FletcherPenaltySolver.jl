@@ -13,17 +13,26 @@ nlp = ADNLPModel(
   name = "Rosenbrock with ∑x = 2",
 )
 
+nlp = ADNLPModel(
+    x -> 0.01 * (x[1] - 1)^2 + (x[2] - x[1]^2)^2,
+    [2.0; 2.0; 2.0],
+    x -> [x[1] + x[3]^2 + 1.0],
+    [0.0],
+    [0.0],
+  )
+
 # problem with the 2nd approximation:
 @time fps_solve(
   nlp,
   nlp.meta.x0,
   hessian_approx = Val(2),
-  max_iter = 40,
+  max_iter = 0,
   qds_solver = :iterative, # :iterative or :ldlt
   atol_sub = atol -> atol, # atol
   rtol_sub = rtol -> rtol, # rtol
   η_1 = 0.,
   η_update = 1.,
+  subpb_unbounded_threshold = 1 / √eps(Float64),
 )
 print(nlp.counters)
 reset!(nlp)
@@ -32,12 +41,13 @@ reset!(nlp)
   nlp,
   nlp.meta.x0,
   hessian_approx = Val(2),
-  max_iter = 40,
+  max_iter = 0,
   qds_solver = :iterative, # :iterative or :ldlt
   atol_sub = atol -> 1e-1, # atol
   rtol_sub = rtol -> 1e-1, # rtol
   η_1 = 0.,
   η_update = 1.,
+  subpb_unbounded_threshold = 1 / √eps(Float64),
 )
 print(nlp.counters)
 reset!(nlp)
@@ -46,12 +56,13 @@ reset!(nlp)
   nlp,
   nlp.meta.x0,
   hessian_approx = Val(2),
-  max_iter = 40,
+  max_iter = 0,
   qds_solver = :iterative, # :iterative or :ldlt
   atol_sub = atol -> 1e-1, # atol
   rtol_sub = rtol -> 1e-1, # rtol
   η_1 = 1.,
   η_update = 10.,
+  subpb_unbounded_threshold = 1 / √eps(Float64),
 )
 print(nlp.counters)
 reset!(nlp)

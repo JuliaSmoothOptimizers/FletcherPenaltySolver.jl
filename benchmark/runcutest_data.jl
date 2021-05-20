@@ -63,8 +63,10 @@ function runcutest(; today::String = string(today()))
         max_iter = typemax(Int64),
         max_eval = typemax(Int64),
         qds_solver = :ldlt,
-        atol_sub = atol -> atol,
-        rtol_sub = rtol -> rtol,
+#        atol_sub = atol -> 1e-1, # atol,
+#        rtol_sub = rtol -> 1e-1, # rtol,
+#        η_1 = 1.,
+#        η_update = 10.,
       ),
     :FPSFF =>
       nlp -> fps_solve(
@@ -76,8 +78,10 @@ function runcutest(; today::String = string(today()))
         max_iter = typemax(Int64),
         max_eval = typemax(Int64),
         qds_solver = :iterative,
-        atol_sub = atol -> atol,
-        rtol_sub = rtol -> rtol,
+#        atol_sub = atol -> 1e-1, # atol,
+#        rtol_sub = rtol -> 1e-1, # rtol,
+#        η_1 = 1.,
+#        η_update = 10.,
       ),
   )
 
@@ -88,7 +92,7 @@ function runcutest(; today::String = string(today()))
 
   stats = bmark_solvers(solvers, cutest_problems)
 
-  @save "$(today)_bis_$(list)_$(string(length(pnames))).jld2" stats
+  @save "$(today)_$(list)_$(string(length(pnames))).jld2" stats
 
   return stats
 end
