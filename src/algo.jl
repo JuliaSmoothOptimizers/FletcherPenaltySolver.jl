@@ -1,7 +1,4 @@
-function fps_solve(
-  stp::NLPStopping, 
-  fpssolver::FPSSSolver{T, QDS, US}
-) where {T, QDS, US}
+function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T, QDS, US}
   meta = fpssolver.meta
   if !(stp.pb.meta.minimize)
     error("fps_solve only works for minimization problem")
@@ -39,9 +36,9 @@ function fps_solve(
   feasibility_phase, restoration_phase = false, false
 
   @info log_header(
-    [:iter, :step, :f, :c, :score, :σ, :stat],
+    [:iter, :step, :f, :c, :score, :σ, :stat, :η],
     [Int, String, T, T, T, T, Symbol],
-    hdr_override = Dict(:f => "f(x)", :c => "||c(x)||", :score => "‖∇L‖", :σ => "σ"),
+    hdr_override = Dict(:f => "f(x)", :c => "||c(x)||", :score => "‖∇L‖", :σ => "σ", :η => "η"),
   )
   @info log_row(Any[0, "Init", NaN, nc0, norm(state.current_score, Inf), σ, :Initial])
 
@@ -107,10 +104,12 @@ function fps_solve(
       ncx = norm(state.cx) #!!! careful as this is not always updated
       feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
-      if (sub_stp.meta.optimal || sub_stp.meta.suboptimal) 
+      if (sub_stp.meta.optimal || sub_stp.meta.suboptimal)
         if feas #we need to tighten the tolerances
-          sub_stp.meta.atol /= 10
-          sub_stp.meta.rtol /= 10
+          sub_stp.meta.atol /= 10 # put in parameters
+          sub_stp.meta.rtol /= 10 # put in parameters
+          sub_stp.pb.η = max(meta.η_1, sub_stp.pb.η * meta.η_update)
+          sub_stp.pb.xk .= state.x
           go_log(stp, sub_stp, state.fx, ncx, "D-ϵ")
         elseif !feasibility_phase && (stalling ≥ 3 || sub_stp.meta.atol < eps(T))
           #we are most likely stuck at an infeasible stationary point.
@@ -150,7 +149,10 @@ function fps_solve(
           update_parameters!(meta, sub_stp, feas)
           go_log(stp, sub_stp, state.fx, ncx, "D")
         end
-      elseif sub_stp.meta.tired || sub_stp.meta.resources || sub_stp.meta.iteration_limit || sub_stp.meta.stalled
+      elseif sub_stp.meta.tired || 
+             sub_stp.meta.resources || 
+             sub_stp.meta.iteration_limit || 
+             sub_stp.meta.stalled
         if !restoration_phase && unsuccessful_subpb ≥ 3 && feas
           restoration_phase = true
           unsuccessful_subpb = 0
@@ -171,13 +173,8 @@ function fps_solve(
           go_log(stp, sub_stp, state.fx, ncx, "D")
         end
       else
-        @show "Euh... How?",
-        stp.pb.meta.name
-        stalling,
-        unsuccessful_subpb,
-        unbounded_subpb,
-        sub_stp.meta.unbounded,
-        feas
+        @show "Euh... How?", stp.pb.meta.name
+        stalling, unsuccessful_subpb, unbounded_subpb, sub_stp.meta.unbounded, feas
       end
       nc0 = copy(ncx)
     end
@@ -231,7 +228,7 @@ function random_restoration!(meta, stp, sub_stp)
   # σ = max(σ/meta.σ_update^(1.5), meta.σ_0)
   # sub_stp.pb.σ = σ
   # sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
-  
+
   # reinitialize the State(s) as the problem changed
   reinit!(sub_stp.current_state, x = stp.current_state.x) #reinitialize the State (keeping x)
   # Should we also update the stp.state ??
@@ -250,14 +247,15 @@ end
 
 function go_log(stp, sub_stp, fx, ncx, mess::String)
   @info log_row(
-        Any[
-          stp.meta.nb_of_stop,
-          mess,
-          fx,
-          ncx,
-          sub_stp.current_state.current_score,
-          sub_stp.pb.σ,
-          status(sub_stp),
-        ],
-      )
+    Any[
+      stp.meta.nb_of_stop,
+      mess,
+      fx,
+      ncx,
+      sub_stp.current_state.current_score,
+      sub_stp.pb.σ,
+      status(sub_stp),
+      sub_stp.pb.η,
+    ],
+  )
 end

@@ -284,7 +284,7 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
 
   fx = f - dot(c, nlp.ys) + T(nlp.ρ) / 2 * dot(c, c)
   if nlp.η > 0.0
-    fx .+= T(nlp.η) / 2 * norm(x - nlp.xk)^2
+    fx += T(nlp.η) / 2 * norm(x - nlp.xk)^2
   end
 
   return fx
@@ -350,7 +350,7 @@ function objgrad!(
     fx += T(ρ) / 2 * dot(c, c)
   end
   if nlp.η > 0.0
-    fx .+= T(nlp.η) / 2 * norm(x - nlp.xk)^2
+    fx += T(nlp.η) / 2 * norm(x - nlp.xk)^2
     gx .+= nlp.η * (x - nlp.xk)
   end
 
@@ -467,7 +467,7 @@ function hprod!(
     Hv .+= nlp.v + T(ρ) * nlp.Jcρ
   end
   if nlp.η > 0.0
-    Hv .+= T(nlp.η) .* v
+    Hv .+= T(nlp.η) * v
   end
 
   Hv .*= obj_weight
@@ -522,7 +522,7 @@ function hprod!(
     Hv .+= T(ρ) * (nlp.v + nlp.Jcρ)
   end
   if nlp.η > 0.0
-    Hv .+= T(nlp.η) .* v
+    Hv .+= T(nlp.η) * v
   end
 
   Hv .*= obj_weight

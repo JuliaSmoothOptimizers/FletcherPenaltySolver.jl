@@ -89,7 +89,7 @@ function IterativeSolver(
     Vector{T},
   ),
   kwargs...,
-) where {T,S}
+) where {T, S}
   return IterativeSolver(
     # M,
     ls_atol,

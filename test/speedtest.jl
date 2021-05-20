@@ -18,8 +18,40 @@ nlp = ADNLPModel(
   nlp,
   nlp.meta.x0,
   hessian_approx = Val(2),
-  max_iter = 30,
+  max_iter = 40,
   qds_solver = :iterative, # :iterative or :ldlt
+  atol_sub = atol -> atol, # atol
+  rtol_sub = rtol -> rtol, # rtol
+  η_1 = 0.,
+  η_update = 1.,
+)
+print(nlp.counters)
+reset!(nlp)
+
+@time fps_solve(
+  nlp,
+  nlp.meta.x0,
+  hessian_approx = Val(2),
+  max_iter = 40,
+  qds_solver = :iterative, # :iterative or :ldlt
+  atol_sub = atol -> 1e-1, # atol
+  rtol_sub = rtol -> 1e-1, # rtol
+  η_1 = 0.,
+  η_update = 1.,
+)
+print(nlp.counters)
+reset!(nlp)
+
+@time fps_solve(
+  nlp,
+  nlp.meta.x0,
+  hessian_approx = Val(2),
+  max_iter = 40,
+  qds_solver = :iterative, # :iterative or :ldlt
+  atol_sub = atol -> 1e-1, # atol
+  rtol_sub = rtol -> 1e-1, # rtol
+  η_1 = 1.,
+  η_update = 10.,
 )
 print(nlp.counters)
 reset!(nlp)
