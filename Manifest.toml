@@ -2,9 +2,9 @@
 
 [[ADNLPModels]]
 deps = ["ForwardDiff", "LinearAlgebra", "NLPModels", "Requires", "SparseArrays"]
-git-tree-sha1 = "954a2084d9e7fab4a2b716fda97dfd9b2cc6ad94"
-repo-rev = "exlude-jth_functions"
-repo-url = "https://github.com/tmigot/ADNLPModels.jl"
+git-tree-sha1 = "a97180200e82c48a0eac2d98e69499f94df6231a"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl"
 uuid = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
 version = "0.1.1"
 

@@ -8,8 +8,8 @@ This implementation uses [Stopping](https://github.com/vepiteski/Stopping.jl).
 ## Algorithm
 
 The function `Fletcher_penalty_solver(nlp :: AbstractNLPModel)` solves a nonlinear
-optimization problem with **equality constraints** by iteratively solving 
-the unconstrained optimization problem using Fletcher penalty function:
+optimization problem by iteratively solving 
+the bound-constrained optimization problem using Fletcher penalty function:
 
 ```math
          \begin{aligned}
@@ -17,7 +17,6 @@ the unconstrained optimization problem using Fletcher penalty function:
          \mbox{where } \lambda_\delta(x) \in \arg\min_{y} \frac{1}{2}\| \nabla c(x)^T y - \nabla f(x) \|^2_2 + \sigma c(x)^T y + \frac{\delta}{2}\|y\|^2.
          \end{aligned}
 ```
-
 
 ## References
 
@@ -28,6 +27,6 @@ Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
 ## Versions [On hold]
 
 This package still on unofficial versions of:
- - ADNLPModels v0.1.1 `https://github.com/tmigot/ADNLPModels.jl#exlude-jth_functions`    
+ - ADNLPModels v0.1.1 `https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl#master`    
  - Krylov v0.7.0 master
  - SolverTest v0.1.1 main
