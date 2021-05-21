@@ -175,6 +175,11 @@ if is_knitro_installed
     maxtime_real::Real = stp.meta.max_time,
     out_hints::Int = 0,
     outlev::Int = 0, #1 to see everything
+    algorithm::Int = 0, # *New* 2
+    ftol::Real = 1.0e-15, # *New*
+    ftol_iters::Int = 5, # *New*
+    xtol::Real = stp.meta.atol, # 1.0e-12, # *New*
+    xtol_iters::Int = 2, # 3 # *New*
     kwargs...,
   )
     @assert -1 ≤ convex ≤ 1
@@ -198,6 +203,11 @@ if is_knitro_installed
       maxit = maxit,
       maxtime_real = maxtime_real,
       out_hints = out_hints,
+      algorithm = algorithm,
+      ftol = ftol,
+      ftol_iters = ftol_iters,
+      xtol = xtol,
+      xtol_iters = xtol_iters,
       outlev = outlev;
       kwargs...,
     )
@@ -207,6 +217,7 @@ if is_knitro_installed
     stp.current_state.fx = stats.objective
     #stp.current_state.gx = grad(nlp, stats.solution)#necessary?
     #norm(stp.current_state.gx, Inf)#stats.dual_feas #TODO: this is for unconstrained problem!!
+    stp.current_state.mu = stats.multipliers_L
     stp.current_state.current_score = max(stats.dual_feas, stats.primal_feas)
     #end
     #Update the meta boolean with the output message
