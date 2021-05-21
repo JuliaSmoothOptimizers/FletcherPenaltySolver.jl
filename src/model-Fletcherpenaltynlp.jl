@@ -217,23 +217,6 @@ function FletcherPenaltyNLP(
   return FletcherPenaltyNLP(nlp, σ_0, ρ_0, δ_0, hessian_approx, x0; kwargs...)
 end
 
-function main_obj(nlp::FletcherPenaltyNLP, x::AbstractVector)
-  fx = obj(nlp.nlp, x)
-  return fx
-end
-
-function main_grad(nlp::FletcherPenaltyNLP, x::AbstractVector)
-  return grad(nlp.nlp, x)
-end
-
-function main_cons(nlp::FletcherPenaltyNLP, x::AbstractVector)
-  return cons(nlp.nlp, x)
-end
-
-function main_jac(nlp::FletcherPenaltyNLP, x::AbstractVector)
-  return jac(nlp.nlp, x)
-end
-
 function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
@@ -258,9 +241,9 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
   shahx = hash(x)
   if shahx != nlp.shahx
     nlp.shahx = shahx
-    nlp.fx = main_obj(nlp, x)
-    nlp.gx .= main_grad(nlp, x)
-    nlp.cx .= main_cons(nlp, x)
+    nlp.fx = obj(nlp.nlp, x)
+    grad!(nlp.nlp, x, nlp.gx)
+    cons!(nlp.nlp, x, nlp.cx)
 
     p1, q1, p2, q2 = linear_system2(nlp, x)
 
@@ -278,12 +261,6 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   nvar = nlp.meta.nvar
   @lencheck nvar x
   increment!(nlp, :neval_obj)
-  # nlp.fx = main_obj(nlp, x)
-  # f = nlp.fx
-  # nlp.gx .= main_grad(nlp, x)
-  # g = nlp.gx
-  # nlp.cx .= main_cons(nlp, x)
-  # c = nlp.cx
 
   #_sol1 = linear_system1(nlp, x)
   #nlp.ys .= _sol1[(nvar + 1):(nvar + nlp.nlp.meta.ncon)]
@@ -397,7 +374,7 @@ function hess_coord!(
   f = nlp.fx
   g = nlp.gx
   c = nlp.cx
-  A = main_jac(nlp, x) # If used, this should be allocated probably
+  A = jac(nlp.nlp, x) # If used, this should be allocated probably
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
