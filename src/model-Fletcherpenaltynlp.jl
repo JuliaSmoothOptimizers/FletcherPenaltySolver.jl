@@ -58,6 +58,7 @@ mutable struct FletcherPenaltyNLP{
   nlp::AbstractNLPModel
 
   # Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
+  shahx::UInt64 # the x at which fx, cx, gx, ys, and gs are computed
   fx::S
   cx::T
   gx::T
@@ -114,6 +115,7 @@ function FletcherPenaltyNLP(
     meta,
     Counters(),
     nlp,
+    zero(UInt64),
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
@@ -167,6 +169,7 @@ function FletcherPenaltyNLP(
     meta,
     counters,
     nlp,
+    zero(UInt64),
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
@@ -214,24 +217,24 @@ function FletcherPenaltyNLP(
   return FletcherPenaltyNLP(nlp, σ_0, ρ_0, δ_0, hessian_approx, x0; kwargs...)
 end
 
-@memoize function main_obj(nlp::FletcherPenaltyNLP, x::AbstractVector)
+function main_obj(nlp::FletcherPenaltyNLP, x::AbstractVector)
   fx = obj(nlp.nlp, x)
   return fx
 end
 
-@memoize function main_grad(nlp::FletcherPenaltyNLP, x::AbstractVector)
+function main_grad(nlp::FletcherPenaltyNLP, x::AbstractVector)
   return grad(nlp.nlp, x)
 end
 
-@memoize function main_cons(nlp::FletcherPenaltyNLP, x::AbstractVector)
+function main_cons(nlp::FletcherPenaltyNLP, x::AbstractVector)
   return cons(nlp.nlp, x)
 end
 
-@memoize function main_jac(nlp::FletcherPenaltyNLP, x::AbstractVector)
+function main_jac(nlp::FletcherPenaltyNLP, x::AbstractVector)
   return jac(nlp.nlp, x)
 end
 
-@memoize function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
   g = nlp.gx
@@ -252,17 +255,21 @@ end
 function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
-  nlp.fx = main_obj(nlp, x)
-  nlp.gx .= main_grad(nlp, x)
-  nlp.cx .= main_cons(nlp, x)
+  shahx = hash(x)
+  if shahx != nlp.shahx
+    nlp.shahx = shahx
+    nlp.fx = main_obj(nlp, x)
+    nlp.gx .= main_grad(nlp, x)
+    nlp.cx .= main_cons(nlp, x)
 
-  p1, q1, p2, q2 = linear_system2(nlp, x)
+    p1, q1, p2, q2 = linear_system2(nlp, x)
 
-  nlp.gs .= p1 + T(nlp.σ) * p2 #_sol1[1:nvar]
-  nlp.ys .= q1 + T(nlp.σ) * q2 #_sol1[(nvar + 1):(nvar + ncon)]
+    nlp.gs .= p1 + T(nlp.σ) * p2 #_sol1[1:nvar]
+    nlp.ys .= q1 + T(nlp.σ) * q2 #_sol1[(nvar + 1):(nvar + ncon)]
 
-  nlp.v .= p2 #_sol2[1:nvar]
-  nlp.w .= q2 #_sol2[(nvar + 1):(nvar + ncon)]
+    nlp.v .= p2 #_sol2[1:nvar]
+    nlp.w .= q2 #_sol2[(nvar + 1):(nvar + ncon)]
+  end
 
   return nlp.gs, nlp.ys, nlp.v, nlp.w
 end
@@ -271,16 +278,19 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   nvar = nlp.meta.nvar
   @lencheck nvar x
   increment!(nlp, :neval_obj)
-  nlp.fx = main_obj(nlp, x)
-  f = nlp.fx
-  nlp.gx .= main_grad(nlp, x)
-  g = nlp.gx
-  nlp.cx .= main_cons(nlp, x)
-  c = nlp.cx
+  # nlp.fx = main_obj(nlp, x)
+  # f = nlp.fx
+  # nlp.gx .= main_grad(nlp, x)
+  # g = nlp.gx
+  # nlp.cx .= main_cons(nlp, x)
+  # c = nlp.cx
 
   #_sol1 = linear_system1(nlp, x)
   #nlp.ys .= _sol1[(nvar + 1):(nvar + nlp.nlp.meta.ncon)]
   _, ys, _, _ = _compute_ys_gs!(nlp, x)
+
+  f = nlp.fx
+  c = nlp.cx
 
   fx = f - dot(c, nlp.ys) + T(nlp.ρ) / 2 * dot(c, c)
   if nlp.η > 0.0

@@ -2,8 +2,6 @@ module FletcherPenaltyNLPSolver
 
 using FastClosures, LinearAlgebra, Logging, SparseArrays
 
-using Memoize
-
 # JSO packages
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
 using Stopping
