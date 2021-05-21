@@ -62,6 +62,7 @@ mutable struct FletcherPenaltyNLP{
   fx::S
   cx::T
   gx::T
+  Aop::LinearOperators.LinearOperator{S}
   ys::T
   gs::T
   xk::T # last iterate
@@ -119,6 +120,7 @@ function FletcherPenaltyNLP(
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
+    LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
@@ -173,6 +175,7 @@ function FletcherPenaltyNLP(
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
+    LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),

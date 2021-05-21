@@ -8,10 +8,11 @@ function solve_two_least_squares(
   #=
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
-  Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  # We trust this one
+  # nlp.Aop .= jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
   (q1, stats1) = lsqr!(
     nlp.qdsolver.solver_struct_least_square,
-    Aop',
+    nlp.Aop',
     rhs1,
     λ = √nlp.δ,
     atol = nlp.qdsolver.ls_atol,
@@ -19,14 +20,14 @@ function solve_two_least_squares(
     itmax = nlp.qdsolver.ls_itmax,
   )
   # nlp.qdsolver.q1 .= q1
-  nlp.qdsolver.p1 .= rhs1 - Aop' * q1
+  nlp.qdsolver.p1 .= rhs1 - nlp.Aop' * q1
   if !stats1.solved
     @warn "Failed solving 1st linear system."
   end
 
   (q2, stats2) = lsqr!(
     nlp.qdsolver.solver_struct_least_square,
-    Aop',
+    nlp.Aop',
     rhs2,
     λ = √nlp.δ,
     atol = nlp.qdsolver.ls_atol,
@@ -34,7 +35,7 @@ function solve_two_least_squares(
     itmax = nlp.qdsolver.ls_itmax,
   )
   # nlp.qdsolver.q2 .= q2
-  nlp.qdsolver.p2 .= rhs2 - Aop' * q2
+  nlp.qdsolver.p2 .= rhs2 - nlp.Aop' * q2
   if !stats2.solved
     @warn "Failed solving 2nd linear system."
   end
@@ -53,10 +54,10 @@ function solve_two_mixed(
   #=
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
-  Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  nlp.Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
   (q1, stats1) = lsqr!(
     nlp.qdsolver.solver_struct_least_square,
-    Aop',
+    nlp.Aop',
     rhs1,
     λ = √nlp.δ,
     atol = nlp.qdsolver.ls_atol,
@@ -64,7 +65,7 @@ function solve_two_mixed(
     itmax = nlp.qdsolver.ls_itmax,
   )
   # nlp.qdsolver.q1 .= q1
-  nlp.qdsolver.p1 .= rhs1 - Aop' * q1
+  nlp.qdsolver.p1 .= rhs1 - nlp.Aop' * q1
   if !stats1.solved
     @warn "Failed solving 1st linear system."
   end
@@ -72,7 +73,7 @@ function solve_two_mixed(
   if nlp.δ != 0.0
     (p2, q2, stats2) = craig!(
       nlp.qdsolver.solver_struct_least_norm,
-      Aop,
+      nlp.Aop,
       -rhs2,
       M = 1 / nlp.δ * opEye(nlp.nlp.meta.ncon),
       sqd = true,
@@ -85,7 +86,7 @@ function solve_two_mixed(
   else
     (p2, q2, stats2) = craig!(
       nlp.qdsolver.solver_struct_least_norm, 
-      Aop, 
+      nlp.Aop, 
       -rhs2,
       atol = nlp.qdsolver.ln_atol,
       rtol = nlp.qdsolver.ln_rtol,
