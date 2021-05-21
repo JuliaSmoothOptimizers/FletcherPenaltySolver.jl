@@ -13,11 +13,11 @@ using Random
 gr() #pgfplots()
 
 function figure()
-  names = ["2021-05-20__FPS_FPSFF_knitro_ipopt_45"]
+  names = ["2021-05-20__FPS_FPSFF_knitro_ipopt_47"]
 
-  tod = string(today()) * ""
+  tod = string(today()) * "47"
   dsolvers = [:ipopt, :knitro, :FPS, :FPSFF]
-  list = ""
+  list = "47"
   for solver in dsolvers
     list = string(list, "_$(solver)")
   end
@@ -54,9 +54,9 @@ function figure()
       p = performance_profile(
         stats,
         cost, 
-        title=perf_title(col), 
-        legend=:bottomright, 
-        linestyles=styles
+        title = perf_title(col),
+        legend = :bottomright,
+        linestyles=styles,
       )
       #savefig("$(tod)_$(list)_perf-$col.tex")
       png("$(tod)_$(list)_perf-$col")
@@ -69,8 +69,8 @@ function figure()
       if nsolvers > 2
         ipairs = 0
         # combinations of solvers 2 by 2
-        for i = 2 : nsolvers
-          for j = 1 : i-1
+        for i = 2:nsolvers
+          for j = 1:(i-1)
             ipairs += 1
             pair = [solvers[i], solvers[j]]
             dfs = (stats[solver] for solver in pair)
@@ -81,8 +81,8 @@ function figure()
             p = performance_profile(
               Ps[1],
               string.(pair),
-              palette=clrs, 
-              legend=:bottomright, 
+              palette = clrs,
+              legend = :bottomright,
               styles = stls,
             )
             ipairs < npairs && xlabel!(p, "")

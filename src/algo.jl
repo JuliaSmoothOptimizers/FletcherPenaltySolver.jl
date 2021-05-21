@@ -149,9 +149,9 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
           update_parameters!(meta, sub_stp, feas)
           go_log(stp, sub_stp, state.fx, ncx, "D")
         end
-      elseif sub_stp.meta.tired || 
-             sub_stp.meta.resources || 
-             sub_stp.meta.iteration_limit || 
+      elseif sub_stp.meta.tired ||
+             sub_stp.meta.resources ||
+             sub_stp.meta.iteration_limit ||
              sub_stp.meta.stalled
         if !restoration_phase && unsuccessful_subpb ≥ 3 && feas
           restoration_phase = true
