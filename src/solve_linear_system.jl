@@ -83,7 +83,16 @@ function solve_two_mixed(
       itmax = nlp.qdsolver.ln_itmax,
     )
   else
-    (p2, q2, stats2) = craig!(nlp.qdsolver.solver_struct_least_norm, Aop, -rhs2)
+    (p2, q2, stats2) = craig!(
+      nlp.qdsolver.solver_struct_least_norm, 
+      Aop, 
+      -rhs2,
+      atol = nlp.qdsolver.ln_atol,
+      rtol = nlp.qdsolver.ln_rtol,
+      btol = nlp.qdsolver.ln_btol,
+      conlim = nlp.qdsolver.ln_conlim,
+      itmax = nlp.qdsolver.ln_itmax,
+    )
   end
   nlp.qdsolver.p2 .= -p2
   # nlp.qdsolver.q2 .= q2
