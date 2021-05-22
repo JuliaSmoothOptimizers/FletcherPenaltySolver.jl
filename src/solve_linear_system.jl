@@ -20,7 +20,9 @@ function solve_two_least_squares(
     itmax = nlp.qdsolver.ls_itmax,
   )
   # nlp.qdsolver.q1 .= q1
-  nlp.qdsolver.p1 .= rhs1 - nlp.Aop' * q1
+  # nlp.qdsolver.p1 = rhs1 - nlp.Aop' * q1
+  nlp.qdsolver.p1 .= nlp.Aop' * q1
+  @. nlp.qdsolver.p1 = rhs1 - nlp.qdsolver.p1
   if !stats1.solved
     @warn "Failed solving 1st linear system."
   end
@@ -35,7 +37,9 @@ function solve_two_least_squares(
     itmax = nlp.qdsolver.ls_itmax,
   )
   # nlp.qdsolver.q2 .= q2
-  nlp.qdsolver.p2 .= rhs2 - nlp.Aop' * q2
+  # nlp.qdsolver.p2 = rhs2 - nlp.Aop' * q2
+  nlp.qdsolver.p2 .= nlp.Aop' * q2
+  @. nlp.qdsolver.p2 = rhs2 - nlp.qdsolver.p2
   if !stats2.solved
     @warn "Failed solving 2nd linear system."
   end
@@ -65,7 +69,9 @@ function solve_two_mixed(
     itmax = nlp.qdsolver.ls_itmax,
   )
   # nlp.qdsolver.q1 .= q1
-  nlp.qdsolver.p1 .= rhs1 - nlp.Aop' * q1
+  # nlp.qdsolver.p1 = rhs1 - nlp.Aop' * q1
+  nlp.qdsolver.p1 .= nlp.Aop' * q1
+  @. nlp.qdsolver.p1 = rhs1 - nlp.qdsolver.p1
   if !stats1.solved
     @warn "Failed solving 1st linear system."
   end
@@ -95,7 +101,7 @@ function solve_two_mixed(
       itmax = nlp.qdsolver.ln_itmax,
     )
   end
-  nlp.qdsolver.p2 .= -p2
+  @. nlp.qdsolver.p2 = -p2
   # nlp.qdsolver.q2 .= q2
 
   if !stats2.solved

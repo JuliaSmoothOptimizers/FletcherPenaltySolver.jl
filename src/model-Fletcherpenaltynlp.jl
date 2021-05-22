@@ -296,15 +296,15 @@ function grad!(
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
   hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
-  gx .= gs - nlp.Hsv + T(σ) * v + nlp.Sstw
+  @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
 
   #regularization term
   if ρ > 0.0
-    jtprod!(nlp.nlp, x, c * T(ρ), nlp.Jcρ)
-    gx .+= nlp.Jcρ
+    jtprod!(nlp.nlp, x, c, nlp.Jcρ) # J' * c * ρ
+    @. gx += nlp.Jcρ * T(ρ) # Should the product by rho be done here?
   end
   if nlp.η > 0.0
-    gx .+= nlp.η * (x - nlp.xk)
+    @. gx += T(nlp.η) * (x - nlp.xk)
   end
 
   return gx
@@ -330,18 +330,18 @@ function objgrad!(
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
   hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
-  gx .= gs - nlp.Hsv + T(σ) * v + nlp.Sstw
+  @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
   fx = f - dot(c, ys)
 
   #regularization term
   if ρ > 0.0
-    jtprod!(nlp.nlp, x, c * T(ρ), nlp.Jcρ)
-    gx .+= nlp.Jcρ # gs - Ysc + Jc
+    jtprod!(nlp.nlp, x, c, nlp.Jcρ)
+    @. gx += nlp.Jcρ * T(ρ) # gs - Ysc + Jc
     fx += T(ρ) / 2 * dot(c, c)
   end
   if nlp.η > 0.0
     fx += T(nlp.η) / 2 * norm(x - nlp.xk)^2
-    gx .+= nlp.η * (x - nlp.xk)
+    @. gx += nlp.η * (x - nlp.xk)
   end
 
   return fx, gx
@@ -437,27 +437,28 @@ function hprod!(
   g = nlp.gx
   c = nlp.cx
 
-  hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
+  @. nlp.Jv = -ys
+  hprod!(nlp.nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
-  Ptv = v - p1
-  hprod!(nlp.nlp, x, -ys, Ptv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
+  @. nlp.Hsv = v - p1 # Ptv = v - p1
+  hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
   # PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   # Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
   # Hv .= pt_sol2[1:nvar] - nlp.v + 2 * T(σ) * Ptv
-  Hv .= p2 - nlp.v + 2 * T(σ) * Ptv
+  @. Hv = p2 - nlp.v + 2 * T(σ) * nlp.Hsv
 
   if ρ > 0.0
     jprod!(nlp.nlp, x, v, nlp.Jv)
     jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
     hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    Hv .+= nlp.v + T(ρ) * nlp.Jcρ
+    @. Hv += nlp.v + T(ρ) * nlp.Jcρ
   end
   if nlp.η > 0.0
-    Hv .+= T(nlp.η) * v
+    @. Hv += T(nlp.η) * v
   end
 
   Hv .*= obj_weight
@@ -488,11 +489,14 @@ function hprod!(
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
-  Ptv = v - p1
-  PtHsv = nlp.Hsv - p2
-  HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
+  @. nlp.Hsv = v - p1 # Ptv = v - p1 # allocs
+  # PtHsv = nlp.Hsv - p2 # allocs
 
-  J = jac_op(nlp.nlp, x)
+  nlp.Jv .= -ys
+  # HsPtv = nlp.Jcρ
+  hprod(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
+
+  J = jac_op(nlp.nlp, x) # nlp.Jop
   (invJtJJv, invJtJJvstats) = cgls(J', v, λ = τ)
   SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
 
@@ -502,17 +506,19 @@ function hprod!(
   (invJtJSsv, stats) = minres(JtJ, Ssv, λ = τ) #fix after Krylov.jl #256
   jtprod!(nlp.nlp, x, invJtJSsv, nlp.v) # JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
 
-  Hv .= nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - nlp.v - SsinvJtJJv
+  # @. Hv = nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - nlp.v - SsinvJtJJv
+  # @. Hv = p2 - HsPtv + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
+  @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
 
   if ρ > 0.0
     jprod!(nlp.nlp, x, v, nlp.Jv)
     jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
     hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    Hv .+= T(ρ) * (nlp.v + nlp.Jcρ)
+    @. Hv += T(ρ) * (nlp.v + nlp.Jcρ)
   end
   if nlp.η > 0.0
-    Hv .+= T(nlp.η) * v
+    @. Hv += T(nlp.η) * v
   end
 
   Hv .*= obj_weight
