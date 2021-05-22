@@ -494,7 +494,7 @@ function hprod!(
 
   nlp.Jv .= -ys
   # HsPtv = nlp.Jcρ
-  hprod(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
+  hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
 
   J = jac_op(nlp.nlp, x) # nlp.Jop
   (invJtJJv, invJtJJvstats) = cgls(J', v, λ = τ)

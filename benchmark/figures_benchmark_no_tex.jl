@@ -13,11 +13,11 @@ using Random
 gr() #pgfplots()
 
 function figure()
-  names = ["2021-05-20__FPS_FPSFF_knitro_ipopt_47"]
+  names = ["2021-05-21__FPS_FPSFF_knitro_ipopt_45"]
 
-  tod = string(today()) * "47"
+  tod = string(today()) * ""
   dsolvers = [:ipopt, :knitro, :FPS, :FPSFF]
-  list = "47"
+  list = ""
   for solver in dsolvers
     list = string(list, "_$(solver)")
   end
