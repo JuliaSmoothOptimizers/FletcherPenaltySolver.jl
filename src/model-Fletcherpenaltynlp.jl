@@ -489,14 +489,15 @@ function hprod!(
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
-  @. nlp.Hsv = v - p1 # Ptv = v - p1 # allocs
-  # PtHsv = nlp.Hsv - p2 # allocs
+  @. nlp.Hsv = v - p1 # Ptv = v - p1
+  # PtHsv = nlp.Hsv - p2
 
-  nlp.Jv .= -ys
+  @. nlp.Jv = -ys
   # HsPtv = nlp.Jcρ
   hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
 
-  J = jac_op(nlp.nlp, x) # nlp.Jop
+  # If QDS <: IterativeSolver it has been computed in _compute_ys_gs!
+  J = QDS <: IterativeSolver ? nlp.Aop : jac_op(nlp.nlp, x)
   (invJtJJv, invJtJJvstats) = cgls(J', v, λ = τ)
   SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
 
