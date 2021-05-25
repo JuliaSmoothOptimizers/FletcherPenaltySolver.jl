@@ -1,3 +1,33 @@
+function solve_two_extras(
+  nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
+  x::AbstractVector{T},
+  rhs1::AbstractVector, # size nvar
+  rhs2::AbstractVector, # size ncon
+) where {T, S, Tt, A, P, SS1, SS2}
+  τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
+  J = nlp.Aop
+  (invJtJJv, invJtJJvstats) = cgls(J', rhs1, λ = τ)
+
+  JtJ = J * J'
+  (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
+  return invJtJJv, invJtJSsv
+end
+
+function solve_two_extras(
+  nlp::FletcherPenaltyNLP{S, Tt, A, P, LDLtSolver},
+  x::AbstractVector{T},
+  rhs1::AbstractVector,
+  rhs2::AbstractVector,
+) where {T, S, Tt, A, P}
+  τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
+  J = jac_op(nlp.nlp, x)
+  (invJtJJv, invJtJJvstats) = cgls(J', rhs1, λ = τ)
+
+  JtJ = J * J'
+  (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
+  return invJtJJv, invJtJSsv
+end
+
 function solve_two_least_squares(
   nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2}},
   x::AbstractVector{T},

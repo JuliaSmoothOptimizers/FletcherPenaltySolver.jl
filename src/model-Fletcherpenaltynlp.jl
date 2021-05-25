@@ -479,7 +479,6 @@ function hprod!(
   ncon = nlp.nlp.meta.ncon
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
-  τ = T(max(δ, 1e-14)) # should be a parameter in the solver structure
 
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
@@ -496,6 +495,7 @@ function hprod!(
   # HsPtv = nlp.Jcρ
   hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
 
+  #=
   # If QDS <: IterativeSolver it has been computed in _compute_ys_gs!
   J = QDS <: IterativeSolver ? nlp.Aop : jac_op(nlp.nlp, x)
   (invJtJJv, invJtJJvstats) = cgls(J', v, λ = τ)
@@ -505,6 +505,13 @@ function hprod!(
   Ssv = nlp.w
   JtJ = J * J'
   (invJtJSsv, stats) = minres(JtJ, Ssv, λ = τ) #fix after Krylov.jl #256
+  =#
+  ghjvprod!(nlp.nlp, x, gs, v, nlp.w) # Ssv = ghjvprod(nlp.nlp, x, gs, v)
+  Ssv = nlp.w
+  #
+  invJtJJv, invJtJSsv = solve_two_extras(nlp, x, v, Ssv)
+  #
+  SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
   jtprod!(nlp.nlp, x, invJtJSsv, nlp.v) # JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
 
   # @. Hv = nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - nlp.v - SsinvJtJJv
