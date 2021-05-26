@@ -189,6 +189,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
     primal_feas = norm(stp.current_state.cx, Inf),
     dual_feas = sub_stp.current_state.current_score,
     multipliers = stp.current_state.lambda,
+    multipliers_L = stp.current_state.mu,
     iter = stp.meta.nb_of_stop,
     elapsed_time = stp.current_state.current_time - stp.meta.start_time,
     solver_specific = Dict(:stp => stp, :restoration => restoration_phase),
