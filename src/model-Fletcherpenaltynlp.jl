@@ -76,6 +76,7 @@ mutable struct FletcherPenaltyNLP{
   Sstw::T
   Jcρ::T
   Jv::T
+  Ss::Array{S, 2} # only when Val(1)
 
   # Problem parameter
   σ::P
@@ -97,7 +98,7 @@ function FletcherPenaltyNLP(
   σ,
   hessian_approx,
   x0::AbstractVector{S};
-  qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
+  qds = LDLtSolver(nlp, S(0)),
 ) where {S}
   nvar = nlp.meta.nvar
 
@@ -132,6 +133,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
+    Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
@@ -187,6 +189,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
+    Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
     σ,
     ρ,
     δ,
@@ -383,7 +386,7 @@ function hess_coord!(
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
   Im = Matrix(I, ncon, ncon)
   τ = T(max(nlp.δ, 1e-14))
-  invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) #Euh... wait !
+  invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
   AinvAtA = A' * invAtA
   Pt = AinvAtA * A
 
@@ -395,22 +398,26 @@ function hess_coord!(
   end
 
   if nlp.hessian_approx == Val(1)
-    Ss = Array{T, 2}(undef, ncon, nvar) # should before
     for j = 1:ncon
-      Ss[j, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
+      nlp.Ss[j, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
     end
-    Hx += -AinvAtA * Ss - Ss' * invAtA * A
+    Hx += -AinvAtA * nlp.Ss - nlp.Ss' * invAtA * A
   end
 
+  #=
   if nlp.η > 0.0
     In = Matrix(I, nvar, nvar)
     Hx += T(nlp.η) * In
   end
+  =#
 
   k = 1
   for j = 1:nvar
     for i = j:nvar
       vals[k] = obj_weight * Hx[i, j]
+      if i == j && nlp.η > 0.0
+        vals[k] += obj_weight * T(nlp.η)
+      end
       k += 1
     end
   end
