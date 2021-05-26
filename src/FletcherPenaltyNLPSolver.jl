@@ -97,6 +97,7 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
   end
   ineq = has_inequalities(nlp)
   if ineq
+    x0 = vcat(x0, zeros(nlp.meta.ncon))
     nlp = SlackModel(nlp)
   end
   #meta = AlgoData(T; kwargs...)
@@ -106,7 +107,6 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
   Fptc(atol, rtol, opt0) =
     rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf), ones(nlp.meta.nvar) .+ norm(gx0, Inf))
-
   initial_state = NLPAtX(
     x0,
     zeros(T, nlp.meta.ncon),
@@ -125,9 +125,7 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
     max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64));
     kwargs...,
   )
-
   stats = fps_solve(stp, meta)
-
   if ineq
     # reshape the stats to fit the original problem
     stats = GenericExecutionStats(
@@ -144,7 +142,6 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
       solver_specific = stats.solver_specific,
     )
   end
-
   return stats
 end
 
