@@ -29,6 +29,8 @@ function runcutest(; today::String = string(today()))
   #Same time limit for all the solvers
   max_time = 180.0
 
+  tol_der = 1e-5
+
   solvers = Dict(
     :ipopt =>
       nlp -> ipopt(
@@ -63,6 +65,9 @@ function runcutest(; today::String = string(today()))
         max_iter = typemax(Int64),
         max_eval = typemax(Int64),
         qds_solver = :ldlt,
+        ldlt_tol = √eps(),
+        ldlt_r1 = √eps(),
+        ldlt_r2 = -√eps(),
 #        atol_sub = atol -> 1e-1, # atol,
 #        rtol_sub = rtol -> 1e-1, # rtol,
 #        η_1 = 1.,
@@ -78,6 +83,21 @@ function runcutest(; today::String = string(today()))
         max_iter = typemax(Int64),
         max_eval = typemax(Int64),
         qds_solver = :iterative,
+        ls_atol = tol_der, # √eps(),
+        ls_rtol = tol_der, # √eps(),
+        # ls_itmax = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+        ln_atol = tol_der, # √eps(),
+        ln_rtol = tol_der, # √eps(),
+        # ln_btol = √eps(),
+        # ln_conlim = 1 / √eps(),
+        # ln_itmax = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+        ne_atol = tol_der, # √eps()/100,
+        ne_rtol = tol_der, # √eps()/100,
+        # ne_ratol = zero(Float64),
+        # ne_rrtol = zero(Float64),
+        # ne_etol = √eps(),
+        # ne_itmax = 0,
+        # ne_conlim = 1 / √eps(),
 #        atol_sub = atol -> 1e-1, # atol,
 #        rtol_sub = rtol -> 1e-1, # rtol,
 #        η_1 = 1.,
