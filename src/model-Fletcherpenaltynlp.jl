@@ -495,28 +495,17 @@ function hprod!(
   # HsPtv = nlp.Jcρ
   hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
 
-  #=
-  # If QDS <: IterativeSolver it has been computed in _compute_ys_gs!
-  J = QDS <: IterativeSolver ? nlp.Aop : jac_op(nlp.nlp, x)
-  (invJtJJv, invJtJJvstats) = cgls(J', v, λ = τ)
-  SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
-
   ghjvprod!(nlp.nlp, x, gs, v, nlp.w) # Ssv = ghjvprod(nlp.nlp, x, gs, v)
   Ssv = nlp.w
-  JtJ = J * J'
-  (invJtJSsv, stats) = minres(JtJ, Ssv, λ = τ) #fix after Krylov.jl #256
-  =#
-  ghjvprod!(nlp.nlp, x, gs, v, nlp.w) # Ssv = ghjvprod(nlp.nlp, x, gs, v)
-  Ssv = nlp.w
-  #
   invJtJJv, invJtJSsv = solve_two_extras(nlp, x, v, Ssv)
-  #
-  SsinvJtJJv = hprod(nlp.nlp, x, invJtJJv, gs, obj_weight = zero(T))
   jtprod!(nlp.nlp, x, invJtJSsv, nlp.v) # JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
 
   # @. Hv = nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - nlp.v - SsinvJtJJv
   # @. Hv = p2 - HsPtv + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
-  @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
+  # @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
+  @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v
+  hprod!(nlp.nlp, x, invJtJJv, gs, nlp.Jcρ, obj_weight = zero(T)) # SsinvJtJJv
+  @. Hv -= nlp.Jcρ
 
   if ρ > 0.0
     jprod!(nlp.nlp, x, v, nlp.Jv)
