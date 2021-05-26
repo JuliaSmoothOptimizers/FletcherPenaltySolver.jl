@@ -73,7 +73,6 @@ function solve_two_least_squares(
   if !stats2.solved
     @warn "Failed solving 2nd linear system."
   end
-
   return nlp.qdsolver.p1, q1, nlp.qdsolver.p2, q2
 end
 
@@ -105,7 +104,7 @@ function solve_two_mixed(
   if !stats1.solved
     @warn "Failed solving 1st linear system."
   end
-
+  
   if nlp.δ != 0.0
     (p2, q2, stats2) = craig!(
       nlp.qdsolver.solver_struct_least_norm,
@@ -137,7 +136,6 @@ function solve_two_mixed(
   if !stats2.solved
     @warn "Failed solving 2nd linear system."
   end
-
   return nlp.qdsolver.p1, q1, nlp.qdsolver.p2, q2
 end
 
