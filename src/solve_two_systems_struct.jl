@@ -11,6 +11,7 @@ struct IterativeSolver{
   S,
   SS1 <: KrylovSolver{T, S},
   SS2 <: KrylovSolver{T, S},
+  SS3 <: KrylovSolver{T, S},
 } <: QDSolver
   # parameters for least-square solve
   # ls_M # =opEye(), 
@@ -33,9 +34,20 @@ struct IterativeSolver{
   #verbose :: Int=0, 
   #history :: Bool=false
 
+  # parameters for Jt * J solve
+  # ne_M = opEye()
+  ne_atol::T # = √eps(T)/100,
+  ne_rtol::T # = √eps(T)/100,
+  ne_ratol::T # = zero(T),
+  ne_rrtol::T # = zero(T),
+  ne_etol::T # = √eps(T),
+  ne_itmax::Integer # = 0,
+  ne_conlim::T # = 1 / √eps(T),
+
   #allocations
   solver_struct_least_square::SS1
   solver_struct_least_norm::SS2
+  solver_struct_pinv::SS3
   # allocation of the linear operator, only one as the matrix is symmetric
   # ToDo: Il faudrait faire le tri ici car tout n'est pas utilisé
   opr::Vector{T}
@@ -78,12 +90,24 @@ function IterativeSolver(
   ln_btol::T = √eps(T),
   ln_conlim::T = 1 / √eps(T),
   ln_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+  ne_atol::T = √eps(T)/100,
+  ne_rtol::T = √eps(T)/100,
+  ne_ratol::T = zero(T),
+  ne_rrtol::T = zero(T),
+  ne_etol::T = √eps(T),
+  ne_itmax::Int = 0,
+  ne_conlim::T = 1 / √eps(T),
   solver_struct_least_square::KrylovSolver{T, S} = LsqrSolver(
     nlp.meta.nvar,
     nlp.meta.ncon,
     Vector{T},
   ),
   solver_struct_least_norm::KrylovSolver{T, S} = CraigSolver(
+    nlp.meta.ncon,
+    nlp.meta.nvar,
+    Vector{T},
+  ),
+  solver_struct_pinv::KrylovSolver{T, S} = MinresSolver(
     nlp.meta.ncon,
     nlp.meta.nvar,
     Vector{T},
@@ -100,8 +124,16 @@ function IterativeSolver(
     ln_btol,
     ln_conlim,
     ln_itmax,
+    ne_atol,
+    ne_rtol,
+    ne_ratol,
+    ne_rrtol,
+    ne_etol,
+    ne_itmax,
+    ne_conlim,
     solver_struct_least_square,
     solver_struct_least_norm,
+    solver_struct_pinv,
     Vector{T}(undef, nlp.meta.ncon + nlp.meta.nvar),
     Vector{T}(undef, nlp.meta.ncon),
     Vector{T}(undef, nlp.meta.nvar),
