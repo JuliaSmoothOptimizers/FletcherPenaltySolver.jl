@@ -29,5 +29,5 @@ Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
 This package still on unofficial versions of:
  - ADNLPModels v0.1.1 `https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl#master`    
  - SolverTest v0.1.1 main
- - Krylov > 0.7.1 `https://github.com/JuliaSmoothOptimizers/Krylov.jl`
+ 
 `
