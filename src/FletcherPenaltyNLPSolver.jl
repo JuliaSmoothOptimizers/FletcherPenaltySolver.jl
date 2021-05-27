@@ -96,8 +96,9 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
     error("fps_solve only works for minimization problem")
   end
   ineq = has_inequalities(nlp)
+  ns = nlp.meta.ncon - length(nlp.meta.jfix)
   if ineq
-    x0 = vcat(x0, zeros(nlp.meta.ncon))
+    x0 = vcat(x0, zeros(T, ns))
     nlp = SlackModel(nlp)
   end
   #meta = AlgoData(T; kwargs...)
@@ -126,20 +127,36 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
     kwargs...,
   )
   stats = fps_solve(stp, meta)
-  if ineq
+  if ineq && stats.multipliers_L != []
+    nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
     stats = GenericExecutionStats(
       stats.status,
       nlp.model,
-      solution = stats.solution[1:nlp.model.meta.nvar],
+      solution = stats.solution[1:nnvar],
       objective = stats.objective,
       primal_feas = stats.primal_feas,
       dual_feas = stats.dual_feas,
-      multipliers = vcat(stats.multipliers, stats.multipliers_L[nlp.model.meta.nvar + 1:end]),
-      multipliers_L = stats.multipliers_L[1:nlp.model.meta.nvar],
+      multipliers = vcat(stats.multipliers, stats.multipliers_L[nnvar + 1 : nnvar + ns]),
+      multipliers_L = stats.multipliers_L[1:nnvar],
       iter = stats.iter,
       elapsed_time = stats.elapsed_time,
-      solver_specific = stats.solver_specific,
+      # solver_specific = stats.solver_specific,
+    )
+  elseif ineq
+    nnvar = nlp.model.meta.nvar
+    # reshape the stats to fit the original problem
+    stats = GenericExecutionStats(
+      stats.status,
+      nlp.model,
+      solution = stats.solution[1:nnvar],
+      objective = stats.objective,
+      primal_feas = stats.primal_feas,
+      dual_feas = stats.dual_feas,
+      multipliers = stats.multipliers,
+      iter = stats.iter,
+      elapsed_time = stats.elapsed_time,
+      # solver_specific = stats.solver_specific,
     )
   end
   return stats
