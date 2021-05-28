@@ -115,7 +115,7 @@ function solve_two_mixed(
   if !stats1.solved
     @warn "Failed solving 1st linear system lsqr in mixed."
   end
-  
+
   if nlp.δ != 0.0
     (p2, q2, stats2) = craig!(
       nlp.qdsolver.solver_struct_least_norm,
@@ -131,8 +131,8 @@ function solve_two_mixed(
     )
   else
     (p2, q2, stats2) = craig!(
-      nlp.qdsolver.solver_struct_least_norm, 
-      nlp.Aop, 
+      nlp.qdsolver.solver_struct_least_norm,
+      nlp.Aop,
       -rhs2,
       atol = nlp.qdsolver.ln_atol,
       rtol = nlp.qdsolver.ln_rtol,
