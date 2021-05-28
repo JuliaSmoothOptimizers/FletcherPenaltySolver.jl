@@ -115,7 +115,7 @@ function FletcherPenaltyNLP(
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(0)),
 ) where {S}
-  nvar = nlp.meta.nvar
+  nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 
   meta = NLPModelMeta(
     nvar,
@@ -129,11 +129,12 @@ function FletcherPenaltyNLP(
   )
 
   Arows, Acols = jac_structure(nlp)
-  Avals = Vector{S}(undef, nlp.meta.nnzj)
+  Avals = zeros(S, nlp.meta.nnzj)
   Hrows, Hcols = hess_structure(nlp)
   Hvals = Vector{S}(undef, nlp.meta.nnzh)
 
-  invAtA = spdiagm(ones(nlp.meta.ncon))
+  tempA = sparse(Arows, Acols, Avals, ncon, nvar)
+  invAtA = sparse(tempA * tempA' + 1e-14 * Matrix(I, ncon, ncon))
   F = if nlp.meta.ncon > 0
     lu(invAtA)
   else
@@ -194,7 +195,7 @@ function FletcherPenaltyNLP(
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
-  nvar = nlp.meta.nvar
+  nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 
   meta = NLPModelMeta(
     nvar,
@@ -209,11 +210,12 @@ function FletcherPenaltyNLP(
   counters = Counters()
 
   Arows, Acols = jac_structure(nlp)
-  Avals = Vector{S}(undef, nlp.meta.nnzj)
+  Avals = zeros(S, nlp.meta.nnzj)
   Hrows, Hcols = hess_structure(nlp)
   Hvals = Vector{S}(undef, nlp.meta.nnzh)
 
-  invAtA = spdiagm(ones(nlp.meta.ncon))
+  tempA = sparse(Arows, Acols, Avals, ncon, nvar)
+  invAtA = sparse(tempA * tempA' + 1e-14 * Matrix(I, ncon, ncon))
   F = if nlp.meta.ncon > 0
     lu(invAtA)
   else
@@ -515,7 +517,8 @@ function hess_coord!(
   # Hs = nlp.Hs
 
   if ncon > 0
-    A = jac(nlp.nlp, x) # If used, this should be allocated probably
+    # A = jac(nlp.nlp, x) # If used, this should be allocated probably
+    A = sparse(nlp.Arows, nlp.Acols, jac_coord!(nlp.nlp, x, nlp.Avals), ncon, nvar)
     # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
     # A = nlp.Ax
     # put in a separate function
@@ -524,12 +527,12 @@ function hess_coord!(
     # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
     nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
     mul!(nlp.invAtA, A, A', 1, τ)
-    # lu!(nlp.F, nlp.invAtA)
-    nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
+    lu!(nlp.F, nlp.invAtA)
+    # nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
     # AinvAtA = A' * invAtA
     # Pt = AinvAtA * A
-    mul!(nlp.Ax, nlp.invAtA, A)
-    # ldiv!(nlp.Ax, nlp.F, A)
+    # mul!(nlp.Ax, nlp.invAtA, A)
+    ldiv!(nlp.Ax, nlp.F, A)
     mul!(nlp.Pt, A', nlp.Ax)
     # end of separate function
 
