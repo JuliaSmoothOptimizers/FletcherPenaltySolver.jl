@@ -509,39 +509,47 @@ function hess_coord!(
   f = nlp.fx
   g = nlp.gx
   c = nlp.cx
-  A = jac(nlp.nlp, x) # If used, this should be allocated probably
-  # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
-  # A = nlp.Ax
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L) # do in-place ?
   # Hs = nlp.Hs
 
-  # put in a separate function
-  # Im = Matrix(I, ncon, ncon)
-  τ = T(max(nlp.δ, 1e-14))
-  # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
-  nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
-  mul!(nlp.invAtA, A, A', 1, τ)
-  # lu!(nlp.F, nlp.invAtA)
-  nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
-  # AinvAtA = A' * invAtA
-  # Pt = AinvAtA * A
-  mul!(nlp.Ax, nlp.invAtA, A)
-  # ldiv!(nlp.Ax, nlp.F, A)
-  mul!(nlp.Pt, A', nlp.Ax)
-  # end of separate function
+  if ncon > 0
+    A = jac(nlp.nlp, x) # If used, this should be allocated probably
+    # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
+    # A = nlp.Ax
+    # put in a separate function
+    # Im = Matrix(I, ncon, ncon)
+    τ = T(max(nlp.δ, 1e-14))
+    # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
+    nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
+    mul!(nlp.invAtA, A, A', 1, τ)
+    # lu!(nlp.F, nlp.invAtA)
+    nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
+    # AinvAtA = A' * invAtA
+    # Pt = AinvAtA * A
+    mul!(nlp.Ax, nlp.invAtA, A)
+    # ldiv!(nlp.Ax, nlp.F, A)
+    mul!(nlp.Pt, A', nlp.Ax)
+    # end of separate function
 
-  # mul!(C, A, B, α, β) -> C = A * B * α + C * β
-  # Hx = Hs - nlp.Pt * Hs - Hs * nlp.Pt + 2 * T(σ) * nlp.Pt
-  mul!(nlp.Hs, nlp.Pt, Hs, -1, 0) # - nlp.Pt * Hs
-  mul!(nlp.Hs, Hs, nlp.Pt, -1, 1) # nlp.Hs -= nlp.Pt * Hs
-  @. nlp.Hs += Hs + 2 * T(σ) * nlp.Pt
-  Hx = nlp.Hs
-  #regularization term
-  if ρ > 0.0
-    Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
-    Hx += Hc + T(ρ) * A' * A
+    # mul!(C, A, B, α, β) -> C = A * B * α + C * β
+    # Hx = Hs - nlp.Pt * Hs - Hs * nlp.Pt + 2 * T(σ) * nlp.Pt
+    mul!(nlp.Hs, nlp.Pt, Hs, -1, 0) # - nlp.Pt * Hs
+    mul!(nlp.Hs, Hs, nlp.Pt, -1, 1) # nlp.Hs -= nlp.Pt * Hs
+    @. nlp.Hs += Hs + 2 * T(σ) * nlp.Pt
+    Hx = nlp.Hs
+    #regularization term
+    if ρ > 0.0
+      Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
+      Hx += Hc + T(ρ) * A' * A
+    end
+  else
+    Hx = Hs
+    if ρ > 0.0
+      Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
+      Hx += Hc
+    end
   end
 
   #=
