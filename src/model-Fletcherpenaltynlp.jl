@@ -129,7 +129,7 @@ function FletcherPenaltyNLP(
   )
 
   Arows, Acols = jac_structure(nlp)
-  Avals = zeros(S, nlp.meta.nnzj)
+  Avals = rand(S, nlp.meta.nnzj)
   Hrows, Hcols = hess_structure(nlp)
   Hvals = Vector{S}(undef, nlp.meta.nnzh)
 
@@ -210,7 +210,7 @@ function FletcherPenaltyNLP(
   counters = Counters()
 
   Arows, Acols = jac_structure(nlp)
-  Avals = zeros(S, nlp.meta.nnzj)
+  Avals = rand(S, nlp.meta.nnzj)
   Hrows, Hcols = hess_structure(nlp)
   Hvals = Vector{S}(undef, nlp.meta.nnzh)
 
@@ -427,8 +427,6 @@ function hess_structure!(
   return rows, cols
 end
 
-# function _compute_pseudo_inverse!(nlp, x)
-
 function hess_coord!(
   nlp::FletcherPenaltyNLP{S, Tt, Val{1}, P, QDS},
   x::AbstractVector{T},
@@ -494,6 +492,47 @@ function hess_coord!(
   return vals
 end
 
+function _compute_pseudo_inverse_dense!(nlp, x::AbstractVector{T}) where {T}
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
+  A = jac(nlp.nlp, x)
+  # put in a separate function
+  # Im = Matrix(I, ncon, ncon)
+  τ = T(max(nlp.δ, 1e-14))
+  # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
+  nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
+  mul!(nlp.invAtA, A, A', 1, τ)
+  # lu!(nlp.F, nlp.invAtA)
+  nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
+  # AinvAtA = A' * invAtA
+  # Pt = AinvAtA * A
+  mul!(nlp.Ax, nlp.invAtA, A)
+  # ldiv!(nlp.Ax, nlp.F, A)
+  mul!(nlp.Pt, A', nlp.Ax)
+  return nlp.Pt
+end
+
+function _compute_pseudo_inverse_sparse!(nlp, x::AbstractVector{T}) where {T}
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
+  jac_coord!(nlp.nlp, x, nlp.Avals)
+  A = sparse(nlp.Arows, nlp.Acols, nlp.Avals, ncon, nvar)
+  # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
+  # A = nlp.Ax
+  # put in a separate function
+  # Im = Matrix(I, ncon, ncon)
+  τ = T(max(nlp.δ, 1e-14))
+  # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
+  nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
+  mul!(nlp.invAtA, A, A', 1, τ)
+  lu!(nlp.F, nlp.invAtA)
+  # AinvAtA = A' * invAtA
+  # Pt = AinvAtA * A
+  ldiv!(nlp.Ax, nlp.F, A)
+  mul!(nlp.Pt, A', nlp.Ax)
+  return A, nlp.Pt
+end
+
 function hess_coord!(
   nlp::FletcherPenaltyNLP{S, Tt, Val{2}, P, QDS},
   x::AbstractVector{T},
@@ -517,8 +556,9 @@ function hess_coord!(
   # Hs = nlp.Hs
 
   if ncon > 0
-    # A = jac(nlp.nlp, x) # If used, this should be allocated probably
-    A = sparse(nlp.Arows, nlp.Acols, jac_coord!(nlp.nlp, x, nlp.Avals), ncon, nvar)
+    A = jac(nlp.nlp, x) # If used, this should be allocated probably
+    # jac_coord!(nlp.nlp, x, nlp.Avals)
+    # A = sparse(nlp.Arows, nlp.Acols, nlp.Avals, ncon, nvar)
     # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
     # A = nlp.Ax
     # put in a separate function
@@ -527,14 +567,16 @@ function hess_coord!(
     # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
     nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
     mul!(nlp.invAtA, A, A', 1, τ)
-    lu!(nlp.F, nlp.invAtA)
-    # nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
+    # lu!(nlp.F, nlp.invAtA)
+    nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
     # AinvAtA = A' * invAtA
     # Pt = AinvAtA * A
-    # mul!(nlp.Ax, nlp.invAtA, A)
-    ldiv!(nlp.Ax, nlp.F, A)
+    mul!(nlp.Ax, nlp.invAtA, A)
+    # ldiv!(nlp.Ax, nlp.F, A)
     mul!(nlp.Pt, A', nlp.Ax)
     # end of separate function
+    # A, nlp.Pt = _compute_pseudo_inverse_dense!(nlp, x) # doesn't work...
+    # A, Pt = _compute_pseudo_inverse_sparse!(nlp, x)
 
     # mul!(C, A, B, α, β) -> C = A * B * α + C * β
     # Hx = Hs - nlp.Pt * Hs - Hs * nlp.Pt + 2 * T(σ) * nlp.Pt
