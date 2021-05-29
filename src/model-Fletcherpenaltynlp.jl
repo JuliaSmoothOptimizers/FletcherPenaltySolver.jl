@@ -15,6 +15,10 @@ import NLPModels:
 
 include("solve_two_systems_struct.jl")
 
+#=
+We need to create a workspace structure Val1/Val2/matrix-free Val2
+=#
+
 """
 We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
@@ -77,6 +81,17 @@ mutable struct FletcherPenaltyNLP{
   Jcρ::T
   Jv::T
   Ss::Array{S, 2} # only when Val(1)
+  Arows
+  Acols
+  Avals
+  Hrows
+  Hcols
+  Hvals
+  Ax # jacobian matrix (remove for matrix free implementation) (ncon x nvar)
+  F
+  Pt # dense projector (nvar x nvar)
+  invAtA # dense pseudo-inverse of AA' (ncon x ncon)
+  Hs # = Symmetric(hess(nlp.nlp, x, -ys), :L) (nvar x nvar)
 
   # Problem parameter
   σ::P
@@ -100,7 +115,7 @@ function FletcherPenaltyNLP(
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(0)),
 ) where {S}
-  nvar = nlp.meta.nvar
+  nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 
   meta = NLPModelMeta(
     nvar,
@@ -112,6 +127,19 @@ function FletcherPenaltyNLP(
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
   )
+
+  Arows, Acols = jac_structure(nlp)
+  Avals = rand(S, nlp.meta.nnzj)
+  Hrows, Hcols = hess_structure(nlp)
+  Hvals = Vector{S}(undef, nlp.meta.nnzh)
+
+  tempA = sparse(Arows, Acols, Avals, ncon, nvar)
+  invAtA = sparse(tempA * tempA' + 1e-14 * Matrix(I, ncon, ncon))
+  F = if nlp.meta.ncon > 0
+    lu(invAtA)
+  else
+    nothing
+  end
 
   return FletcherPenaltyNLP(
     meta,
@@ -134,6 +162,17 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
     Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
+    Arows,
+    Acols,
+    Avals,
+    Hrows,
+    Hcols,
+    Hvals,
+    Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
+    F,
+    Array{S, 2}(undef, nlp.meta.nvar, nlp.meta.nvar),
+    invAtA,
+    Array{S, 2}(undef, nlp.meta.nvar, nlp.meta.nvar),
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
@@ -156,7 +195,7 @@ function FletcherPenaltyNLP(
   x0::AbstractVector{S};
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
-  nvar = nlp.meta.nvar
+  nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
 
   meta = NLPModelMeta(
     nvar,
@@ -169,6 +208,20 @@ function FletcherPenaltyNLP(
     name = "Fletcher penalization of $(nlp.meta.name)",
   )
   counters = Counters()
+
+  Arows, Acols = jac_structure(nlp)
+  Avals = rand(S, nlp.meta.nnzj)
+  Hrows, Hcols = hess_structure(nlp)
+  Hvals = Vector{S}(undef, nlp.meta.nnzh)
+
+  tempA = sparse(Arows, Acols, Avals, ncon, nvar)
+  invAtA = sparse(tempA * tempA' + 1e-14 * Matrix(I, ncon, ncon))
+  F = if nlp.meta.ncon > 0
+    lu(invAtA)
+  else
+    nothing
+  end
+
   return FletcherPenaltyNLP(
     meta,
     counters,
@@ -190,6 +243,17 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.ncon),
     Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
+    Arows,
+    Acols,
+    Avals,
+    Hrows,
+    Hcols,
+    Hvals,
+    Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
+    F,
+    Array{S, 2}(undef, nlp.meta.nvar, nlp.meta.nvar),
+    invAtA,
+    Array{S, 2}(undef, nlp.meta.nvar, nlp.meta.nvar),
     σ,
     ρ,
     δ,
@@ -364,11 +428,11 @@ function hess_structure!(
 end
 
 function hess_coord!(
-  nlp::FletcherPenaltyNLP,
+  nlp::FletcherPenaltyNLP{S, Tt, Val{1}, P, QDS},
   x::AbstractVector{T},
   vals::AbstractVector{T};
   obj_weight::Real = one(T),
-) where {T}
+) where {T, S, Tt, P, QDS}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nnzh vals
   increment!(nlp, :neval_hess)
@@ -381,9 +445,13 @@ function hess_coord!(
   g = nlp.gx
   c = nlp.cx
   A = jac(nlp.nlp, x) # If used, this should be allocated probably
+  # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
+  # A = nlp.Ax
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
+  # nlp.Hs .= Symmetric(hess(nlp.nlp, x, -ys), :L) # do in-place ?
+  # Hs = nlp.Hs
   Im = Matrix(I, ncon, ncon)
   τ = T(max(nlp.δ, 1e-14))
   invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
@@ -397,11 +465,136 @@ function hess_coord!(
     Hx += Hc + T(ρ) * A' * A
   end
 
-  if nlp.hessian_approx == Val(1)
-    for j = 1:ncon
-      nlp.Ss[j, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
+  # for 1st hessian approximation only
+  for j = 1:ncon
+    nlp.Ss[j, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L) # could we use hprod ?
+  end
+  Hx += -AinvAtA * nlp.Ss - nlp.Ss' * invAtA * A
+
+  #=
+  if nlp.η > 0.0
+    In = Matrix(I, nvar, nvar)
+    Hx += T(nlp.η) * In
+  end
+  =#
+
+  k = 1
+  for j = 1:nvar
+    for i = j:nvar
+      vals[k] = obj_weight * Hx[i, j]
+      if i == j && nlp.η > 0.0
+        vals[k] += obj_weight * T(nlp.η)
+      end
+      k += 1
     end
-    Hx += -AinvAtA * nlp.Ss - nlp.Ss' * invAtA * A
+  end
+
+  return vals
+end
+
+function _compute_pseudo_inverse_dense!(nlp, x::AbstractVector{T}) where {T}
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
+  A = jac(nlp.nlp, x)
+  # put in a separate function
+  # Im = Matrix(I, ncon, ncon)
+  τ = T(max(nlp.δ, 1e-14))
+  # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
+  nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
+  mul!(nlp.invAtA, A, A', 1, τ)
+  # lu!(nlp.F, nlp.invAtA)
+  nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
+  # AinvAtA = A' * invAtA
+  # Pt = AinvAtA * A
+  mul!(nlp.Ax, nlp.invAtA, A)
+  # ldiv!(nlp.Ax, nlp.F, A)
+  mul!(nlp.Pt, A', nlp.Ax)
+  return nlp.Pt
+end
+
+function _compute_pseudo_inverse_sparse!(nlp, x::AbstractVector{T}) where {T}
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
+  jac_coord!(nlp.nlp, x, nlp.Avals)
+  A = sparse(nlp.Arows, nlp.Acols, nlp.Avals, ncon, nvar)
+  # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
+  # A = nlp.Ax
+  # put in a separate function
+  # Im = Matrix(I, ncon, ncon)
+  τ = T(max(nlp.δ, 1e-14))
+  # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
+  nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
+  mul!(nlp.invAtA, A, A', 1, τ)
+  lu!(nlp.F, nlp.invAtA)
+  # AinvAtA = A' * invAtA
+  # Pt = AinvAtA * A
+  ldiv!(nlp.Ax, nlp.F, A)
+  mul!(nlp.Pt, A', nlp.Ax)
+  return A, nlp.Pt
+end
+
+function hess_coord!(
+  nlp::FletcherPenaltyNLP{S, Tt, Val{2}, P, QDS},
+  x::AbstractVector{T},
+  vals::AbstractVector{T};
+  obj_weight::Real = one(T),
+) where {T, S, Tt, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nnzh vals
+  increment!(nlp, :neval_hess)
+
+  nvar = nlp.meta.nvar
+  ncon = nlp.nlp.meta.ncon
+
+  gs, ys, _, _ = _compute_ys_gs!(nlp, x)
+  f = nlp.fx
+  g = nlp.gx
+  c = nlp.cx
+  σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
+
+  Hs = Symmetric(hess(nlp.nlp, x, -ys), :L) # do in-place ?
+  # Hs = nlp.Hs
+
+  if ncon > 0
+    A = jac(nlp.nlp, x) # If used, this should be allocated probably
+    # jac_coord!(nlp.nlp, x, nlp.Avals)
+    # A = sparse(nlp.Arows, nlp.Acols, nlp.Avals, ncon, nvar)
+    # nlp.Ax .= jac(nlp.nlp, x) # do in-place ?
+    # A = nlp.Ax
+    # put in a separate function
+    # Im = Matrix(I, ncon, ncon)
+    τ = T(max(nlp.δ, 1e-14))
+    # invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
+    nlp.invAtA .= Matrix(I, ncon, ncon) # spdiagm(ones(ncon)) #  
+    mul!(nlp.invAtA, A, A', 1, τ)
+    # lu!(nlp.F, nlp.invAtA)
+    nlp.invAtA = pinv(Matrix(nlp.invAtA)) # in-place
+    # AinvAtA = A' * invAtA
+    # Pt = AinvAtA * A
+    mul!(nlp.Ax, nlp.invAtA, A)
+    # ldiv!(nlp.Ax, nlp.F, A)
+    mul!(nlp.Pt, A', nlp.Ax)
+    # end of separate function
+    # A, nlp.Pt = _compute_pseudo_inverse_dense!(nlp, x) # doesn't work...
+    # A, Pt = _compute_pseudo_inverse_sparse!(nlp, x)
+
+    # mul!(C, A, B, α, β) -> C = A * B * α + C * β
+    # Hx = Hs - nlp.Pt * Hs - Hs * nlp.Pt + 2 * T(σ) * nlp.Pt
+    mul!(nlp.Hs, nlp.Pt, Hs, -1, 0) # - nlp.Pt * Hs
+    mul!(nlp.Hs, Hs, nlp.Pt, -1, 1) # nlp.Hs -= nlp.Pt * Hs
+    @. nlp.Hs += Hs + 2 * T(σ) * nlp.Pt
+    Hx = nlp.Hs
+    #regularization term
+    if ρ > 0.0
+      Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
+      Hx += Hc + T(ρ) * A' * A
+    end
+  else
+    Hx = Hs
+    if ρ > 0.0
+      Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
+      Hx += Hc
+    end
   end
 
   #=
