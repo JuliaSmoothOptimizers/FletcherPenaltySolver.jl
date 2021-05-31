@@ -215,7 +215,7 @@ if is_knitro_installed
     #if stats.status ∉ (:unbounded, :exception, :unknown) #∈ (:first_order, :acceptable) 
     stp.current_state.x = stats.solution
     stp.current_state.fx = stats.objective
-    #stp.current_state.gx = grad(nlp, stats.solution)#necessary?
+    stp.current_state.gx = stats.solver_specific[:gx] # grad(nlp, stats.solution)#necessary?
     #norm(stp.current_state.gx, Inf)#stats.dual_feas #TODO: this is for unconstrained problem!!
     stp.current_state.mu = stats.multipliers_L
     stp.current_state.current_score = max(stats.dual_feas, stats.primal_feas)
