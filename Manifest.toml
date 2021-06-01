@@ -432,12 +432,10 @@ uuid = "67920dd8-b58e-52a8-8622-53c4cffbe346"
 version = "0.10.0"
 
 [[Krylov]]
-deps = ["LinearAlgebra", "LinearOperators", "Printf", "SparseArrays"]
-git-tree-sha1 = "6961d4a2d7a5250135e2eda8efa247b45d2860b3"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaSmoothOptimizers/Krylov.jl"
+deps = ["LinearAlgebra", "Printf", "SparseArrays"]
+git-tree-sha1 = "5530b9d0cdc81a97b719ca3e3f850368620dca46"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
-version = "0.7.2"
+version = "0.7.3"
 
 [[LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]

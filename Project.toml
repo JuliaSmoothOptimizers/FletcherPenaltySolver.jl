@@ -32,7 +32,6 @@ Stopping = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 
 [compat]
 FastClosures = "0.2.1, 0.3.0"
-Krylov = "0.7.2"
 LDLFactorizations = "0.8.1"
 LinearOperators = "1.1"
 NLPModelsIpopt = "0.7.0"
