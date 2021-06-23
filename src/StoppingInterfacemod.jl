@@ -170,7 +170,7 @@ if is_knitro_installed
     feastol_abs::Real = stp.meta.atol,
     opttol::Real = stp.meta.rtol,
     opttol_abs::Real = stp.meta.atol,
-    maxfevals::Int = stp.meta.max_cntrs[:neval_sum],
+    maxfevals::Int = min(stp.meta.max_cntrs[:neval_sum], typemax(Int32)),
     maxit::Int = 0, #stp.meta.max_iter
     maxtime_real::Real = stp.meta.max_time,
     out_hints::Int = 0,

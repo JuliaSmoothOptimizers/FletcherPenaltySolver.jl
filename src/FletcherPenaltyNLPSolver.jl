@@ -122,8 +122,8 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
     optimality_check = Fletcher_penalty_optimality_check,
     atol = T(1e-6), # really convert here ?
     rtol = T(1e-6),
-    tol_check = Fptc,
-    max_cntrs = Stopping._init_max_counters(allevals = typemax(Int64));
+    tol_check = Fptc;
+    # max_cntrs = Stopping.init_max_counters();
     kwargs...,
   )
   stats = fps_solve(stp, meta)
