@@ -65,7 +65,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
         res = sub_stp.current_state.gx # grad(sub_stp.pb, sub_stp.current_state.x), # Shouldn't this be returned by the solver?
       )
       go_log(stp, sub_stp, state.fx, norm(state.cx), "Optml")
-    elseif sub_stp.meta.unbounded
+    elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb
       stalling, unsuccessful_subpb = 0, 0
       unbounded_subpb += 1
       ncx = norm(sub_stp.pb.cx, Inf)
@@ -130,7 +130,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
           update_parameters!(meta, sub_stp, feas)
           go_log(stp, sub_stp, state.fx, ncx, "D")
         end
-      elseif sub_stp.meta.unbounded
+      elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb
         if !feasibility_phase && unbounded_subpb ≥ 3 && !feas
           #we are most likely stuck at an infeasible stationary point.
           #or an undetected unbounded problem
