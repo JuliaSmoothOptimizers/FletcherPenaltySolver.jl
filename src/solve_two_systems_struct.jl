@@ -144,6 +144,107 @@ function IterativeSolver(
   )
 end
 
+function solve_least_square(
+  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3},
+  A,
+  b,
+  λ,
+) where {T, S, SS1 <: LsqrSolver, SS2, SS3}
+  return lsqr!(
+    qdsolver.solver_struct_least_square,
+    A,
+    b,
+    λ = λ,
+    atol = qdsolver.ls_atol,
+    rtol = qdsolver.ls_rtol,
+    itmax = qdsolver.ls_itmax,
+  )
+end
+
+#=
+CLEAN THE PARAMETERS
+function solve_least_square(
+  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3},
+  A,
+  b,
+  λ,
+) where {T, S, Tt, App, P, SS1 <: LslqSolver, SS2, SS3}
+  return lslq!(
+    qdsolver.solver_struct_least_square,
+    A,
+    b,
+    λ = λ, # sqd = true then?
+    atol = qdsolver.ls_atol,
+    rtol = qdsolver.ls_rtol,
+    btol :: T=√eps(T),
+    etol :: T=√eps(T),
+    utol :: T=√eps(T),
+    itmax = qdsolver.ls_itmax,
+  )
+end
+=#
+
+function solve_least_norm(
+  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3},
+  A,
+  b,
+  δ,
+) where {T, S, SS1, SS2 <: CraigSolver, SS3}
+  return if δ != 0
+    craig!(
+      qdsolver.solver_struct_least_norm,
+      A,
+      b,
+      M = 1 / δ * opEye(length(b)),
+      sqd = true,
+      atol = qdsolver.ln_atol,
+      rtol = qdsolver.ln_rtol,
+      btol = qdsolver.ln_btol,
+      conlim = qdsolver.ln_conlim,
+      itmax = qdsolver.ln_itmax,
+    )
+  else
+    craig!(
+      qdsolver.solver_struct_least_norm, 
+      A, 
+      b,
+      atol = qdsolver.ln_atol,
+      rtol = qdsolver.ln_rtol,
+      btol = qdsolver.ln_btol,
+      conlim = qdsolver.ln_conlim,
+      itmax = qdsolver.ln_itmax,
+    )
+  end
+end
+
+function solve_least_norm(
+  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3},
+  A,
+  b,
+  δ,
+) where {T, S, SS1, SS2 <: LnlqSolver, SS3}
+  return if δ != 0
+    lnlq!(
+      qdsolver.solver_struct_least_norm,
+      A,
+      b,
+      M = 1 / δ * opEye(nlp.nlp.meta.ncon),
+      atol = qdsolver.ln_atol,
+      rtol = qdsolver.ln_rtol,
+      itmax = qdsolver.ln_itmax,
+    )
+  else
+    lnlq!(
+      qdsolver.solver_struct_least_norm, 
+      A, 
+      b,
+      atol = qdsolver.ln_atol,
+      rtol = qdsolver.ln_rtol,
+      itmax = qdsolver.ln_itmax,
+    )
+  end
+end
+
 #=
 nnzj = nlp.nlp.meta.nnzj
   nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon

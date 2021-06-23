@@ -6,15 +6,7 @@ function solve_two_extras(
 ) where {T, S, Tt, A, P, SS1, SS2, SS3}
   τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
   # (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ)
-  (invJtJJv, invJtJJvstats) = lsqr!(
-    nlp.qdsolver.solver_struct_least_square,
-    nlp.Aop',
-    rhs1,
-    λ = √τ,
-    atol = nlp.qdsolver.ls_atol,
-    rtol = nlp.qdsolver.ls_rtol,
-    itmax = nlp.qdsolver.ls_itmax,
-  )
+  (invJtJJv, invJtJJvstats) = solve_least_square(nlp, nlp.Aop', rhs1, √τ)
   if !invJtJJvstats.solved
     @warn "Failed solving 1st linear system lsqr in extra."
   end
@@ -52,15 +44,7 @@ function solve_two_least_squares(
   =#
   # We trust this one
   # nlp.Aop .= jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = lsqr!(
-    nlp.qdsolver.solver_struct_least_square,
-    nlp.Aop',
-    rhs1,
-    λ = √nlp.δ,
-    atol = nlp.qdsolver.ls_atol,
-    rtol = nlp.qdsolver.ls_rtol,
-    itmax = nlp.qdsolver.ls_itmax,
-  )
+  (q1, stats1) = solve_least_square(nlp, nlp.Aop', rhs1, √nlp.δ)
   # nlp.qdsolver.q1 .= q1
   # nlp.qdsolver.p1 = rhs1 - nlp.Aop' * q1
   mul!(nlp.qdsolver.p1, nlp.Aop', q1) # nlp.qdsolver.p1 .= nlp.Aop' * q1
@@ -69,15 +53,7 @@ function solve_two_least_squares(
     @warn "Failed solving 1st linear system lsqr."
   end
 
-  (q2, stats2) = lsqr!(
-    nlp.qdsolver.solver_struct_least_square,
-    nlp.Aop',
-    rhs2,
-    λ = √nlp.δ,
-    atol = nlp.qdsolver.ls_atol,
-    rtol = nlp.qdsolver.ls_rtol,
-    itmax = nlp.qdsolver.ls_itmax,
-  )
+  (q2, stats2) = solve_least_square(nlp, nlp.Aop', rhs2, √nlp.δ)
   # nlp.qdsolver.q2 .= q2
   # nlp.qdsolver.p2 = rhs2 - nlp.Aop' * q2
   mul!(nlp.qdsolver.p2, nlp.Aop', q2) # nlp.qdsolver.p2 .= nlp.Aop' * q2
@@ -100,15 +76,7 @@ function solve_two_mixed(
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
   nlp.Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = lsqr!(
-    nlp.qdsolver.solver_struct_least_square,
-    nlp.Aop',
-    rhs1,
-    λ = √nlp.δ,
-    atol = nlp.qdsolver.ls_atol,
-    rtol = nlp.qdsolver.ls_rtol,
-    itmax = nlp.qdsolver.ls_itmax,
-  )
+  (q1, stats1) = solve_least_square(nlp, nlp.Aop', rhs1, √nlp.δ)
   # nlp.qdsolver.q1 .= q1
   mul!(nlp.qdsolver.p1, nlp.Aop', q1) # nlp.qdsolver.p1 .= nlp.Aop' * q1
   @. nlp.qdsolver.p1 = rhs1 - nlp.qdsolver.p1
@@ -116,31 +84,7 @@ function solve_two_mixed(
     @warn "Failed solving 1st linear system lsqr in mixed."
   end
   
-  if nlp.δ != 0.0
-    (p2, q2, stats2) = craig!(
-      nlp.qdsolver.solver_struct_least_norm,
-      nlp.Aop,
-      -rhs2,
-      M = 1 / nlp.δ * opEye(nlp.nlp.meta.ncon),
-      sqd = true,
-      atol = nlp.qdsolver.ln_atol,
-      rtol = nlp.qdsolver.ln_rtol,
-      btol = nlp.qdsolver.ln_btol,
-      conlim = nlp.qdsolver.ln_conlim,
-      itmax = nlp.qdsolver.ln_itmax,
-    )
-  else
-    (p2, q2, stats2) = craig!(
-      nlp.qdsolver.solver_struct_least_norm, 
-      nlp.Aop, 
-      -rhs2,
-      atol = nlp.qdsolver.ln_atol,
-      rtol = nlp.qdsolver.ln_rtol,
-      btol = nlp.qdsolver.ln_btol,
-      conlim = nlp.qdsolver.ln_conlim,
-      itmax = nlp.qdsolver.ln_itmax,
-    )
-  end
+  (p2, q2, stats2) = solve_least_norm(nlp, nlp.Aop, -rhs2, nlp.δ)
   @. nlp.qdsolver.p2 = -p2
   # nlp.qdsolver.q2 .= q2
 
