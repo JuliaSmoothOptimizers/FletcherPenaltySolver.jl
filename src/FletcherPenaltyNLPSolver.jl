@@ -10,6 +10,7 @@ using NLPModelsIpopt
 
 const is_knitro_installed = try
   @eval using NLPModelsKnitro
+  KNITRO.Env()
   true
 catch
   #@warn "KNITRO not properly installed. Please run `] build KNITRO`"

@@ -107,7 +107,7 @@ function NLPModelsIpopt.ipopt(stp::NLPStopping; kwargs...)
   nlp = stp.pb
   stats = ipopt(
     nlp,
-    # print_level = 0,
+    print_level = 0,
     tol = stp.meta.rtol,
     x0 = stp.current_state.x,
     max_iter = stp.meta.max_iter,
