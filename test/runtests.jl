@@ -20,12 +20,12 @@ include("unit-test.jl")
 @warn "test_double_linear_algebra.jl: To be replaced"
 #include("test_double_linear_algebra.jl")
 #Test the solvers:
-mutable struct DummyModel <: AbstractNLPModel
-  meta::NLPModelMeta
+mutable struct DummyModel{S,T} <: AbstractNLPModel{S,T}
+  meta::NLPModelMeta{S,T}
   counters::Counters
 end
 @testset "Problem type error" begin
-  nlp = DummyModel(NLPModelMeta(1, minimize = false), Counters())
+  nlp = DummyModel(NLPModelMeta{Float64, Vector{Float64}}(1, minimize = false), Counters())
   @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(
     nlp,
     zeros(1),
@@ -34,6 +34,7 @@ end
   meta = FPSSSolver(nlp, 0.0, qds_solver = :iterative)
   @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(stp, meta)
 end
+
 #On a toy rosenbrock variation.
 include("test-0.jl")
 #On a problem from the package OptimizationProblems

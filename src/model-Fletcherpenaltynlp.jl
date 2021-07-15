@@ -52,10 +52,10 @@ mutable struct FletcherPenaltyNLP{
   A <: Union{Val{1}, Val{2}},
   P <: Real,
   QDS <: QDSolver,
-} <: AbstractNLPModel
-  meta::AbstractNLPModelMeta
+} <: AbstractNLPModel{S, T}
+  meta::AbstractNLPModelMeta{S, T}
   counters::Counters
-  nlp::AbstractNLPModel
+  nlp::AbstractNLPModel{S, T}
 
   # Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
   shahx::UInt64 # the x at which fx, cx, gx, ys, and gs are computed
@@ -102,7 +102,7 @@ function FletcherPenaltyNLP(
 ) where {S}
   nvar = nlp.meta.nvar
 
-  meta = NLPModelMeta(
+  meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
     nnzh = nvar * (nvar + 1) / 2,
@@ -158,7 +158,7 @@ function FletcherPenaltyNLP(
 ) where {S}
   nvar = nlp.meta.nvar
 
-  meta = NLPModelMeta(
+  meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
     nnzh = nvar * (nvar + 1) / 2,

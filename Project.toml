@@ -32,12 +32,12 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Stopping = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 
 [compat]
-FastClosures = "0.2.1, 0.3.0"
+FastClosures = "0.2, 0.3"
 LDLFactorizations = "0.8.1"
-LinearOperators = "1.1"
-NLPModelsIpopt = "0.7.0"
-SolverCore = "0.1"
-Stopping = "0.3.3"
+LinearOperators = "1, 2"
+NLPModelsIpopt = "0.7"
+SolverCore = "0.1, 0.2"
+Stopping = "0.3"
 
 [extras]
 CUTEst = "1b53aba6-35b6-5f92-a507-53c67d53f819"
