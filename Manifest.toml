@@ -890,8 +890,6 @@ version = "0.2.1"
 [[SolverTest]]
 deps = ["ADNLPModels", "LinearAlgebra", "Logging", "NLPModels", "SparseArrays", "Test"]
 git-tree-sha1 = "a9b5cf54cc7a960d471a4300a6cbc62a038c9357"
-repo-rev = "main"
-repo-url = "https://github.com/JuliaSmoothOptimizers/SolverTest.jl"
 uuid = "4343dc35-3317-4c6e-8877-f0cc8502c90e"
 version = "0.2.1"
 
