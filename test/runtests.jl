@@ -1,7 +1,7 @@
 using LinearAlgebra, LinearOperators, Random, SparseArrays
 
 #JSO packages
-using CUTEst, JSOSolvers, Logging, NLPModels, NLPModelsIpopt, SolverTools
+using JSOSolvers, Logging, NLPModels, NLPModelsIpopt, SolverTools
 using ADNLPModels, NLPModelsTest, SolverTest
 
 Random.seed!(1234)
@@ -43,7 +43,8 @@ include("test-1.jl")
 include("test-2.jl")
 
 #Rank-deficient problems
+using CUTEst
 include("rank-deficient.jl")
 
 # Solver tests
-# include("solvertest.jl")
+include("solvertest.jl")

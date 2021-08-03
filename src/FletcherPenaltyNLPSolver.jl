@@ -10,6 +10,7 @@ using NLPModelsIpopt
 
 const is_knitro_installed = try
   @eval using NLPModelsKnitro
+  @eval using KNITRO
   KNITRO.Env()
   true
 catch
@@ -121,8 +122,8 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
     nlp,
     initial_state,
     optimality_check = Fletcher_penalty_optimality_check,
-    atol = T(1e-6), # really convert here ?
-    rtol = T(1e-6),
+    atol = T(1e-7), # really convert here ?
+    rtol = T(1e-7),
     tol_check = Fptc;
     # max_cntrs = Stopping.init_max_counters();
     kwargs...,
