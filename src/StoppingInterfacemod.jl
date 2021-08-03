@@ -157,6 +157,7 @@ function NLPModelsIpopt.ipopt(stp::NLPStopping; kwargs...)
 end
 
 if is_knitro_installed
+  using KNITRO, NLPModelsKnitro
   """
   knitro(nlp) DOESN'T CHECK THE WRONG KWARGS, AND RETURN AN ERROR.
   knitro(::NLPStopping)
@@ -192,7 +193,7 @@ if is_knitro_installed
     nlp = stp.pb
     #y0 = stp.current_state.lambda #si défini
     #z0 = stp.current_state.mu #si défini 
-    stats = knitro(
+    solver = NLPModelsKnitro.KnitroSolver(
       nlp,
       x0 = stp.current_state.x,
       objrange = objrange,
@@ -212,11 +213,12 @@ if is_knitro_installed
       outlev = outlev;
       kwargs...,
     )
+    stats = knitro!(nlp, solver)
     #@show stats.status, stats.solver_specific[:internal_msg]
     #if stats.status ∉ (:unbounded, :exception, :unknown) #∈ (:first_order, :acceptable) 
     stp.current_state.x = stats.solution
     stp.current_state.fx = stats.objective
-    stp.current_state.gx = stats.solver_specific[:gx] # grad(nlp, stats.solution)#necessary?
+    stp.current_state.gx = KNITRO.KN_get_objgrad_values(solver.kc)[2]
     #norm(stp.current_state.gx, Inf)#stats.dual_feas #TODO: this is for unconstrained problem!!
     stp.current_state.mu = stats.multipliers_L
     stp.current_state.current_score = max(stats.dual_feas, stats.primal_feas)
