@@ -8,17 +8,10 @@ using Stopping
 
 using NLPModelsIpopt
 
-const is_knitro_installed = try
-  @eval using NLPModelsKnitro
-  @eval using KNITRO
-  KNITRO.Env()
-  true
-catch
-  #@warn "KNITRO not properly installed. Please run `] build KNITRO`"
-  false
-end
+is_knitro_installed = false
 
 ##################################################################
+using Requires
 # Temporary
 include("StoppingInterfacemod.jl")
 #using StoppingInterface #ipopt, knitro, status_stopping_to_stats
