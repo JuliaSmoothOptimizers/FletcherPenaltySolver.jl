@@ -3,13 +3,17 @@ using Documenter
 using Printf
 using FletcherPenaltyNLPSolver
 
-pages = ["Introduction" => "index.md", "Reference" => "reference.md"]
-
 makedocs(
-  sitename = "FletcherPenaltyNLPSolver",
-  format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
   modules = [FletcherPenaltyNLPSolver],
-  pages = pages,
+  doctest = true,
+  # linkcheck = true,
+  strict = true,
+  format = Documenter.HTML(
+    assets = ["assets/style.css"],
+    prettyurls = get(ENV, "CI", nothing) == "true",
+  ),
+  sitename = "FletcherPenaltyNLPSolver",
+  pages = ["Home" => "index.md", "Tutorial" => "tutorial.md", "Reference" => "reference.md"],
 )
 
-deploydocs(repo = "github.com/tmigot/FletcherPenaltyNLPSolver.git", push_preview = true)
+deploydocs(repo = "github.com/tmigot/FletcherPenaltyNLPSolver.git", devbranch = "main")

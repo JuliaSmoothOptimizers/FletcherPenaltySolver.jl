@@ -2,6 +2,8 @@
 
 ![CI](https://github.com/tmigot/FletcherPenaltyNLPSolver/workflows/CI/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver/branch/main/graph/badge.svg)](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver)
+[![docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://tmigot.github.io/FletcherPenaltyNLPSolver/stable)
+[![docs-dev](https://img.shields.io/badge/docs-dev-purple.svg)](https://tmigot.github.io/FletcherPenaltyNLPSolver/dev)
 
 This implementation uses [Stopping](https://github.com/vepiteski/Stopping.jl).
 
