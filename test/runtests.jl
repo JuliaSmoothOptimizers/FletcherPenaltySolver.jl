@@ -20,8 +20,8 @@ include("unit-test.jl")
 @warn "test_double_linear_algebra.jl: To be replaced"
 #include("test_double_linear_algebra.jl")
 #Test the solvers:
-mutable struct DummyModel{S,T} <: AbstractNLPModel{S,T}
-  meta::NLPModelMeta{S,T}
+mutable struct DummyModel{S, T} <: AbstractNLPModel{S, T}
+  meta::NLPModelMeta{S, T}
   counters::Counters
 end
 @testset "Problem type error" begin
