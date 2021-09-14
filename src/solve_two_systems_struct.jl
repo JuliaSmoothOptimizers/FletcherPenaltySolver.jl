@@ -90,8 +90,8 @@ function IterativeSolver(
   ln_btol::T = √eps(T),
   ln_conlim::T = 1 / √eps(T),
   ln_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
-  ne_atol::T = √eps(T)/100,
-  ne_rtol::T = √eps(T)/100,
+  ne_atol::T = √eps(T) / 100,
+  ne_rtol::T = √eps(T) / 100,
   ne_ratol::T = zero(T),
   ne_rrtol::T = zero(T),
   ne_etol::T = √eps(T),
@@ -107,11 +107,7 @@ function IterativeSolver(
     nlp.meta.nvar,
     Vector{T},
   ),
-  solver_struct_pinv::KrylovSolver{T, S} = MinresSolver(
-    nlp.meta.ncon,
-    nlp.meta.nvar,
-    Vector{T},
-  ),
+  solver_struct_pinv::KrylovSolver{T, S} = MinresSolver(nlp.meta.ncon, nlp.meta.nvar, Vector{T}),
   kwargs...,
 ) where {T, S}
   return IterativeSolver(
@@ -205,8 +201,8 @@ function solve_least_norm(
     )
   else
     craig!(
-      qdsolver.solver_struct_least_norm, 
-      A, 
+      qdsolver.solver_struct_least_norm,
+      A,
       b,
       atol = qdsolver.ln_atol,
       rtol = qdsolver.ln_rtol,
@@ -235,8 +231,8 @@ function solve_least_norm(
     )
   else
     lnlq!(
-      qdsolver.solver_struct_least_norm, 
-      A, 
+      qdsolver.solver_struct_least_norm,
+      A,
       b,
       atol = qdsolver.ln_atol,
       rtol = qdsolver.ln_rtol,

@@ -83,7 +83,7 @@ function solve_two_mixed(
   if !stats1.solved
     @warn "Failed solving 1st linear system lsqr in mixed."
   end
-  
+
   (p2, q2, stats2) = solve_least_norm(nlp, nlp.Aop, -rhs2, nlp.δ)
   @. nlp.qdsolver.p2 = -p2
   # nlp.qdsolver.q2 .= q2
