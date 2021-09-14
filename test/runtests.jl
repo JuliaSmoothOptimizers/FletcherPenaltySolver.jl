@@ -47,4 +47,4 @@ using CUTEst
 include("rank-deficient.jl")
 
 # Solver tests
-include("solvertest.jl")
+# include("solvertest.jl")

@@ -33,9 +33,11 @@ Stopping = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 
 [compat]
 FastClosures = "0.2, 0.3"
+Krylov = "0.7.4"
 LDLFactorizations = "0.8.1"
 LinearOperators = "1, 2"
 NLPModelsIpopt = "0.7"
+NLPModelsKnitro = "0.5.4"
 SolverCore = "0.1, 0.2"
 Stopping = "0.3"
 

@@ -661,11 +661,9 @@ version = "0.8.2"
 
 [[NLPModelsKnitro]]
 deps = ["KNITRO", "NLPModels", "NLPModelsModifiers", "SolverCore"]
-git-tree-sha1 = "3a63184da4f03606e7b38a23f8ecc94d54243e5d"
-repo-rev = "main"
-repo-url = "https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl"
+git-tree-sha1 = "3096c0509492d1d17266298e8a4532d2eeb6c2a8"
 uuid = "bec4dd0d-7755-52d5-9a02-22f0ffc7efcb"
-version = "0.5.3"
+version = "0.5.4"
 
 [[NLPModelsModifiers]]
 deps = ["FastClosures", "LinearAlgebra", "LinearOperators", "NLPModels", "Printf", "SparseArrays"]

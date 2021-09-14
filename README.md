@@ -23,11 +23,3 @@ the bound-constrained optimization problem using Fletcher penalty function:
 Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
   Implementing a smooth exact penalty function for equality-constrained nonlinear optimization.
   SIAM Journal on Scientific Computing, 42(3), A1809-A1835.
-
-## Versions [On hold]
-
-This package still on unofficial versions of:
- - ADNLPModels v0.1.1 `https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl#master`    
- - SolverTest v0.1.1 main
- 
-`
