@@ -43,7 +43,6 @@ include("test-1.jl")
 include("test-2.jl")
 
 #Rank-deficient problems
-using CUTEst
 include("rank-deficient.jl")
 
 # Solver tests

@@ -19,8 +19,13 @@
 #using FletcherPenaltyNLPSolver
 
 @testset "Rank-deficient HS61" begin
-  p = "HS61"
-  nlp = CUTEstModel(p)
+  nlp = ADNLPModel(
+    x -> 4 * x[1]^2 + 2 * x[2]^2 + 2 * x[3]^2 - 33 * x[1] + 16 * x[2] - 24 * x[3],
+    zeros(3),
+    x -> [3 * x[1] - 2 * x[2]^2 - 7; 4 * x[1] - x[3]^2 - 11],
+    zeros(2),
+    zeros(2),
+  )
   #=
     stats = fps_solve(nlp, nlp.meta.x0, 
                                     σ_0 = 1e3, ρ_0 = 1e3, δ_0 = 1e-2, 
