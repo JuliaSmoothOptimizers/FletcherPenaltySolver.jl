@@ -62,7 +62,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
         cx = sub_stp.pb.cx,
         lambda = sub_stp.pb.ys,
         mu = sub_stp.current_state.mu,
-        res = sub_stp.current_state.gx # grad(sub_stp.pb, sub_stp.current_state.x), # Shouldn't this be returned by the solver?
+        res = sub_stp.current_state.gx, # grad(sub_stp.pb, sub_stp.current_state.x), # Shouldn't this be returned by the solver?
       )
       go_log(stp, sub_stp, state.fx, norm(state.cx), "Optml")
     elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb

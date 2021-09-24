@@ -185,8 +185,7 @@ end
 
   @test grad(fpnlp, xfeas) ≈ zeros(n) atol = 1e-14
 
-  @test hess(fpnlp, xfeas) ≈ diagm(0 => 2.0 * ones(n)) - 2 * ones(n) * Ys(xfeas)' atol =
-    1e-3
+  @test hess(fpnlp, xfeas) ≈ diagm(0 => 2.0 * ones(n)) - 2 * ones(n) * Ys(xfeas)' atol = 1e-3
   vrand = rand(fpnlp.meta.nvar)
   @test hprod(fpnlp, xfeas, vrand) ≈ hess(fpnlp, xfeas) * vrand atol = 1e-13
   @test hprod(fpnlp, xfeas, vrand) ≈ 2 * vrand - 2 * ones(n) * Ys(xfeas)' * vrand atol = 1e-13
@@ -197,8 +196,7 @@ end
 
   @test obj(fpnlp, xr) ≈ (9.0 - dot(cx, ys(xr))) atol = 1e-14
   @test grad(fpnlp, xr) ≈ 2 * xr - Ys(xr) .* cx - ones(n) .* ys(xr) atol = 1e-14
-  @test hess(fpnlp, xfeas) ≈ diagm(0 => 2.0 * ones(n)) - 2 * ones(n) * Ys(xfeas)' atol =
-    1e-3
+  @test hess(fpnlp, xfeas) ≈ diagm(0 => 2.0 * ones(n)) - 2 * ones(n) * Ys(xfeas)' atol = 1e-3
   vrand = rand(fpnlp.meta.nvar)
   @test hprod(fpnlp, xr, vrand) ≈ hess(fpnlp, xr) * vrand atol = 1e-12
   @test hprod(fpnlp, xr, vrand) ≈ 2 * vrand - 2 * ones(n) * Ys(xfeas)' * vrand atol = 1e-12

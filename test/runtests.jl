@@ -17,11 +17,10 @@ using FletcherPenaltyNLPSolver
 include("nlpmodelstest.jl")
 
 include("unit-test.jl")
-@warn "test_double_linear_algebra.jl: To be replaced"
-#include("test_double_linear_algebra.jl")
+
 #Test the solvers:
-mutable struct DummyModel{S,T} <: AbstractNLPModel{S,T}
-  meta::NLPModelMeta{S,T}
+mutable struct DummyModel{S, T} <: AbstractNLPModel{S, T}
+  meta::NLPModelMeta{S, T}
   counters::Counters
 end
 @testset "Problem type error" begin
@@ -43,8 +42,7 @@ include("test-1.jl")
 include("test-2.jl")
 
 #Rank-deficient problems
-using CUTEst
 include("rank-deficient.jl")
 
 # Solver tests
-include("solvertest.jl")
+# include("solvertest.jl")

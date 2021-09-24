@@ -74,11 +74,7 @@ reset!(nlp)
 =#
 qds = FletcherPenaltyNLPSolver.IterativeSolver(nlp, 0.0)
 # qds = FletcherPenaltyNLPSolver.LDLtSolver(nlp, 0.0)
-fpnlp = FletcherPenaltyNLP(
-  nlp,
-  qds = qds,
-  hessian_approx = Val(1)
-)
+fpnlp = FletcherPenaltyNLP(nlp, qds = qds, hessian_approx = Val(1))
 xr = rand(nlp.meta.nvar)
 @btime obj(fpnlp, xr);
 gx = similar(xr)

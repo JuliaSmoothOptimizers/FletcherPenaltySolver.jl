@@ -8,17 +8,10 @@ using Stopping
 
 using NLPModelsIpopt
 
-const is_knitro_installed = try
-  @eval using NLPModelsKnitro
-  @eval using KNITRO
-  KNITRO.Env()
-  true
-catch
-  #@warn "KNITRO not properly installed. Please run `] build KNITRO`"
-  false
-end
+is_knitro_installed = false
 
 ##################################################################
+using Requires
 # Temporary
 include("StoppingInterfacemod.jl")
 #using StoppingInterface #ipopt, knitro, status_stopping_to_stats
@@ -139,7 +132,7 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
       objective = stats.objective,
       primal_feas = stats.primal_feas,
       dual_feas = stats.dual_feas,
-      multipliers = vcat(stats.multipliers, stats.multipliers_L[nnvar + 1 : nnvar + ns]),
+      multipliers = vcat(stats.multipliers, stats.multipliers_L[(nnvar + 1):(nnvar + ns)]),
       multipliers_L = stats.multipliers_L[1:nnvar],
       iter = stats.iter,
       elapsed_time = stats.elapsed_time,
