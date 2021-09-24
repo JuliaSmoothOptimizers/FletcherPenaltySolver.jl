@@ -216,7 +216,7 @@ end
           outlev = outlev;
           kwargs...,
         )
-        stats = knitro!(nlp, solver)
+        stats = NLPModelsKnitro.knitro!(nlp, solver)
         #@show stats.status, stats.solver_specific[:internal_msg]
         #if stats.status ∉ (:unbounded, :exception, :unknown) #∈ (:first_order, :acceptable) 
         stp.current_state.x = stats.solution
