@@ -200,13 +200,7 @@ function FletcherPenaltyNLP(
 end
 
 #Set of functions solving two linear systems with different rhs.
-# linear_system_solver(nlp, x, rhs1, rhs2; kwargs...)
-# List of implemented methods:
-# i)   _solve_system_dense
-# ii)  _solve_with_linear_operator
-# iii) _solve_system_factorization_eigenvalue
-# iv)  _solve_system_factorization_lu
-#include("solve_two_systems.jl") #TO BE REMOVED
+# solve_two_extras, solve_two_least_squares, solve_two_mixed
 include("solve_linear_system.jl")
 
 function FletcherPenaltyNLP(

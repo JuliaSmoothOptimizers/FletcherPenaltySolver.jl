@@ -145,8 +145,8 @@ function solve_least_square(
   A,
   b,
   λ,
-) where {T, S, SS1 <: LsqrSolver, SS2, SS3}
-  return lsqr!(
+) where {T, S, SS1, SS2, SS3}
+  return solve!(
     qdsolver.solver_struct_least_square,
     A,
     b,
@@ -218,9 +218,9 @@ function solve_least_norm(
   A,
   b,
   δ,
-) where {T, S, SS1, SS2 <: LnlqSolver, SS3}
+) where {T, S, SS1, SS2, SS3}
   return if δ != 0
-    lnlq!(
+    solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,
@@ -230,7 +230,7 @@ function solve_least_norm(
       itmax = qdsolver.ln_itmax,
     )
   else
-    lnlq!(
+    solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,

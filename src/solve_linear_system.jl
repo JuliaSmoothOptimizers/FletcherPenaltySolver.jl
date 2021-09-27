@@ -13,7 +13,7 @@ function solve_two_extras(
 
   JtJ = nlp.Aop * nlp.Aop'
   # (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
-  (invJtJSsv, stats) = minres!(
+  (invJtJSsv, stats) = solve!(
     nlp.qdsolver.solver_struct_pinv,
     JtJ,
     rhs2,
@@ -102,10 +102,10 @@ function solve_two_extras(
 ) where {T, S, Tt, A, P}
   τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
   nlp.Aop = jac_op(nlp.nlp, x)
-  (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ)
+  (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ) # use Krylov.solve!
 
   JtJ = nlp.Aop * nlp.Aop'
-  (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
+  (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ) # use Krylov.solve!
   return invJtJJv, invJtJSsv
 end
 
