@@ -34,10 +34,8 @@ end
   @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(stp, meta)
 end
 
-#On a toy rosenbrock variation.
+#On a toy rosenbrock variation and a problem from the package OptimizationProblems
 include("test-0.jl")
-#On a problem from the package OptimizationProblems
-include("test-1.jl")
 #On usual test problems
 include("test-2.jl")
 

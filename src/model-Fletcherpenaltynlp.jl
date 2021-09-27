@@ -209,8 +209,6 @@ end
 #include("solve_two_systems.jl") #TO BE REMOVED
 include("solve_linear_system.jl")
 
-include("linesearch.jl")
-
 function FletcherPenaltyNLP(
   nlp::AbstractNLPModel;
   σ_0::Real = one(eltype(nlp.meta.x0)),

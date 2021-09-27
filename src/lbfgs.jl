@@ -26,7 +26,7 @@ function lbfgs(
   x0::AbstractVector{T};
   atol::Number = 1e-3,
   mem::Int = 5,
-  lsfunc::Function = armijo_og,
+  lsfunc::Function = SolverTools.armijo_wolfe,
 ) where {T <: AbstractFloat}
   n = nlp.meta.nvar
 
