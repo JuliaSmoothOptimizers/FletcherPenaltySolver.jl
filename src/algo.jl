@@ -1,5 +1,6 @@
 function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T, QDS, US}
   meta = fpssolver.meta
+  feasibility_solver = fpssolver.feasibility_solver
   if !(stp.pb.meta.minimize)
     error("fps_solve only works for minimization problem")
   end
@@ -117,7 +118,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
           #or an undetected unbounded problem
           feasibility_phase = true
           unbounded_subpb = 0
-          restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
+          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
           go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
@@ -136,7 +137,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
           #or an undetected unbounded problem
           feasibility_phase = true
           unbounded_subpb = 0
-          restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
+          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
           go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
@@ -164,7 +165,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
           #or an undetected unbounded problem
           feasibility_phase = true
           unsuccessful_subpb = 0
-          restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
+          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
           go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
@@ -196,12 +197,12 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   )
 end
 
-function restoration_feasibility!(meta, stp, sub_stp, feas_tol, ncx)
+function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
   # by default, we just want a feasible point
   ϵ_feas = feas_tol
   Jx = jac_op(stp.pb, stp.current_state.x)
   z, cz, normcz, Jz, status_feas =
-    feasibility_step(stp.pb, stp.current_state.x, stp.current_state.cx, ncx, Jx, ϵ_feas, feas_tol)
+    feasibility_step(feasibility_solver, stp.pb, stp.current_state.x, stp.current_state.cx, ncx, Jx, ϵ_feas, feas_tol)
   if status_feas == :success
     Stopping.update!(stp.current_state, x = z, cx = cz)
   else

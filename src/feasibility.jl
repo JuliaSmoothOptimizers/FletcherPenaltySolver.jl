@@ -6,6 +6,7 @@ Approximately solves min ‖c(x)‖.
 Given xₖ, finds min ‖cₖ + Jₖd‖
 """
 function feasibility_step(
+  feasibility_solver::GNSolver,
   nlp::AbstractNLPModel,
   x::AbstractVector{T},
   cx::AbstractVector{T},
@@ -21,10 +22,13 @@ function feasibility_step(
   max_eval::Int = 1_000,
   max_time::AbstractFloat = 60.0,
   max_feas_iter::Int = typemax(Int64),
-) where {T}
+) where {T, S}
   z = x
   cz = cx
   Jz = Jx
+  zp = feasibility_solver.workspace_zp
+  czp = feasibility_solver.workspace_czp
+  Jd = feasibility_solver.workspace_Jd
   normcz = normcx # cons(nlp, x) = normcx = normcz for the first z
 
   Δ = Δ0
@@ -43,7 +47,15 @@ function feasibility_step(
   while !(normcz ≤ ρ || tired || infeasible)
 
     #Compute the a direction satisfying the trust-region constraint
-    d, Jd, infeasible, solved = TR_lsmr(cz, Jz, ctol, Δ, normcz)
+    d, Jd, infeasible, solved = TR_lsmr(
+      feasibility_solver.TR_compute_step,
+      cz,
+      Jz,
+      ctol,
+      Δ,
+      normcz,
+      Jd,
+    )
 
     if infeasible #the direction is too small
       failed_step_comp = true #too small step
@@ -61,7 +73,7 @@ function feasibility_step(
         status = :reduce_Δ
       else #success
         z = zp
-        Jz = jac_op(nlp, z)
+        Jz = jac_op!(nlp, z, feasibility_solver.workspace_Jv, feasibility_solver.workspace_Jtv)
         cz = czp
         if normczp / normcz > T(0.95)
           consecutive_bad_steps += 1
@@ -93,26 +105,28 @@ function feasibility_step(
       ],
     )
 
-    # Safeguard: agressive normal step
-    if normcz > ρ && (consecutive_bad_steps ≥ 3 || failed_step_comp)
+    # Safeguard: aggressive normal step
+    if normcz > ρ && (consecutive_bad_steps ≥ feasibility_solver.bad_steps_lim || failed_step_comp)
       Hz = hess_op(nlp, z, cz, obj_weight = zero(T))
-      (d, stats) = cg(Hz + Jz' * Jz, Jz' * cz)
+      Krylov.solve!(feasibility_solver.aggressive_step, Hz + Jz' * Jz, Jz' * cz)
+      d = feasibility_solver.aggressive_step.x
+      stats = feasibility_solver.aggressive_step.stats
       if !stats.solved
         @warn "Fail cg in feasibility_step: $(stats.status)"
       end
-      zp = z - d
-      czp = cons(nlp, zp)
+      @. zp = z - d
+      cons!(nlp, zp, czp)
       nczp = norm(czp)
       if nczp < normcz #even if d is small we keep going
         infeasible = false
         failed_step_comp = false
-        status = :agressive
+        status = :aggressive
         z, cz = zp, czp
         normcz = nczp
-        Jz = jac_op(nlp, z)
+        Jz = jac_op!(nlp, z, feasibility_solver.workspace_Jv, feasibility_solver.workspace_Jtv)
       elseif norm(d) < ctol * min(nczp, one(T))
         infeasible = true
-        status = :agressive_fail
+        status = :aggressive_fail
       else #unsuccessful,nczp > normcz,infeasible = true,status = :too_small
         cg_iter = length(stats.residuals)
         #@show cg_iter, stats.residuals[end], nczp, normcz, norm(Jz' * czp)
@@ -166,13 +180,17 @@ function feasibility_step(
 end
 
 function TR_lsmr(
+  solver,
   cz::AbstractVector{T},
   Jz::Union{LinearOperator{T}, AbstractMatrix{T}},
   ctol::AbstractFloat,
   Δ::T,
   normcz::AbstractFloat,
+  Jd::AbstractVector{T},
 ) where {T}
-  (d, stats) = lsmr(Jz, -cz, radius = Δ)
+  Krylov.solve!(solver, Jz, -cz, radius = Δ)
+  d = solver.x
+  stats = solver.stats
 
   infeasible = norm(d) < ctol * min(normcz, one(T))
   solved = stats.solved
@@ -180,7 +198,7 @@ function TR_lsmr(
     @warn "Fail lsmr in TR_lsmr: $(stats.status)"
   end
 
-  Jd = Jz * d #lsmr doesn't return this information
+  Jd .= Jz * d #lsmr doesn't return this information
 
   return d, Jd, infeasible, solved
 end
