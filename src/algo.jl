@@ -12,12 +12,12 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   #Initialize parameters
   σ, ρ, δ = meta.σ_0, meta.ρ_0, meta.δ_0
 
-  #Initialize the unconstrained NLP with Fletcher's penalty function.
+  #Initialize the NLP with Fletcher's penalty function.
   nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, meta.hessian_approx, qds = fpssolver.qdsolver)
 
   #First call to the stopping
   OK = start!(stp)
-  #Prepare the subproblem-stopping for the unconstrained minimization.
+  #Prepare the subproblem-stopping for the subproblem minimization.
   sub_stp = NLPStopping(
     nlp,
     NLPAtX(state.x),
@@ -46,7 +46,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   while !OK
     reinit!(sub_stp) #reinit the sub-stopping.
     #Solve the subproblem
-    sub_stp = meta.unconstrained_solver(sub_stp)
+    sub_stp = meta.subproblem_solver(sub_stp)
 
     #Update the State with the info given by the subproblem:
     if sub_stp.meta.optimal || sub_stp.meta.suboptimal

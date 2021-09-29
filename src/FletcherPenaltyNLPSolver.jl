@@ -70,14 +70,14 @@ Solver for equality constrained non-linear programs based on Fletcher's penalty 
     Implementing a smooth exact penalty function for equality-constrained nonlinear optimization.
     SIAM Journal on Scientific Computing, 42(3), A1809-A1835.
 
-`fps_solve(:: NLPStopping, :: AbstractVector{T};  σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
+`fps_solve(:: NLPStopping, :: AbstractVector{T};  σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), subproblem_solver :: Function = lbfgs) where T <: AbstractFloat`
 or
-`fps_solve(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
+`fps_solve(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), subproblem_solver :: Function = lbfgs) where T <: AbstractFloat`
 
 Notes:     
 - If the problem has inequalities, we use slack variables to get only equalities and bounds.
 - `stp.current_state.res` contains the gradient of Fletcher's penalty function.
-- `unconstrained_solver` must take an NLPStopping as input.
+- `subproblem_solver` must take an NLPStopping as input.
 
 TODO:
 - une façon robuste de mettre à jour le paramètre de pénalité. [Convergence to infeasible stationary points]

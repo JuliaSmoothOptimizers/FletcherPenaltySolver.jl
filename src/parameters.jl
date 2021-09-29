@@ -35,7 +35,7 @@ struct AlgoData{T <: Real}
   Δ::T #expected decrease in feasibility between two iterations
 
   #Functions used in the algorithm
-  unconstrained_solver::Function
+  subproblem_solver::Function
   subpb_unbounded_threshold
   atol_sub::Function # (stp.meta.atol)
   rtol_sub::Function #(stp.meta.rtol)
@@ -57,7 +57,7 @@ function AlgoData(
   η_update::Real = one(T),
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
-  unconstrained_solver::Function = is_knitro_installed ? NLPModelsKnitro.knitro : ipopt,
+  subproblem_solver::Function = is_knitro_installed ? NLPModelsKnitro.knitro : ipopt,
   subpb_unbounded_threshold::Real = 1 / √eps(T),
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,
@@ -77,7 +77,7 @@ function AlgoData(
     η_update,
     yM,
     Δ,
-    unconstrained_solver,
+    subproblem_solver,
     subpb_unbounded_threshold,
     atol_sub,
     rtol_sub,
@@ -88,11 +88,11 @@ end
 
 AlgoData(; kwargs...) = AlgoData(Float64; kwargs...)
 
-abstract type UnconstrainedSolver end
+abstract type SubProblemSolver end
 
-mutable struct KnitroSolver <: UnconstrainedSolver end
-mutable struct IpoptSolver <: UnconstrainedSolver end
-mutable struct LBFGSSolver <: UnconstrainedSolver end
+mutable struct KnitroSolver <: SubProblemSolver end
+mutable struct IpoptSolver <: SubProblemSolver end
+mutable struct LBFGSSolver <: SubProblemSolver end
 
 mutable struct GNSolver
   # Parameters
@@ -147,11 +147,11 @@ end
 
 const qdsolver_correspondence = Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 
-mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver, FS}
+mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: SubProblemSolver, FS}
   meta::AlgoData{T} # AlgoData
   workspace # allocated space for the solver itself
   qdsolver::QDS # solver structure for the linear algebra part, contains allocation for this par
-  unconstrained_solver::US # should be a structure/named typle, with everything related to unconstrained
+  subproblem_solver::US # should be a structure/named typle, with everything related to subproblem
   feasibility_solver::FS
 end
 
@@ -160,9 +160,9 @@ function FPSSSolver(nlp::AbstractNLPModel, ::T; qds_solver = :ldlt, kwargs...) w
   meta = AlgoData(T; kwargs...)
   workspace = ()
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
-  unconstrained_solver = KnitroSolver()
+  subproblem_solver = KnitroSolver()
   feasibility_solver = GNSolver(nlp.meta.x0, nlp.meta.y0)
-  return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver, feasibility_solver)
+  return FPSSSolver(meta, workspace, qdsolver, subproblem_solver, feasibility_solver)
 end
 
 #=
