@@ -94,13 +94,65 @@ mutable struct KnitroSolver <: UnconstrainedSolver end
 mutable struct IpoptSolver <: UnconstrainedSolver end
 mutable struct LBFGSSolver <: UnconstrainedSolver end
 
+mutable struct GNSolver
+  # Parameters
+  η₁ #::AbstractFloat = meta.feas_η₁,
+  η₂ #::AbstractFloat = meta.feas_η₂,
+  σ₁ #::AbstractFloat = meta.feas_σ₁,
+  σ₂ #::AbstractFloat = meta.feas_σ₂,
+  Δ₀ #::T = meta.feas_Δ₀,
+  bad_steps_lim #::Integer = meta.bad_steps_lim,
+
+  # workspace
+  workspace_zp
+  workspace_czp
+  workspace_Jd
+  workspace_Jv 
+  workspace_Jtv
+
+  # Compute TR-step
+  TR_compute_step # ::KrylovSolver{eltype(S), S}
+  aggressive_step # ::KrylovSolver{eltype(S), S}
+end
+
+function GNSolver(
+  x0::S,
+  y0::S;
+  η₁::AbstractFloat = 1e-3,
+  η₂::AbstractFloat = 0.66,
+  σ₁::AbstractFloat = 0.25,
+  σ₂::AbstractFloat = 2.0,
+  Δ0::AbstractFloat = one(eltype(S)),
+  bad_steps_lim::Integer = 3,
+  TR_compute_step = LsmrSolver(length(y0), length(x0), S),
+  aggressive_step = CgSolver(length(x0), length(x0), S),
+) where {S}
+  n, m = length(x0), length(y0)
+  return GNSolver(
+    η₁,
+    η₂,
+    σ₁,
+    σ₂,
+    Δ0,
+    bad_steps_lim, 
+    S(undef, n),
+    S(undef, m),
+    S(undef, m),
+    S(undef, m),
+    S(undef, n),
+    TR_compute_step,
+    aggressive_step,
+  )
+end
+
 const qdsolver_correspondence = Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 
-mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver}
+mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver, FS}
   meta::AlgoData{T} # AlgoData
   workspace # allocated space for the solver itself
   qdsolver::QDS # solver structure for the linear algebra part, contains allocation for this par
   unconstrained_solver::US # should be a structure/named typle, with everything related to unconstrained
+  feasibility_solver::FS
 end
 
 #Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
@@ -109,7 +161,8 @@ function FPSSSolver(nlp::AbstractNLPModel, ::T; qds_solver = :ldlt, kwargs...) w
   workspace = ()
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
   unconstrained_solver = KnitroSolver()
-  return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver)
+  feasibility_solver = GNSolver(nlp.meta.x0, nlp.meta.y0)
+  return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver, feasibility_solver)
 end
 
 #=

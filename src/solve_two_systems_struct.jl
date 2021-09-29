@@ -145,8 +145,8 @@ function solve_least_square(
   A,
   b,
   λ,
-) where {T, S, SS1 <: LsqrSolver, SS2, SS3}
-  return lsqr!(
+) where {T, S, SS1, SS2, SS3}
+  solve!(
     qdsolver.solver_struct_least_square,
     A,
     b,
@@ -155,6 +155,9 @@ function solve_least_square(
     rtol = qdsolver.ls_rtol,
     itmax = qdsolver.ls_itmax,
   )
+  x = qdsolver.solver_struct_least_square.x
+  stats = qdsolver.solver_struct_least_square.stats
+  return (x, stats)
 end
 
 #=
@@ -186,7 +189,7 @@ function solve_least_norm(
   b,
   δ,
 ) where {T, S, SS1, SS2 <: CraigSolver, SS3}
-  return if δ != 0
+  if δ != 0
     craig!(
       qdsolver.solver_struct_least_norm,
       A,
@@ -211,6 +214,9 @@ function solve_least_norm(
       itmax = qdsolver.ln_itmax,
     )
   end
+  x, y = qdsolver.solver_struct_least_norm.x, qdsolver.solver_struct_least_norm.y
+  stats = qdsolver.solver_struct_least_norm.stats
+  return (x, y, stats)
 end
 
 function solve_least_norm(
@@ -218,19 +224,20 @@ function solve_least_norm(
   A,
   b,
   δ,
-) where {T, S, SS1, SS2 <: LnlqSolver, SS3}
-  return if δ != 0
-    lnlq!(
+) where {T, S, SS1, SS2, SS3}
+  ncon = length(b)
+  if δ != 0
+    solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,
-      M = 1 / δ * opEye(nlp.nlp.meta.ncon),
+      M = 1 / δ * opEye(ncon),
       atol = qdsolver.ln_atol,
       rtol = qdsolver.ln_rtol,
       itmax = qdsolver.ln_itmax,
     )
   else
-    lnlq!(
+    solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,
@@ -239,6 +246,9 @@ function solve_least_norm(
       itmax = qdsolver.ln_itmax,
     )
   end
+  x, y = qdsolver.solver_struct_least_norm.x, qdsolver.solver_struct_least_norm.y
+  stats = qdsolver.solver_struct_least_norm.stats
+  return (x, y, stats)
 end
 
 #=
