@@ -45,53 +45,6 @@ pnames_mixedNE = _pnames_mixed[findall(x -> occursin(r"NE\b", x), _pnames)]
 pnames_mixed = setdiff(_pnames_mixed, pnames_mixedNE)
 cutest_mixed_problems = (CUTEstModel(p) for p in pnames_mixed)
 
-:FPS => nlp -> fps_solve(
-  nlp,
-  nlp.meta.x0,
-  atol = 1e-5,
-  rtol = 1e-5,
-  max_time = max_time,
-  max_iter = typemax(Int64),
-  max_eval = typemax(Int64),
-  qds_solver = :ldlt,
-  ldlt_tol = √eps(),
-  ldlt_r1 = √eps(),
-  ldlt_r2 = -√eps(),
-  #        atol_sub = atol -> 1e-1, # atol,
-  #        rtol_sub = rtol -> 1e-1, # rtol,
-  #        η_1 = 1.,
-  #        η_update = 10.,
-),
-:FPSFF =>
-  nlp -> fps_solve(
-    nlp,
-    nlp.meta.x0,
-    atol = 1e-5,
-    rtol = 1e-5,
-    max_time = max_time,
-    max_iter = typemax(Int64),
-    max_eval = typemax(Int64),
-    qds_solver = :iterative,
-    ls_atol = tol_der, # √eps(),
-    ls_rtol = tol_der, # √eps(),
-    # ls_itmax = 5 * (nlp.meta.ncon + nlp.meta.nvar),
-    ln_atol = tol_der, # √eps(),
-    ln_rtol = tol_der, # √eps(),
-    # ln_btol = √eps(),
-    # ln_conlim = 1 / √eps(),
-    # ln_itmax = 5 * (nlp.meta.ncon + nlp.meta.nvar),
-    ne_atol = tol_der, # √eps()/100,
-    ne_rtol = tol_der, # √eps()/100,
-    # ne_ratol = zero(Float64),
-    # ne_rrtol = zero(Float64),
-    # ne_etol = √eps(),
-    # ne_itmax = 0,
-    # ne_conlim = 1 / √eps(),
-    #        atol_sub = atol -> 1e-1, # atol,
-    #        rtol_sub = rtol -> 1e-1, # rtol,
-    #        η_1 = 1.,
-    #        η_update = 10.,
-  ),
 #Same time limit for all the solvers
 max_time = 60.0 #20 minutes
 solvers = Dict(

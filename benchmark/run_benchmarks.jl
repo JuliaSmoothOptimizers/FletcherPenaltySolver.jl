@@ -2,7 +2,7 @@ using Pkg
 bmark_dir = @__DIR__
 println(@__DIR__)
 Pkg.activate(bmark_dir)
-Pkg.instantiate()
+#Pkg.instantiate()
 repo_name = "FletcherPenaltyNLPSolver" # string(split(ARGS[1], ".")[1])
 bmarkname = lowercase(repo_name)
 
