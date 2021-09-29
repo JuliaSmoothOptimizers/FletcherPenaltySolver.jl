@@ -201,8 +201,16 @@ function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_t
   # by default, we just want a feasible point
   ϵ_feas = feas_tol
   Jx = jac_op(stp.pb, stp.current_state.x)
-  z, cz, normcz, Jz, status_feas =
-    feasibility_step(feasibility_solver, stp.pb, stp.current_state.x, stp.current_state.cx, ncx, Jx, ϵ_feas, feas_tol)
+  z, cz, normcz, Jz, status_feas = feasibility_step(
+    feasibility_solver,
+    stp.pb,
+    stp.current_state.x,
+    stp.current_state.cx,
+    ncx,
+    Jx,
+    ϵ_feas,
+    feas_tol,
+  )
   if status_feas == :success
     Stopping.update!(stp.current_state, x = z, cx = cz)
   else

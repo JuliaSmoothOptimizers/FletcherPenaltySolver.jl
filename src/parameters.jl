@@ -107,7 +107,7 @@ mutable struct GNSolver
   workspace_zp
   workspace_czp
   workspace_Jd
-  workspace_Jv 
+  workspace_Jv
   workspace_Jtv
 
   # Compute TR-step
@@ -134,7 +134,7 @@ function GNSolver(
     σ₁,
     σ₂,
     Δ0,
-    bad_steps_lim, 
+    bad_steps_lim,
     S(undef, n),
     S(undef, m),
     S(undef, m),

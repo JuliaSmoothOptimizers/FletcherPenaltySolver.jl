@@ -47,15 +47,8 @@ function feasibility_step(
   while !(normcz ≤ ρ || tired || infeasible)
 
     #Compute the a direction satisfying the trust-region constraint
-    d, Jd, infeasible, solved = TR_lsmr(
-      feasibility_solver.TR_compute_step,
-      cz,
-      Jz,
-      ctol,
-      Δ,
-      normcz,
-      Jd,
-    )
+    d, Jd, infeasible, solved =
+      TR_lsmr(feasibility_solver.TR_compute_step, cz, Jz, ctol, Δ, normcz, Jd)
 
     if infeasible #the direction is too small
       failed_step_comp = true #too small step
