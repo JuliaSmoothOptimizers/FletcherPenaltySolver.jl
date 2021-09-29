@@ -77,6 +77,7 @@ function solve_two_mixed(
   =#
   nlp.Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
   (q1, stats1) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √nlp.δ)
+
   # nlp.qdsolver.q1 .= q1
   mul!(nlp.qdsolver.p1, nlp.Aop', q1) # nlp.qdsolver.p1 .= nlp.Aop' * q1
   @. nlp.qdsolver.p1 = rhs1 - nlp.qdsolver.p1
@@ -84,7 +85,7 @@ function solve_two_mixed(
     @warn "Failed solving 1st linear system lsqr in mixed."
   end
 
-  (p2, q2, stats2) = solve_least_norm(nlp, nlp.Aop, -rhs2, nlp.δ)
+  (p2, q2, stats2) = solve_least_norm(nlp.qdsolver, nlp.Aop, -rhs2, nlp.δ)
   @. nlp.qdsolver.p2 = -p2
   # nlp.qdsolver.q2 .= q2
 
