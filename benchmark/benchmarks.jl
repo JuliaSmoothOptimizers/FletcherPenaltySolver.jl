@@ -78,7 +78,7 @@ solvers = Dict(
       #        η_update = 10.,
     ),
 )
-
+tol_der = 1e-5
 solversff = Dict(
   :ipopt =>
     nlp -> ipopt(
