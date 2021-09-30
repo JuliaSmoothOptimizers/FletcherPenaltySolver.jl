@@ -101,13 +101,18 @@ function FletcherPenaltyNLP(
   qds = LDLtSolver(nlp, S(0)),
 ) where {S}
   nvar = nlp.meta.nvar
-
+  (rows, cols) = jac_structure(nlp)
+  nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
     nnzh = nvar * (nvar + 1) / 2,
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
+    ncon = nlp.meta.nlin,
+    nnzj = nnzj,
+    nlin = nlp.meta.nlin,
+    lin  = nlp.meta.lin,
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
@@ -157,13 +162,18 @@ function FletcherPenaltyNLP(
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
   nvar = nlp.meta.nvar
-
+  (rows, cols) = jac_structure(nlp)
+  nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
     nnzh = nvar * (nvar + 1) / 2,
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
+    ncon = nlp.meta.nlin,
+    nnzj = nnzj,
+    nlin = nlp.meta.nlin,
+    lin  = nlp.meta.lin,
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
@@ -510,7 +520,6 @@ function hprod!(
     jprod!(nlp.nlp, x, v, nlp.Jv)
     jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
     hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
-
     @. Hv += T(ρ) * (nlp.v + nlp.Jcρ)
   end
   if nlp.η > 0.0
@@ -519,4 +528,106 @@ function hprod!(
 
   Hv .*= obj_weight
   return Hv
+end
+
+function NLPModels.cons!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  c::AbstractVector{T},
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.ncon c
+  increment!(nlp, :neval_cons)
+  nlp.cx = cons!(nlp.nlp, x, nlp.cx)
+  c .= nlp.cx[nlp.nlp.meta.lin]
+  return c
+end
+
+function NLPModels.jac_coord!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  vals::AbstractVector{T},
+) where {T, S, Tt, V, P, QDS}
+  increment!(nlp, :neval_jac)
+  valjac = jac_coord(nlp.nlp, x)
+  (rows, cols) = jac_structure(nlp.nlp)
+  vals .= valjac[findall(i -> rows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+  return vals
+end
+
+function NLPModels.jac_structure!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  rows::AbstractVector{<:Integer},
+  cols::AbstractVector{<:Integer},
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nnzj rows cols
+  (jrows, jcols) = jac_structure(nlp.nlp)
+  rows .= jrows[findall(i -> jrows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+  cols .= jcols[findall(i -> jrows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+  return (rows, cols)
+end
+
+function NLPModels.jprod!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector,
+  v::AbstractVector,
+  Jv::AbstractVector,
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x v
+  @lencheck nlp.meta.ncon Jv
+  increment!(nlp, :neval_jprod)
+  Jv .= jprod(nlp.nlp, x, v)[nlp.nlp.meta.lin]
+  return Jv
+end
+
+function NLPModels.jtprod!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector,
+  v::AbstractVector,
+  Jtv::AbstractVector,
+  ) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x Jtv
+  @lencheck nlp.meta.ncon v
+  increment!(nlp, :neval_jtprod)
+  vlin = zeros(T, nlp.nlp.meta.ncon)
+  vlin[nlp.nlp.meta.lin] = v
+  Jtv .= jtprod(nlp.nlp, x, vlin)
+  return Jtv
+end
+
+function NLPModels.hess(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector,
+  y::AbstractVector;
+  obj_weight::Real = one(eltype(x)),
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.ncon y
+  return hess(nlp, x, obj_weight = obj_weight)
+end
+
+function NLPModels.hess_coord!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector,
+  y::AbstractVector,
+  vals::AbstractVector;
+  obj_weight::Real = one(eltype(x)),
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.ncon y
+  @lencheck nlp.meta.nnzh vals
+  return hess_coord!(nlp, x, vals, obj_weight = obj_weight)
+end
+
+function NLPModels.hprod!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector,
+  y::AbstractVector,
+  v::AbstractVector,
+  Hv::AbstractVector;
+  obj_weight::Real = one(eltype(x)),
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x v Hv
+  @lencheck nlp.meta.ncon y
+  return hprod!(nlp, x, v, Hv, obj_weight = obj_weight)
 end
