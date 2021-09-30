@@ -17,9 +17,7 @@ function status_stopping_to_stats(stp::AbstractStopping)
     (:UnboundedPb, :unbounded),
     (:Stalled, :stalled),
     (:IterationLimit, :max_iter),
-    (:Tired, :max_time), #disapear from Stopping.jl#v0.2.5
     (:TimeLimit, :max_time),
-    (:ResourcesExhausted, :max_eval), #disapear from Stopping.jl#v0.2.5
     (:EvaluationLimit, :max_eval),
     (:ResourcesOfMainProblemExhausted, :max_eval),
     (:Infeasible, :infeasible),
