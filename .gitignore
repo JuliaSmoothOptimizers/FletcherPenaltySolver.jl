@@ -1,3 +1,6 @@
 *.png
 *.jld2
 Manifest.toml
+benchmark/*.md
+benchmark/*.json
+benchmark/*.svg
