@@ -13,7 +13,15 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   σ, ρ, δ = meta.σ_0, meta.ρ_0, meta.δ_0
 
   #Initialize the NLP with Fletcher's penalty function.
-  nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, meta.hessian_approx, qds = fpssolver.qdsolver)
+  nlp = FletcherPenaltyNLP(
+    stp.pb,
+    σ,
+    ρ,
+    δ,
+    meta.hessian_approx,
+    explicit_linear_constraints = meta.explicit_linear_constraints,
+    qds = fpssolver.qdsolver,
+  )
 
   #First call to the stopping
   OK = start!(stp)

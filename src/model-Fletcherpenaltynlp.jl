@@ -87,6 +87,7 @@ mutable struct FletcherPenaltyNLP{
   qdsolver::QDS
 
   hessian_approx::A
+  explicit_linear_constraints::Bool
 end
 
 function FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
@@ -98,21 +99,26 @@ function FletcherPenaltyNLP(
   σ,
   hessian_approx,
   x0::AbstractVector{S};
+  explicit_linear_constraints = true,
   qds = LDLtSolver(nlp, S(0)),
 ) where {S}
   nvar = nlp.meta.nvar
-  (rows, cols) = jac_structure(nlp)
-  nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
+  if explicit_linear_constraints
+    (rows, cols) = jac_structure(nlp)
+    nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
+  else
+    nnzj = 0
+  end
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
     nnzh = nvar * (nvar + 1) / 2,
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
-    ncon = nlp.meta.nlin,
+    ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
     nnzj = nnzj,
-    nlin = nlp.meta.nlin,
-    lin  = nlp.meta.lin,
+    nlin = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    lin  = explicit_linear_constraints ? nlp.meta.lin : Int[],
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
@@ -145,6 +151,7 @@ function FletcherPenaltyNLP(
     zero(typeof(σ)),
     qds,
     hessian_approx,
+    explicit_linear_constraints,
   )
 end
 
@@ -159,21 +166,26 @@ function FletcherPenaltyNLP(
   δ,
   hessian_approx,
   x0::AbstractVector{S};
+  explicit_linear_constraints = true,
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
   nvar = nlp.meta.nvar
-  (rows, cols) = jac_structure(nlp)
-  nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
+  if explicit_linear_constraints
+    (rows, cols) = jac_structure(nlp)
+    nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
+  else
+    nnzj = 0
+  end
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
     nnzh = nvar * (nvar + 1) / 2,
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
-    ncon = nlp.meta.nlin,
+    ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
     nnzj = nnzj,
-    nlin = nlp.meta.nlin,
-    lin  = nlp.meta.lin,
+    nlin = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    lin  = explicit_linear_constraints ? nlp.meta.lin : Int[],
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
@@ -206,6 +218,7 @@ function FletcherPenaltyNLP(
     zero(typeof(σ)),
     qds,
     hessian_approx,
+    explicit_linear_constraints,
   )
 end
 
@@ -548,10 +561,14 @@ function NLPModels.jac_coord!(
   x::AbstractVector{T},
   vals::AbstractVector{T},
 ) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nnzj vals
   increment!(nlp, :neval_jac)
-  valjac = jac_coord(nlp.nlp, x)
-  (rows, cols) = jac_structure(nlp.nlp)
-  vals .= valjac[findall(i -> rows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+  if nlp.explicit_linear_constraints
+    valjac = jac_coord(nlp.nlp, x)
+    (rows, cols) = jac_structure(nlp.nlp)
+    vals .= valjac[findall(i -> rows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+  end
   return vals
 end
 
@@ -561,9 +578,11 @@ function NLPModels.jac_structure!(
   cols::AbstractVector{<:Integer},
 ) where {T, S, Tt, V, P, QDS}
   @lencheck nlp.meta.nnzj rows cols
-  (jrows, jcols) = jac_structure(nlp.nlp)
-  rows .= jrows[findall(i -> jrows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
-  cols .= jcols[findall(i -> jrows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+  if nlp.explicit_linear_constraints
+    (jrows, jcols) = jac_structure(nlp.nlp)
+    rows .= jrows[findall(i -> jrows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+    cols .= jcols[findall(i -> jrows[i] ∈ nlp.nlp.meta.lin, 1:nlp.nlp.meta.nnzj)]
+  end
   return (rows, cols)
 end
 

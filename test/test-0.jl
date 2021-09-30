@@ -75,10 +75,23 @@ end
     unconstrained_solver = ipopt,
   )
 
-  model = FletcherPenaltyNLP(nlp, 0.1, Val(2))
+  model = FletcherPenaltyNLP(nlp, 0.1, Val(2), explicit_linear_constraints = true)
   @test model.meta.ncon == 10
   @test nlp.meta.lin == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   @test nlp.meta.nnzj == model.meta.nnzj
   @test cons(nlp, nlp.meta.x0) == cons(model, model.meta.x0)
   @test jac(nlp, model.meta.x0) == jac(model, model.meta.x0)
+
+  model = FletcherPenaltyNLP(nlp, 0.1, Val(2), explicit_linear_constraints = false)
+  @test model.meta.ncon == 0
+  @test model.meta.lin == []
+  @test model.meta.nnzj == 0
+
+  stats = fps_solve(
+    nlp,
+    nlp.meta.x0,
+    qds_solver = :iterative,
+    unconstrained_solver = ipopt,
+    explicit_linear_constraints = false,
+  )
 end
