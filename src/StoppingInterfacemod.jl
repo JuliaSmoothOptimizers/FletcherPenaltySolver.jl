@@ -147,7 +147,11 @@ function NLPModelsIpopt.ipopt(stp::NLPStopping; kwargs...)
   x = stats.solution
 
   #Not mandatory, but in case some entries of the State are used to stop
-  fill_in!(stp, x) #too slow
+  if stp.pb.meta.ncon > 0
+    fill_in!(stp, x, cx = cons(stp.pb, x), Jx = jac(stp.pb, x)) #too slow
+  else
+    fill_in!(stp, x) #too slow
+  end
 
   stop!(stp)
 

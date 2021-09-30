@@ -26,11 +26,16 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   #First call to the stopping
   OK = start!(stp)
   #Prepare the subproblem-stopping for the subproblem minimization.
+  sub_state = if nlp.meta.ncon > 0
+    NLPAtX(state.x, nlp.meta.y0, Jx = jac(nlp, state.x))
+  else
+    NLPAtX(state.x)
+  end
   sub_stp = NLPStopping(
     nlp,
-    NLPAtX(state.x),
+    sub_state,
     main_stp = stp,
-    optimality_check = if nlp.meta.ncon > 0 && false
+    optimality_check = if nlp.meta.ncon > 0
       KKT
     elseif has_bounds(nlp)
       optim_check_bounded
@@ -232,7 +237,12 @@ function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_t
   # sub_stp.pb.ρ = max(ρ / meta.ρ_update^(1.5), meta.ρ_0)
 
   # reinitialize the State(s) as the problem changed
-  reinit!(sub_stp.current_state, x = stp.current_state.x) #reinitialize the State (keeping x)
+  reinit!(
+    sub_stp.current_state,
+    x = stp.current_state.x,
+    cx = sub_stp.current_state.cx,
+    Jx = sub_stp.current_state.Jx,
+  ) #reinitialize the State (keeping x, cx, Jx)
   # Should we also update the stp.current_state ??
 end
 
@@ -247,7 +257,12 @@ function random_restoration!(meta, stp, sub_stp)
   # sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
 
   # reinitialize the State(s) as the problem changed
-  reinit!(sub_stp.current_state, x = stp.current_state.x) #reinitialize the State (keeping x)
+  reinit!(
+    sub_stp.current_state,
+    x = stp.current_state.x,
+    cx = sub_stp.current_state.cx,
+    Jx = sub_stp.current_state.Jx,
+  ) #reinitialize the State (keeping x, cx, Jx)
   # Should we also update the stp.state ??
 end
 
@@ -259,7 +274,11 @@ function update_parameters!(meta, sub_stp, feas)
     sub_stp.pb.ρ *= meta.ρ_update
   end
   #reinitialize the State(s) as the problem changed
-  reinit!(sub_stp.current_state) #reinitialize the state (keeping x)
+  reinit!(
+    sub_stp.current_state,
+    cx = sub_stp.current_state.cx,
+    Jx = sub_stp.current_state.Jx,
+  ) #reinitialize the state (keeping x, cx, Jx)
 end
 
 function go_log(stp, sub_stp, fx, ncx, mess::String)
