@@ -22,7 +22,13 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
     nlp,
     NLPAtX(state.x),
     main_stp = stp,
-    optimality_check = has_bounds(nlp) ? unconstrained_check : optim_check_bounded,
+    optimality_check = if nlp.meta.ncon > 0 && false
+      KKT
+    elseif has_bounds(nlp)
+      optim_check_bounded
+    else
+      unconstrained_check
+    end,
     max_iter = 10000,
     atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
     rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
