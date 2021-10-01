@@ -239,11 +239,17 @@ end
         stp.current_state.fx = stats.objective
         stp.current_state.gx = KNITRO.KN_get_objgrad_values(solver.kc)[2]
         stp.current_state.mu = stats.multipliers_L
-        #if stp.pb.meta.ncon > 0
-        #  stp.current_state.cx = 
-        #  stp.current_state.Jx = 
-        #  stp.current_state.lambda = stats.multipliers
-        #end
+        if stp.pb.meta.ncon > 0
+          stp.current_state.cx = KNITRO.KN_get_con_values(solver.kc)
+          stp.current_state.Jx = sparse(
+            KNITRO.KN_get_jacobian_values(solver.kc)[1],
+            KNITRO.KN_get_jacobian_values(solver.kc)[2],
+            KNITRO.KN_get_jacobian_values(solver.kc)[3],
+            stp.pb.meta.ncon,
+            stp.pb.meta.nvar,
+          )
+          stp.current_state.lambda = stats.multipliers
+        end
         stp.current_state.res .= Stopping._grad_lagrangian(stp.pb, stp.current_state) # gradient of Lagrangian
         stp.current_state.current_score = max(stats.dual_feas, stats.primal_feas)
         #end
