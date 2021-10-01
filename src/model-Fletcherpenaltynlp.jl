@@ -88,6 +88,8 @@ mutable struct FletcherPenaltyNLP{
 
   hessian_approx::A
   explicit_linear_constraints::Bool
+  ncon_pen::Int # number of penalized constraints
+  lin::Array{Int, 1} # indices of non-explicitly maintained constraints
 end
 
 function FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
@@ -125,6 +127,8 @@ function FletcherPenaltyNLP(
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
   )
+  ncon_pen = explicit_linear_constraints ? nlp.meta.ncon - nlp.meta.nlin : nlp.meta.ncon
+  lin = explicit_linear_constraints ? setdiff(1:nlp.meta.ncon, nlp.meta.lin) : Int[]
 
   return FletcherPenaltyNLP(
     meta,
@@ -135,7 +139,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
-    Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.ncon), # ncon_pen
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
@@ -154,6 +158,8 @@ function FletcherPenaltyNLP(
     qds,
     hessian_approx,
     explicit_linear_constraints,
+    ncon_pen,
+    lin,
   )
 end
 
@@ -195,6 +201,8 @@ function FletcherPenaltyNLP(
     name = "Fletcher penalization of $(nlp.meta.name)",
   )
   counters = Counters()
+  ncon_pen = explicit_linear_constraints ? nlp.meta.ncon - nlp.meta.nlin : nlp.meta.ncon
+  lin = explicit_linear_constraints ? setdiff(1:nlp.meta.ncon, nlp.meta.lin) : 1:nlp.meta.ncon
   return FletcherPenaltyNLP(
     meta,
     counters,
@@ -204,7 +212,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
-    Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.ncon), # ncon_pen
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
@@ -223,6 +231,8 @@ function FletcherPenaltyNLP(
     qds,
     hessian_approx,
     explicit_linear_constraints,
+    ncon_pen,
+    lin,
   )
 end
 

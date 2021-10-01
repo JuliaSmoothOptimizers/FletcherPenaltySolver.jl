@@ -63,22 +63,29 @@ using OptimizationProblems, NLPModelsJuMP
   stats = fps_solve(nlp, nlp.meta.x0, max_iter = 10)
 end
 
-@testset "hs86" begin
-  @show "hs86"
+@testset "hs86" begin # problem with linear constraints and bounds
   nlp = MathOptNLPModel(hs86())
   n, x0 = nlp.meta.nvar, nlp.meta.x0
 
-  stats = fps_solve(
+  stats = with_logger(NullLogger()) do
+    fps_solve(
     nlp,
     nlp.meta.x0,
     qds_solver = :iterative,
     unconstrained_solver = ipopt,
   )
+  end
+  dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
+  @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test primal < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test status == :first_order
 
   model = FletcherPenaltyNLP(nlp, 0.1, Val(2), explicit_linear_constraints = true)
   @test model.meta.ncon == 10
   @test nlp.meta.lin == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   @test nlp.meta.nnzj == model.meta.nnzj
+  @test model.ncon_pen == 0
+  @test model.lin == []
   @test cons(nlp, nlp.meta.x0) == cons(model, model.meta.x0)
   @test jac(nlp, model.meta.x0) == jac(model, model.meta.x0)
 
@@ -86,6 +93,52 @@ end
   @test model.meta.ncon == 0
   @test model.meta.lin == []
   @test model.meta.nnzj == 0
+  @test model.ncon_pen == 10
+  @test model.lin == 1:10
+
+  stats = fps_solve(
+    nlp,
+    nlp.meta.x0,
+    qds_solver = :iterative,
+    unconstrained_solver = ipopt,
+    explicit_linear_constraints = false,
+    σ_max = 1e6,
+  )
+  # @test status == :first_order
+end
+
+@testset "hs75" begin # problem with linear and nonlinear constraints, and bounds.
+  nlp = MathOptNLPModel(hs75())
+  n, x0 = nlp.meta.nvar, nlp.meta.x0
+
+  #stats = with_logger(NullLogger()) do
+  stats =  fps_solve(
+    nlp,
+    nlp.meta.x0,
+    qds_solver = :iterative,
+    unconstrained_solver = ipopt,
+  )
+  #end
+  dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
+  @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test primal < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test status == :first_order
+
+  model = FletcherPenaltyNLP(nlp, 0.1, Val(2), explicit_linear_constraints = true)
+  @test model.meta.ncon == 1
+  @test nlp.meta.lin == [1]
+  @test model.meta.nnzj == 2
+  @test model.ncon_pen == 3
+  @test model.lin == []
+  @test cons(nlp, nlp.meta.x0)[1] == cons(model, model.meta.x0)
+  @test jac(nlp, model.meta.x0)[1, :] == jac(model, model.meta.x0)[1, :]
+
+  model = FletcherPenaltyNLP(nlp, 0.1, Val(2), explicit_linear_constraints = false)
+  @test model.meta.ncon == 0
+  @test model.meta.lin == []
+  @test model.meta.nnzj == 0
+  @test model.ncon_pen == 4
+  @test model.lin == [1]
 
   stats = fps_solve(
     nlp,
@@ -94,4 +147,5 @@ end
     unconstrained_solver = ipopt,
     explicit_linear_constraints = false,
   )
+  # @test status == :first_order
 end
