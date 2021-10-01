@@ -28,7 +28,7 @@ LinearOperators = "1, 2"
 NLPModelsIpopt = "0.7"
 Requires = "1"
 SolverCore = "0.1, 0.2"
-Stopping = "~0.3.6"
+Stopping = "~0.3.7"
 
 [extras]
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
