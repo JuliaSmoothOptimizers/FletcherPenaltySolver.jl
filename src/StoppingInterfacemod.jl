@@ -147,11 +147,25 @@ function NLPModelsIpopt.ipopt(stp::NLPStopping; kwargs...)
   x = stats.solution
 
   #Not mandatory, but in case some entries of the State are used to stop
+  # fill_in! recompute the multipliers, grad, hess, jac which is too slow
   if stp.pb.meta.ncon > 0
-    fill_in!(stp, x, cx = cons(stp.pb, x), Jx = jac(stp.pb, x)) #too slow
+    fill_in!(
+      stp,
+      x,
+      cx = cons(stp.pb, x),
+      Jx = jac(stp.pb, x),
+      #lambda = stats.multipliers,
+      #mu = stats.multipliers_L - stats.multipliers_U,
+    )
+    stp.current_state.res .= stp.current_state.gx + stp.current_state.Jx' * stp.current_state.lambda
+  elseif has_bounds(stp.pb)
+    fill_in!(stp, x)
+    stp.current_state.res .= stp.current_state.gx
   else
-    fill_in!(stp, x) #too slow
+    fill_in!(stp, x)
+    stp.current_state.res .= stp.current_state.gx
   end
+  # stp.current_state.res .= Stopping._grad_lagrangian(stp.pb, stp.current_state) # gradient of Lagrangian
 
   stop!(stp)
 
@@ -224,8 +238,13 @@ end
         stp.current_state.x = stats.solution
         stp.current_state.fx = stats.objective
         stp.current_state.gx = KNITRO.KN_get_objgrad_values(solver.kc)[2]
-        #norm(stp.current_state.gx, Inf)#stats.dual_feas #TODO: this is for unconstrained problem!!
         stp.current_state.mu = stats.multipliers_L
+        #if stp.pb.meta.ncon > 0
+        #  stp.current_state.cx = 
+        #  stp.current_state.Jx = 
+        #  stp.current_state.lambda = stats.multipliers
+        #end
+        stp.current_state.res .= Stopping._grad_lagrangian(stp.pb, stp.current_state) # gradient of Lagrangian
         stp.current_state.current_score = max(stats.dual_feas, stats.primal_feas)
         #end
         #Update the meta boolean with the output message

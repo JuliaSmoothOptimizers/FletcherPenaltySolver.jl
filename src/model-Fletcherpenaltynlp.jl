@@ -116,6 +116,8 @@ function FletcherPenaltyNLP(
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
     ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
+    ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
     nnzj = nnzj,
     nlin = explicit_linear_constraints ? nlp.meta.nlin : 0,
     lin  = explicit_linear_constraints ? nlp.meta.lin : Int[],
@@ -183,6 +185,8 @@ function FletcherPenaltyNLP(
     lvar = nlp.meta.lvar,
     uvar = nlp.meta.uvar,
     ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
+    ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
     nnzj = nnzj,
     nlin = explicit_linear_constraints ? nlp.meta.nlin : 0,
     lin  = explicit_linear_constraints ? nlp.meta.lin : Int[],
@@ -588,7 +592,7 @@ end
 
 function NLPModels.jprod!(
   nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector,
+  x::AbstractVector{T},
   v::AbstractVector,
   Jv::AbstractVector,
 ) where {T, S, Tt, V, P, QDS}
@@ -601,7 +605,7 @@ end
 
 function NLPModels.jtprod!(
   nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector,
+  x::AbstractVector{T},
   v::AbstractVector,
   Jtv::AbstractVector,
   ) where {T, S, Tt, V, P, QDS}
@@ -616,7 +620,7 @@ end
 
 function NLPModels.hess(
   nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector,
+  x::AbstractVector{T},
   y::AbstractVector;
   obj_weight::Real = one(eltype(x)),
 ) where {T, S, Tt, V, P, QDS}
@@ -627,7 +631,7 @@ end
 
 function NLPModels.hess_coord!(
   nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector,
+  x::AbstractVector{T},
   y::AbstractVector,
   vals::AbstractVector;
   obj_weight::Real = one(eltype(x)),
@@ -640,7 +644,7 @@ end
 
 function NLPModels.hprod!(
   nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector,
+  x::AbstractVector{T},
   y::AbstractVector,
   v::AbstractVector,
   Hv::AbstractVector;

@@ -27,9 +27,9 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   OK = start!(stp)
   #Prepare the subproblem-stopping for the subproblem minimization.
   sub_state = if nlp.meta.ncon > 0
-    NLPAtX(state.x, nlp.meta.y0, Jx = jac(nlp, state.x))
+    NLPAtX(state.x, nlp.meta.y0, Jx = jac(nlp, state.x), res = similar(state.x))
   else
-    NLPAtX(state.x)
+    NLPAtX(state.x, res = similar(state.x))
   end
   sub_stp = NLPStopping(
     nlp,
@@ -74,15 +74,22 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
       end
       unsuccessful_subpb, unbounded_subpb = 0, 0
 
+      #@show stp.pb.meta.ncon, length(sub_stp.pb.ys), length(sub_stp.current_state.lambda), stp.pb.meta.nlin
+      multipliers = sub_stp.pb.ys # similar(stp.pb.meta.y0)
+      #multipliers[stp.pb.meta.lin] = sub_stp.current_state.lambda
+      #multipliers[setdiff(1:stp.pb.meta.ncon, stp.pb.meta.lin)] = sub_stp.pb.ys
+      if stp.pb.meta.nlin > 0 && nlp.explicit_linear_constraints
+        multipliers[stp.pb.meta.lin] += sub_stp.current_state.lambda
+      end
       Stopping.update!(
         state,
         x = sub_stp.current_state.x,
         fx = sub_stp.pb.fx,
         gx = sub_stp.pb.gx,
         cx = sub_stp.pb.cx,
-        lambda = sub_stp.pb.ys,
+        lambda = multipliers,
         mu = sub_stp.current_state.mu,
-        res = sub_stp.current_state.gx, # grad(sub_stp.pb, sub_stp.current_state.x), # Shouldn't this be returned by the solver?
+        res = sub_stp.current_state.res,
       )
       go_log(stp, sub_stp, state.fx, norm(state.cx), "Optml")
     elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb
@@ -242,6 +249,7 @@ function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_t
     x = stp.current_state.x,
     cx = sub_stp.current_state.cx,
     Jx = sub_stp.current_state.Jx,
+    res = sub_stp.current_state.res,
   ) #reinitialize the State (keeping x, cx, Jx)
   # Should we also update the stp.current_state ??
 end
@@ -262,6 +270,7 @@ function random_restoration!(meta, stp, sub_stp)
     x = stp.current_state.x,
     cx = sub_stp.current_state.cx,
     Jx = sub_stp.current_state.Jx,
+    res = sub_stp.current_state.res,
   ) #reinitialize the State (keeping x, cx, Jx)
   # Should we also update the stp.state ??
 end
@@ -278,6 +287,7 @@ function update_parameters!(meta, sub_stp, feas)
     sub_stp.current_state,
     cx = sub_stp.current_state.cx,
     Jx = sub_stp.current_state.Jx,
+    res = sub_stp.current_state.res,
   ) #reinitialize the state (keeping x, cx, Jx)
 end
 
