@@ -128,7 +128,7 @@ function FletcherPenaltyNLP(
     name = "Fletcher penalization of $(nlp.meta.name)",
   )
   ncon_pen = explicit_linear_constraints ? nlp.meta.ncon - nlp.meta.nlin : nlp.meta.ncon
-  lin = explicit_linear_constraints ? setdiff(1:nlp.meta.ncon, nlp.meta.lin) : Int[]
+  lin = explicit_linear_constraints ? setdiff(1:nlp.meta.ncon, nlp.meta.lin) : [i for i=1:nlp.meta.ncon]
 
   return FletcherPenaltyNLP(
     meta,
@@ -202,7 +202,7 @@ function FletcherPenaltyNLP(
   )
   counters = Counters()
   ncon_pen = explicit_linear_constraints ? nlp.meta.ncon - nlp.meta.nlin : nlp.meta.ncon
-  lin = explicit_linear_constraints ? setdiff(1:nlp.meta.ncon, nlp.meta.lin) : 1:nlp.meta.ncon
+  lin = explicit_linear_constraints ? setdiff(1:nlp.meta.ncon, nlp.meta.lin) : [i for i=1:nlp.meta.ncon]
   return FletcherPenaltyNLP(
     meta,
     counters,
