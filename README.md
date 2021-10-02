@@ -1,4 +1,4 @@
-# FletcherPenaltyNLPSolver
+# FletcherPenaltyNLPSolver.jl
 
 ![CI](https://github.com/tmigot/FletcherPenaltyNLPSolver/workflows/CI/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver/branch/main/graph/badge.svg)](https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver)
