@@ -40,7 +40,7 @@
 
 end
 
-using OptimizationProblems, NLPModelsJuMP
+using OptimizationProblems.PureJuMP, NLPModelsJuMP
 
 @testset "sbrybnd" begin
   _model = sbrybnd()
