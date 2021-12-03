@@ -259,3 +259,33 @@ end
   @test primal < 1e-6 * max(norm(nlp.meta.x0), 1.0)
   @test status == :first_order
 end
+
+#=
+CUTEst FLT problem
+=#
+@testset "Example problem with unbounded Lagrange estimate" begin
+  nlp = ADNLPModel(
+    x -> (x[2] - 1)^2,
+    [1.0, 0.0],
+    x -> [x[1]^2, x[1]^3],
+    zeros(2),
+    zeros(2),
+    name = "FLT",
+  )
+
+  stats = with_logger(NullLogger()) do
+    fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(1))
+  end
+  dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
+  @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test primal < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test status == :first_order
+
+  stats = with_logger(NullLogger()) do
+    fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(2))
+  end
+  dual, primal, status = stats.dual_feas, stats.primal_feas, stats.status
+  @test dual < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test primal < 1e-6 * max(norm(nlp.meta.x0), 1.0)
+  @test status == :first_order
+end

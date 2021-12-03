@@ -1,4 +1,9 @@
-function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T, QDS, US}
+function fps_solve(
+  stp::NLPStopping,
+  fpssolver::FPSSSolver{T, QDS, US};
+  subsolver_verbose::Int=0,
+  lagrange_bound::T=1/sqrt(eps(T)),
+) where {T, QDS, US}
   meta = fpssolver.meta
   feasibility_solver = fpssolver.feasibility_solver
   if !(stp.pb.meta.minimize)
@@ -10,7 +15,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   end
   state = stp.current_state
   #Initialize parameters
-  σ, ρ, δ = meta.σ_0, meta.ρ_0, meta.δ_0
+  σ, ρ, δ = meta.σ_0, meta.ρ_0, zero(T)
 
   #Initialize the unconstrained NLP with Fletcher's penalty function.
   nlp = FletcherPenaltyNLP(stp.pb, σ, ρ, δ, meta.hessian_approx, qds = fpssolver.qdsolver)
@@ -23,7 +28,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
     NLPAtX(state.x),
     main_stp = stp,
     optimality_check = has_bounds(nlp) ? unconstrained_check : optim_check_bounded,
-    max_iter = 10000,
+    max_iter = 20000,
     atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
     rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
     unbounded_threshold = meta.subpb_unbounded_threshold,
@@ -37,16 +42,18 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
   feasibility_phase, restoration_phase = false, false
 
   @info log_header(
-    [:iter, :step, :f, :c, :score, :σ, :stat, :η],
-    [Int, String, T, T, T, T, Symbol],
-    hdr_override = Dict(:f => "f(x)", :c => "||c(x)||", :score => "‖∇L‖", :σ => "σ", :η => "η"),
+    [:iter, :step, :f, :c, :score, :σ, :ρ, :δ, :stat, :η, :λ ],
+    [Int, String, T, T, T, T, T, T, Symbol, T, T],
+    hdr_override = Dict(:f => "f(x)", :c => "‖c(x)‖", :score => "‖∇L‖", :σ => "σ", :ρ => "ρ", :δ => "δ", :η => "η", :λ => "‖λ‖" ),
   )
-  @info log_row(Any[0, "Init", NaN, nc0, norm(state.current_score, Inf), σ, :Initial])
+  @info log_row(Any[0, "Init", NaN, nc0, norm(state.current_score, Inf), σ, ρ, δ, :Initial, sub_stp.pb.η, norm(sub_stp.pb.ys, Inf)])
 
   while !OK
     reinit!(sub_stp) #reinit the sub-stopping.
     #Solve the subproblem
-    sub_stp = meta.unconstrained_solver(sub_stp)
+    sub_stp = meta.unconstrained_solver(sub_stp, subsolver_verbose = subsolver_verbose)
+
+    unbounded_lagrange_multiplier = norm(sub_stp.pb.ys, Inf) ≥ lagrange_bound # add to stopping meta?
 
     #Update the State with the info given by the subproblem:
     if sub_stp.meta.optimal || sub_stp.meta.suboptimal
@@ -63,10 +70,10 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
         cx = sub_stp.pb.cx,
         lambda = sub_stp.pb.ys,
         mu = sub_stp.current_state.mu,
-        res = sub_stp.current_state.gx, # grad(sub_stp.pb, sub_stp.current_state.x), # Shouldn't this be returned by the solver?
+        res = sub_stp.current_state.gx,
       )
       go_log(stp, sub_stp, state.fx, norm(state.cx), "Optml")
-    elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb
+    elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb || unbounded_lagrange_multiplier
       stalling, unsuccessful_subpb = 0, 0
       unbounded_subpb += 1
       ncx = norm(sub_stp.pb.cx, Inf)
@@ -125,13 +132,13 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
         elseif stalling ≥ 3 || sub_stp.meta.atol < eps(T)
           # infeasible stationary point
           stp.meta.suboptimal = true
-          Ok = true
+          OK = true
         else
           # update parameters to increase feasibility
           update_parameters!(meta, sub_stp, feas)
           go_log(stp, sub_stp, state.fx, ncx, "D")
         end
-      elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb
+      elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb || unbounded_lagrange_multiplier
         if !feasibility_phase && unbounded_subpb ≥ 3 && !feas
           #we are most likely stuck at an infeasible stationary point.
           #or an undetected unbounded problem
@@ -148,7 +155,7 @@ function fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}) where {T
           go_log(stp, sub_stp, state.fx, norm(state.cx), "R-Unbdd")
         else
           # update parameters to increase feasibility
-          update_parameters!(meta, sub_stp, feas)
+          update_parameters_unbdd!(meta, sub_stp, feas)
           go_log(stp, sub_stp, state.fx, ncx, "D")
         end
       elseif sub_stp.meta.tired ||
@@ -256,6 +263,15 @@ function update_parameters!(meta, sub_stp, feas)
   reinit!(sub_stp.current_state) #reinitialize the state (keeping x)
 end
 
+function update_parameters_unbdd!(meta, sub_stp, feas)
+  if sub_stp.pb.δ == 0
+    sub_stp.pb.δ = meta.δ_0
+  else
+    sub_stp.pb.δ = min(sub_stp.pb.δ * meta.δ_update, meta.δ_max)
+  end
+  update_parameters!(meta, sub_stp, feas)
+end
+
 function go_log(stp, sub_stp, fx, ncx, mess::String)
   @info log_row(
     Any[
@@ -265,8 +281,11 @@ function go_log(stp, sub_stp, fx, ncx, mess::String)
       ncx,
       sub_stp.current_state.current_score,
       sub_stp.pb.σ,
+      sub_stp.pb.ρ,
+      sub_stp.pb.δ,
       status(sub_stp),
       sub_stp.pb.η,
+      norm(sub_stp.pb.ys, Inf),
     ],
   )
 end
