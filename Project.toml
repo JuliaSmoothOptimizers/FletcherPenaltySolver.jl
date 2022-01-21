@@ -22,13 +22,13 @@ Stopping = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 
 [compat]
 FastClosures = "0.2, 0.3"
-Krylov = "~0.7.7"
+Krylov = "0.7"
 LDLFactorizations = "0.8.1"
 LinearOperators = "1, 2"
-NLPModelsIpopt = "0.7"
+NLPModelsIpopt = "0.7, 0.8"
 Requires = "1"
 SolverCore = "0.1, 0.2"
-Stopping = "0.3"
+Stopping = "0.3, 0.4"
 
 [extras]
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
