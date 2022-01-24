@@ -1,8 +1,7 @@
 using LinearAlgebra, LinearOperators, Random, SparseArrays
 
 #JSO packages
-using JSOSolvers, Logging, NLPModels, NLPModelsIpopt, SolverTools
-using ADNLPModels, NLPModelsTest, SolverTest
+using ADNLPModels, Logging, NLPModels, NLPModelsIpopt, NLPModelsTest, SolverTest
 
 Random.seed!(1234)
 
@@ -34,8 +33,6 @@ end
   @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(stp, meta)
 end
 
-#On a toy rosenbrock variation and a problem from the package OptimizationProblems
-include("test-0.jl")
 #On usual test problems
 include("test-2.jl")
 

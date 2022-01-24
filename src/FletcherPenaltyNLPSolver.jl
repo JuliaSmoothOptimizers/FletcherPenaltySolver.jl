@@ -50,15 +50,6 @@ end
 include("parameters.jl")
 export AlgoData, FPSSSolver
 
-###############################
-#
-# TO BE REMOVED
-#
-include("lbfgs.jl") # relies on SolverTools
-#
-#
-###############################
-
 include("feasibility.jl")
 
 export fps_solve
