@@ -115,7 +115,7 @@ Iterative
            hprod: ████████████████████ 750118           jhess: ██⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 58830           jhprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
   23.608 μs (91 allocations: 6.14 KiB)
   10.482 μs (76 allocations: 4.86 KiB)
-       
+
            =#
 #=
 LDLt
