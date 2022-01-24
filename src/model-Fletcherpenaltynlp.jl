@@ -47,8 +47,8 @@ Example:
 fp_sos  = FletcherPenaltyNLP(nlp, 0.1, _solve_with_linear_operator)
 """
 mutable struct FletcherPenaltyNLP{
-  S <: AbstractFloat,
-  T <: AbstractVector{S},
+  S,
+  T,
   A <: Union{Val{1}, Val{2}},
   P <: Real,
   QDS <: QDSolver,
