@@ -22,20 +22,19 @@ Stopping = "c4fe5a9e-e7fb-5c3d-89d5-7f405ab2214f"
 
 [compat]
 FastClosures = "0.2, 0.3"
-Krylov = "~0.7.7"
+Krylov = "0.7"
 LDLFactorizations = "0.8.1"
 LinearOperators = "1, 2"
-NLPModelsIpopt = "0.7"
+NLPModelsIpopt = "0.7, 0.8"
 Requires = "1"
 SolverCore = "0.1, 0.2"
-Stopping = "0.3"
+Stopping = "0.3, 0.4"
 
 [extras]
 ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 KNITRO = "67920dd8-b58e-52a8-8622-53c4cffbe346"
-NLPModelsJuMP = "792afdf1-32c1-5681-94e0-d7bf7a5df49e"
 NLPModelsKnitro = "bec4dd0d-7755-52d5-9a02-22f0ffc7efcb"
 NLPModelsTest = "7998695d-6960-4d3a-85c4-e1bceb8cd856"
 OptimizationProblems = "5049e819-d29b-5fba-b941-0eee7e64c1c6"
@@ -44,4 +43,4 @@ SolverTest = "4343dc35-3317-4c6e-8877-f0cc8502c90e"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["ADNLPModels", "BenchmarkTools", "ForwardDiff", "KNITRO", "NLPModelsJuMP", "NLPModelsKnitro", "NLPModelsTest", "OptimizationProblems", "Random", "SolverTest", "Test"]
+test = ["ADNLPModels", "BenchmarkTools", "ForwardDiff", "KNITRO", "NLPModelsKnitro", "NLPModelsTest", "OptimizationProblems", "Random", "SolverTest", "Test"]

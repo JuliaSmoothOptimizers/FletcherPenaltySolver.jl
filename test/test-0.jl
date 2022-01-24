@@ -40,12 +40,11 @@
 
 end
 
-using OptimizationProblems.PureJuMP, NLPModelsJuMP
+using OptimizationProblems.ADNLPProblems
 
 @testset "sbrybnd" begin
-  _model = sbrybnd()
+  nlp = sbrybnd()
 
-  nlp = MathOptNLPModel(_model)
   n, x0 = nlp.meta.nvar, nlp.meta.x0
 
   σ_0 = 0.1
