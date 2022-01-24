@@ -2,8 +2,6 @@
 
 using LinearAlgebra, Stopping
 
-using SolverTools
-
 """
 Return the status in GenericStats from a Stopping.
 """
