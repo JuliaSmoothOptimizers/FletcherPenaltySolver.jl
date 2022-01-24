@@ -1,8 +1,8 @@
 function fps_solve(
   stp::NLPStopping,
   fpssolver::FPSSSolver{T, QDS, US};
-  subsolver_verbose::Int=0,
-  lagrange_bound::T=1/sqrt(eps(T)),
+  subsolver_verbose::Int = 0,
+  lagrange_bound::T = 1 / sqrt(eps(T)),
 ) where {T, QDS, US}
   meta = fpssolver.meta
   feasibility_solver = fpssolver.feasibility_solver
@@ -42,11 +42,34 @@ function fps_solve(
   feasibility_phase, restoration_phase = false, false
 
   @info log_header(
-    [:iter, :step, :f, :c, :score, :σ, :ρ, :δ, :stat, :η, :λ ],
+    [:iter, :step, :f, :c, :score, :σ, :ρ, :δ, :stat, :η, :λ],
     [Int, String, T, T, T, T, T, T, Symbol, T, T],
-    hdr_override = Dict(:f => "f(x)", :c => "‖c(x)‖", :score => "‖∇L‖", :σ => "σ", :ρ => "ρ", :δ => "δ", :η => "η", :λ => "‖λ‖" ),
+    hdr_override = Dict(
+      :f => "f(x)",
+      :c => "‖c(x)‖",
+      :score => "‖∇L‖",
+      :σ => "σ",
+      :ρ => "ρ",
+      :δ => "δ",
+      :η => "η",
+      :λ => "‖λ‖",
+    ),
   )
-  @info log_row(Any[0, "Init", NaN, nc0, norm(state.current_score, Inf), σ, ρ, δ, :Initial, sub_stp.pb.η, norm(sub_stp.pb.ys, Inf)])
+  @info log_row(
+    Any[
+      0,
+      "Init",
+      NaN,
+      nc0,
+      norm(state.current_score, Inf),
+      σ,
+      ρ,
+      δ,
+      :Initial,
+      sub_stp.pb.η,
+      norm(sub_stp.pb.ys, Inf),
+    ],
+  )
 
   while !OK
     reinit!(sub_stp) #reinit the sub-stopping.

@@ -28,11 +28,7 @@ using Pkg; Pkg.update()
     zeros(2),
   )
 
-  stats = fps_solve(
-    nlp,
-    nlp.meta.x0,
-    hessian_approx = Val(1),
-  )
+  stats = fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(1))
   @test stats.status == :first_order
 
   stats = fps_solve(
