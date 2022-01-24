@@ -86,7 +86,13 @@ TODO:
 - Continue to explore the paper.
 - [Long term] Complemetarity constraints
 """
-function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; kwargs...) where {T}
+function fps_solve(
+  nlp::AbstractNLPModel,
+  x0::AbstractVector{T} = nlp.meta.x0;
+  subsolver_verbose::Int=0,
+  lagrange_bound=1/sqrt(eps(T)),
+  kwargs...,
+) where {T}
   if !(nlp.meta.minimize)
     error("fps_solve only works for minimization problem")
   end
@@ -121,7 +127,7 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
     # max_cntrs = Stopping.init_max_counters();
     kwargs...,
   )
-  stats = fps_solve(stp, meta)
+  stats = fps_solve(stp, meta; subsolver_verbose = subsolver_verbose, lagrange_bound = lagrange_bound)
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
@@ -157,11 +163,16 @@ function fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; k
   return stats
 end
 
-function fps_solve(stp::NLPStopping; kwargs...)
+function fps_solve(
+  stp::NLPStopping;
+  subsolver_verbose::Int=0,
+  lagrange_bound=1/sqrt(eps(T)),
+  kwargs...,
+)
   T = eltype(stp.pb.meta.x0)
   meta = AlgoData(T; kwargs...)
 
-  return fps_solve(stp, meta)
+  return fps_solve(stp, meta; subsolver_verbose = subsolver_verbose, lagrange_bound = lagrange_bound)
 end
 
 include("algo.jl")

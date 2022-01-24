@@ -25,6 +25,8 @@ struct AlgoData{T <: Real}
   ρ_max::T
   ρ_update::T
   δ_0::T
+  δ_max::T
+  δ_update::T
   η_1::T
   η_update::T
 
@@ -53,6 +55,8 @@ function AlgoData(
   ρ_max::Real = 1 / eps(T),
   ρ_update::Real = T(2),
   δ_0::Real = √eps(T),
+  δ_max::Real = 1 / eps(T),
+  δ_update::Real = T(10),
   η_1::Real = zero(T),
   η_update::Real = one(T),
   yM::Real = typemax(T),
@@ -73,6 +77,8 @@ function AlgoData(
     ρ_max,
     ρ_update,
     δ_0,
+    δ_max,
+    δ_update,
     η_1,
     η_update,
     yM,
