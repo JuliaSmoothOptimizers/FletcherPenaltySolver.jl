@@ -48,14 +48,14 @@ end
 
 function AlgoData(
   T::DataType;
-  σ_0::Real = one(T),
-  σ_max::Real = 1 / eps(T),
+  σ_0::Real = T(1e3),
+  σ_max::Real = 1 / √eps(T),
   σ_update::Real = T(2),
   ρ_0::Real = one(T),
-  ρ_max::Real = 1 / eps(T),
+  ρ_max::Real = 1 / √eps(T),
   ρ_update::Real = T(2),
   δ_0::Real = √eps(T),
-  δ_max::Real = 1 / eps(T),
+  δ_max::Real = 1 / √eps(T),
   δ_update::Real = T(10),
   η_1::Real = zero(T),
   η_update::Real = one(T),

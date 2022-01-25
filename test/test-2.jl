@@ -1,5 +1,3 @@
-#=
-ISSUE WITH IPOPT - MAX RESOURCES EXHAUSTED
 @testset "Rosenbrock with ∑x = 1" begin
   nlp = ADNLPModel(
     x -> (x[1] - 1.0)^2 + 100 * (x[2] - x[1]^2)^2,
@@ -26,7 +24,6 @@ ISSUE WITH IPOPT - MAX RESOURCES EXHAUSTED
   @test primal < 1e-6 * max(norm(nlp.meta.x0), 1.0)
   @test status == :first_order
 end
-=#
 
 @testset "Simple problem" begin
   n = 10

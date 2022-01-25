@@ -129,11 +129,11 @@ function fps_solve(
     end
 
     #Check optimality conditions: either stop! is true OR the penalty parameter is too small
-    stp.meta.fail_sub_pb = stp.meta.fail_sub_pb || (nlp.σ > meta.σ_max || nlp.ρ > meta.ρ_max)
+    stp.meta.fail_sub_pb = stp.meta.fail_sub_pb || (nlp.σ > meta.σ_max || nlp.ρ > meta.ρ_max || nlp.δ > meta.δ_max)
     OK = stop!(stp)
 
     if !OK
-      ncx = norm(state.cx) #!!! careful as this is not always updated
+      ncx = norm(sub_stp.pb.cx) # state.cx is updated in optimal cases only
       feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
       if (sub_stp.meta.optimal || sub_stp.meta.suboptimal)
@@ -290,7 +290,7 @@ function update_parameters_unbdd!(meta, sub_stp, feas)
   if sub_stp.pb.δ == 0
     sub_stp.pb.δ = meta.δ_0
   else
-    sub_stp.pb.δ = min(sub_stp.pb.δ * meta.δ_update, meta.δ_max)
+    sub_stp.pb.δ *= meta.δ_update
   end
   update_parameters!(meta, sub_stp, feas)
 end

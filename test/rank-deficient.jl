@@ -31,12 +31,7 @@ using Pkg; Pkg.update()
   stats = fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(1))
   @test stats.status == :first_order
 
-  stats = fps_solve(
-    nlp,
-    nlp.meta.x0,
-    σ_0 = 1e3, # See, https://github.com/tmigot/FletcherPenaltyNLPSolver/issues/24
-    hessian_approx = Val(2),
-  )
+  stats = fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(2))
   @test stats.status == :first_order
 end
 
