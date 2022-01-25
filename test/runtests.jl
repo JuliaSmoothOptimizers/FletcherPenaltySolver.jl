@@ -40,4 +40,4 @@ include("test-2.jl")
 include("rank-deficient.jl")
 
 # Solver tests
-# include("solvertest.jl")
+include("solvertest.jl")
