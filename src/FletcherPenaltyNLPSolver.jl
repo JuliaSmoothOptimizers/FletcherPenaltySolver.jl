@@ -6,7 +6,7 @@ using FastClosures, LinearAlgebra, Logging, SparseArrays
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
 using Stopping, StoppingInterface
 
-using NLPModelsIpopt
+using JSOSolvers, NLPModelsIpopt
 
 include("model-Fletcherpenaltynlp.jl")
 
@@ -14,13 +14,13 @@ export FletcherPenaltyNLP
 export obj, objgrad, objgrad!, grad!, grad
 export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
 
-function Fletcher_penalty_optimality_check(pb::AbstractNLPModel, state::NLPAtX)
+function Fletcher_penalty_optimality_check(pb::AbstractNLPModel{T, S}, state::NLPAtX) where {T, S}
   #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
   #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
   #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
   # returns i) + ii) OR iii) ?
-  nxk = max(norm(state.x), 1.0)
-  nlk = isnothing(state.lambda) ? 1.0 : max(norm(state.lambda), 1.0)
+  nxk = max(norm(state.x), one(T))
+  nlk = isnothing(state.lambda) ? one(T) : max(norm(state.lambda), one(T))
 
   cx = abs.(state.cx - get_lcon(pb)) / nxk # max.(cx - get_ucon(nlp), get_lcon(nlp) - cx, 0) / nxk
   if has_bounds(pb) # && state.mu == []
@@ -89,7 +89,7 @@ function fps_solve(
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
   Fptc(atol, rtol, opt0) =
-    rtol * vcat(ones(nlp.meta.ncon) .+ norm(cx0, Inf), ones(nlp.meta.nvar) .+ norm(gx0, Inf))
+    rtol * vcat(ones(T, nlp.meta.ncon) .+ norm(cx0, Inf), ones(T, nlp.meta.nvar) .+ norm(gx0, Inf))
   initial_state = NLPAtX(
     x0,
     zeros(T, nlp.meta.ncon),

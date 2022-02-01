@@ -31,6 +31,7 @@ function fps_solve(
     max_iter = 20000,
     atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
     rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
+    optimality0 = one(T),
     unbounded_threshold = meta.subpb_unbounded_threshold,
   )
 
