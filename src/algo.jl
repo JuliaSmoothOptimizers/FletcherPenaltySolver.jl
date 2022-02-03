@@ -68,7 +68,7 @@ function fps_solve(
       δ,
       :Initial,
       sub_stp.pb.η,
-      norm(sub_stp.pb.ys, Inf),
+      NaN, # sub_stp.pb.ys is undef
     ],
   )
 

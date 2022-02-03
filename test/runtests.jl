@@ -5,7 +5,7 @@ using ADNLPModels, Logging, NLPModels, NLPModelsIpopt, NLPModelsTest, SolverTest
 
 Random.seed!(1234)
 
-using Stopping
+using Stopping, StoppingInterface
 
 #For Test only
 using Test

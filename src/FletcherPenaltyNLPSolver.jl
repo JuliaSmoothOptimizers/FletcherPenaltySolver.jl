@@ -6,14 +6,18 @@ using FastClosures, LinearAlgebra, Logging, SparseArrays
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
 using Stopping, StoppingInterface
 
-using JSOSolvers, NLPModelsIpopt
-
 include("model-Fletcherpenaltynlp.jl")
 
 export FletcherPenaltyNLP
 export obj, objgrad, objgrad!, grad!, grad
 export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
 
+"""
+    Fletcher_penalty_optimality_check(pb::AbstractNLPModel, state::NLPAtX)
+
+Optimality function used by default in the algorithm.
+An alternative is to use the function `KKT` from `Stopping.jl`.
+"""
 function Fletcher_penalty_optimality_check(pb::AbstractNLPModel{T, S}, state::NLPAtX) where {T, S}
   #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
   #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
