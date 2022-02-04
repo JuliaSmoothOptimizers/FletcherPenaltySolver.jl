@@ -158,17 +158,21 @@ end
 function fps_solve(
   stp::NLPStopping;
   subsolver_verbose::Int = 0,
-  lagrange_bound = 1 / sqrt(eps(T)),
+  lagrange_bound = 1 / sqrt(eps()),
   kwargs...,
 )
-  T = eltype(stp.pb.meta.x0)
-  meta = AlgoData(T; kwargs...)
+  nlp = stp.pb
+  T = eltype(nlp.meta.x0)
+  meta = FPSSSolver(nlp, T(0); kwargs...)
+  # Update the state
+  x = stp.current_state.x
+  fill_in!(stp, x, Hx = stp.current_state.Hx)
 
   return fps_solve(
     stp,
     meta;
     subsolver_verbose = subsolver_verbose,
-    lagrange_bound = lagrange_bound,
+    lagrange_bound = T(lagrange_bound),
   )
 end
 
