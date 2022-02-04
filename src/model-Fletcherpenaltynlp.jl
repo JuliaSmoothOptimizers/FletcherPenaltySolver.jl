@@ -19,15 +19,15 @@ include("solve_two_systems_struct.jl")
 We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
 
-    minₓ f(x) s.t. c(x) = 0
+    minₓ f(x) s.t. c(x) = ℓ
 
 using Fletcher penalty function:
     
-    minₓ f(x) - dot(c(x),ys(x)) + ρ/2 dot(c(x),c(x))
+    minₓ f(x) - dot(c(x) - ℓ,ys(x)) + ρ/2 dot(c(x) - ℓ,c(x) - ℓ)
 
 where
 
-    ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||²₂ + σ c(x)^T y + 0.5 δ ||²₂
+    ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||²₂ + σ (c(x) - ℓ)^T y + 0.5 δ ||²₂
 
 and denote Ys the gradient of ys(x).
 
@@ -56,6 +56,7 @@ mutable struct FletcherPenaltyNLP{S, T, A <: Union{Val{1}, Val{2}}, P <: Real, Q
   shahx::UInt64 # the x at which fx, cx, gx, ys, and gs are computed
   fx::S
   cx::T
+  feas::T # feasibility residual
   gx::T
   Aop::LinearOperators.LinearOperator{S}
   ys::T
@@ -115,6 +116,7 @@ function FletcherPenaltyNLP(
     zero(UInt64),
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
     Vector{S}(undef, nlp.meta.ncon),
@@ -171,6 +173,7 @@ function FletcherPenaltyNLP(
     zero(UInt64),
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
     Vector{S}(undef, nlp.meta.ncon),
@@ -214,7 +217,7 @@ function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   nvar = nlp.meta.nvar
   ncon = nlp.nlp.meta.ncon
   g = nlp.gx
-  c = nlp.cx
+  c = nlp.feas # nlp.cx - get_lcon(nlp.nlp)
   σ = nlp.σ
   #rhs1 = vcat(g, T(σ) * c)
   #rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
@@ -237,6 +240,7 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
     nlp.fx = obj(nlp.nlp, x)
     grad!(nlp.nlp, x, nlp.gx)
     cons!(nlp.nlp, x, nlp.cx)
+    nlp.feas .= nlp.cx .- get_lcon(nlp.nlp)
 
     p1, q1, p2, q2 = linear_system2(nlp, x)
 
@@ -251,7 +255,7 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
 end
 
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
-  nvar = nlp.meta.nvar
+  nvar = get_nvar(nlp)
   @lencheck nvar x
   increment!(nlp, :neval_obj)
 
@@ -260,7 +264,7 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   _, ys, _, _ = _compute_ys_gs!(nlp, x)
 
   f = nlp.fx
-  c = nlp.cx
+  c = nlp.feas
 
   fx = f - dot(c, nlp.ys) + T(nlp.ρ) / 2 * dot(c, c)
   if nlp.η > 0.0
@@ -280,7 +284,7 @@ function grad!(
 
   gs, ys, v, w = _compute_ys_gs!(nlp, x)
   g = nlp.gx
-  c = nlp.cx
+  c = nlp.feas
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
@@ -314,7 +318,7 @@ function objgrad!(
   gs, ys, v, w = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.cx
+  c = nlp.feas
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
@@ -366,7 +370,7 @@ function hess_coord!(
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.cx
+  c = nlp.feas
   A = jac(nlp.nlp, x) # If used, this should be allocated probably
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
@@ -429,7 +433,7 @@ function hprod!(
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.cx
+  c = nlp.feas
 
   @. nlp.Jv = -ys
   hprod!(nlp.nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
@@ -477,7 +481,7 @@ function hprod!(
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.cx
+  c = nlp.feas
 
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 

@@ -33,12 +33,14 @@ end
 Initialize a GenericStats from Stopping
 """
 function stopping_to_stats(stp::NLPStopping)
+  nlp = stp.pb
+  cx = stp.current_state.cx
   return GenericExecutionStats(
     status_stopping_to_stats(stp),
     stp.pb,
     solution = stp.current_state.x,
     objective = stp.current_state.fx,
-    primal_feas = norm(stp.current_state.cx, Inf),
+    primal_feas = max.(cx - get_ucon(nlp), get_lcon(nlp) - cx, 0),
     dual_feas = norm(stp.current_state.res, Inf),
     multipliers = stp.current_state.lambda,
     iter = stp.meta.nb_of_stop,
