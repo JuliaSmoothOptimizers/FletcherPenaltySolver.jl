@@ -32,7 +32,7 @@ function Fletcher_penalty_optimality_check(pb::AbstractNLPModel, state::NLPAtX)
   nxk = max(norm(state.x), 1.0)
   nlk = isnothing(state.lambda) ? 1.0 : max(norm(state.lambda), 1.0)
 
-  cx = state.cx / nxk
+  cx = abs.(state.cx - get_lcon(pb)) / nxk # max.(cx - get_ucon(nlp), get_lcon(nlp) - cx, 0) / nxk
   if has_bounds(pb) # && state.mu == []
     proj = max.(min.(state.x - state.res, pb.meta.uvar), pb.meta.lvar)
     res = state.x - proj

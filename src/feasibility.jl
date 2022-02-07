@@ -1,9 +1,8 @@
 #Tangi: same implementation as in DCI.jl
 """    feasibility_step(nls, x, cx, Jx)
 
-Approximately solves min ‖c(x)‖.
-
-Given xₖ, finds min ‖cₖ + Jₖd‖
+Approximately solves min ‖c(x) - l‖ where l is nlp.meta.lcon.
+Given xₖ, finds min ‖cₖ - l + Jₖd‖
 """
 function feasibility_step(
   feasibility_solver::GNSolver,
@@ -29,7 +28,7 @@ function feasibility_step(
   zp = feasibility_solver.workspace_zp
   czp = feasibility_solver.workspace_czp
   Jd = feasibility_solver.workspace_Jd
-  normcz = normcx # cons(nlp, x) = normcx = normcz for the first z
+  normcz = normcx # cons(nlp, x) - get_lcon(nlp) = normcx = normcz for the first z
 
   Δ = Δ0
 
@@ -48,15 +47,15 @@ function feasibility_step(
 
     #Compute the a direction satisfying the trust-region constraint
     d, Jd, infeasible, solved =
-      TR_lsmr(feasibility_solver.TR_compute_step, cz, Jz, ctol, Δ, normcz, Jd)
+      TR_lsmr(feasibility_solver.TR_compute_step, cz - get_lcon(nlp), Jz, ctol, Δ, normcz, Jd)
 
     if infeasible #the direction is too small
       failed_step_comp = true #too small step
       status = :too_small
     else
       zp = z + d
-      czp = cons(nlp, zp)
-      normczp = norm(czp)
+      cons!(nlp, zp, czp)
+      normczp = norm(czp - get_lcon(nlp))
 
       Pred = T(0.5) * (normcz^2 - norm(Jd + cz)^2)
       Ared = T(0.5) * (normcz^2 - normczp^2)
@@ -100,8 +99,8 @@ function feasibility_step(
 
     # Safeguard: aggressive normal step
     if normcz > ρ && (consecutive_bad_steps ≥ feasibility_solver.bad_steps_lim || failed_step_comp)
-      Hz = hess_op(nlp, z, cz, obj_weight = zero(T))
-      Krylov.solve!(feasibility_solver.aggressive_step, Hz + Jz' * Jz, Jz' * cz)
+      Hz = hess_op(nlp, z, cz - get_lcon(nlp), obj_weight = zero(T))
+      Krylov.solve!(feasibility_solver.aggressive_step, Hz + Jz' * Jz, Jz' * (cz - get_lcon(nlp)))
       d = feasibility_solver.aggressive_step.x
       stats = feasibility_solver.aggressive_step.stats
       if !stats.solved
@@ -109,7 +108,7 @@ function feasibility_step(
       end
       @. zp = z - d
       cons!(nlp, zp, czp)
-      nczp = norm(czp)
+      nczp = norm(czp - get_lcon(nlp))
       if nczp < normcz #even if d is small we keep going
         infeasible = false
         failed_step_comp = false
