@@ -46,11 +46,11 @@ TODO:
 Example:
 fp_sos  = FletcherPenaltyNLP(nlp, 0.1, _solve_with_linear_operator)
 """
-mutable struct FletcherPenaltyNLP{S, T, A <: Union{Val{1}, Val{2}}, P <: Real, QDS <: QDSolver} <:
+mutable struct FletcherPenaltyNLP{S, T, A <: Union{Val{1}, Val{2}}, P <: Real, QDS <: QDSolver, Pb} <:
                AbstractNLPModel{S, T}
-  meta::AbstractNLPModelMeta{S, T}
+  meta::NLPModelMeta{S, T}
   counters::Counters
-  nlp::AbstractNLPModel{S, T}
+  nlp::Pb
 
   # Evaluation of the FletcherPenaltyNLP functions contains info on nlp:
   shahx::UInt64 # the x at which fx, cx, gx, ys, and gs are computed
@@ -214,8 +214,6 @@ function FletcherPenaltyNLP(
 end
 
 function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
   g = nlp.gx
   c = nlp.feas # nlp.cx - get_lcon(nlp.nlp)
   σ = nlp.σ
@@ -232,8 +230,6 @@ end
 # gs, ys, v, w = _compute_ys_gs!(nlp, x)
 # Improve allocs and all here !
 function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
   shahx = hash(x)
   if shahx != nlp.shahx
     nlp.shahx = shahx
@@ -279,7 +275,8 @@ function grad!(
   x::AbstractVector{T},
   gx::AbstractVector{T},
 ) where {T <: AbstractFloat}
-  @lencheck nlp.meta.nvar x gx
+  nvar = get_nvar(nlp)
+  @lencheck nvar x gx
   increment!(nlp, :neval_grad)
 
   gs, ys, v, w = _compute_ys_gs!(nlp, x)
@@ -309,11 +306,10 @@ function objgrad!(
   x::AbstractVector{T},
   gx::AbstractVector{T},
 ) where {T <: AbstractFloat}
-  @lencheck nlp.meta.nvar x gx
+  nvar = get_nvar(nlp)
+  @lencheck nvar x gx
   increment!(nlp, :neval_obj)
   increment!(nlp, :neval_grad)
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
 
   gs, ys, v, w = _compute_ys_gs!(nlp, x)
   f = nlp.fx
@@ -423,11 +419,9 @@ function hprod!(
   Hv::AbstractVector;
   obj_weight = one(T),
 ) where {T, S, Tt, P, QDS}
-  @lencheck nlp.meta.nvar x v Hv
+  nvar = get_nvar(nlp)
+  @lencheck nvar x v Hv
   increment!(nlp, :neval_hprod)
-
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
@@ -470,11 +464,9 @@ function hprod!(
   Hv::AbstractVector;
   obj_weight = one(T),
 ) where {T, S, Tt, P, QDS}
-  @lencheck nlp.meta.nvar x v Hv
+  nvar = get_nvar(nlp)
+  @lencheck nvar x v Hv
   increment!(nlp, :neval_hprod)
-
-  nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
 
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
