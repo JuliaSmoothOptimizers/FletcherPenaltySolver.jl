@@ -13,7 +13,7 @@ function solve_two_extras(
 
   JtJ = nlp.Aop * nlp.Aop'
   # (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
-  (invJtJSsv, stats) = solve!(
+  solve!(
     nlp.qdsolver.solver_struct_pinv,
     JtJ,
     rhs2,
@@ -26,6 +26,8 @@ function solve_two_extras(
     itmax = nlp.qdsolver.ne_itmax,
     conlim = nlp.qdsolver.ne_conlim,
   )
+  stats = nlp.qdsolver.solver_struct_pinv.stats
+  invJtJSsv = nlp.qdsolver.solver_struct_pinv.x
   if !stats.solved
     @warn "Failed solving 2nd linear system minres in extra."
   end
