@@ -4,19 +4,9 @@ using FastClosures, LinearAlgebra, Logging, SparseArrays
 
 # JSO packages
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
-using Stopping
+using Stopping, StoppingInterface
 
 using NLPModelsIpopt
-
-is_knitro_installed = false
-
-##################################################################
-using Requires
-# Temporary
-include("StoppingInterfacemod.jl")
-#using StoppingInterface #ipopt, knitro, status_stopping_to_stats
-#
-###################################################################
 
 include("model-Fletcherpenaltynlp.jl")
 
