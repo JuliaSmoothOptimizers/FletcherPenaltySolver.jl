@@ -12,6 +12,7 @@ struct IterativeSolver{
   SS1 <: KrylovSolver{T, S},
   SS2 <: KrylovSolver{T, S},
   SS3 <: KrylovSolver{T, S},
+  It <: Integer,
 } <: QDSolver
   # parameters for least-square solve
   # ls_M # =opEye(), 
@@ -19,7 +20,7 @@ struct IterativeSolver{
   ls_atol::T # =√eps(T), 
   ls_rtol::T # =√eps(T),
   #radius :: T=zero(T), 
-  ls_itmax::Integer # =0, 
+  ls_itmax::It # =0, 
   #verbose :: Int=0, 
   #history :: Bool=false
 
@@ -30,7 +31,7 @@ struct IterativeSolver{
   ln_rtol::T # =√eps(T),
   ln_btol::T # =√eps(T),
   ln_conlim::T # =1/√eps(T)
-  ln_itmax::Integer # =0, 
+  ln_itmax::It # =0, 
   #verbose :: Int=0, 
   #history :: Bool=false
 
@@ -41,7 +42,7 @@ struct IterativeSolver{
   ne_ratol::T # = zero(T),
   ne_rrtol::T # = zero(T),
   ne_etol::T # = √eps(T),
-  ne_itmax::Integer # = 0,
+  ne_itmax::It # = 0,
   ne_conlim::T # = 1 / √eps(T),
 
   #allocations
@@ -141,11 +142,11 @@ function IterativeSolver(
 end
 
 function solve_least_square(
-  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3},
+  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3, It},
   A,
   b,
   λ,
-) where {T, S, SS1, SS2, SS3}
+) where {T, S, SS1, SS2, SS3, It}
   solve!(
     qdsolver.solver_struct_least_square,
     A,
@@ -184,11 +185,11 @@ end
 =#
 
 function solve_least_norm(
-  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3},
+  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3, It},
   A,
   b,
   δ,
-) where {T, S, SS1, SS2 <: CraigSolver, SS3}
+) where {T, S, SS1, SS2 <: CraigSolver, SS3, It}
   if δ != 0
     craig!(
       qdsolver.solver_struct_least_norm,
@@ -220,11 +221,11 @@ function solve_least_norm(
 end
 
 function solve_least_norm(
-  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3},
+  qdsolver::IterativeSolver{T, S, SS1, SS2, SS3, It},
   A,
   b,
   δ,
-) where {T, S, SS1, SS2, SS3}
+) where {T, S, SS1, SS2, SS3, It}
   ncon = length(b)
   if δ != 0
     solve!(
@@ -262,13 +263,13 @@ nnzj = nlp.nlp.meta.nnzj
 
 + The LDLFactorizationStruct
 =#
-struct LDLtSolver <: QDSolver
+struct LDLtSolver{S, S2, Si, Str} <: QDSolver
   nnz
-  rows
-  cols
-  vals
-  str # LDLFactorization{T <: Real, Ti <: Integer, Tn <: Integer, Tp <: Integer}
-  sol
+  rows::Si
+  cols::Si
+  vals::S
+  str::Str # LDLFactorization{T <: Real, Ti <: Integer, Tn <: Integer, Tp <: Integer}
+  sol::S2
 end
 
 function LDLtSolver(
