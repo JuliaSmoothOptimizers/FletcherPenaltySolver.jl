@@ -103,7 +103,7 @@ function IterativeSolver(
     nlp.meta.ncon,
     Vector{T},
   ),
-  solver_struct_least_norm::KrylovSolver{T, S} = LnlqSolver( # CraigSolver(
+  solver_struct_least_norm::KrylovSolver{T, S} = CraigSolver( # LnlqSolver(
     nlp.meta.ncon,
     nlp.meta.nvar,
     Vector{T},
