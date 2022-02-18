@@ -90,7 +90,7 @@ If one define a `Stopping` before calling `fps_solve`, it is possible to access 
 - `unconstrained_solver` must take an `NLPStopping` as input, see `StoppingInterface.jl`.
 
 # Examples
-```jldoctest
+```julia
 julia> using FletcherPenaltyNLPSolver, ADNLPModels
 julia> nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0]);
 julia> stats = fps_solve(nlp)
