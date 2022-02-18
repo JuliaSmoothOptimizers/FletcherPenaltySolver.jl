@@ -16,35 +16,66 @@ import NLPModels:
 include("solve_two_systems_struct.jl")
 
 """
+    FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
+    FletcherPenaltyNLP(nlp, σ, hessian_approx, x; qds = LDLtSolver(nlp, S(0)))
+    FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx; kwargs...)
+    FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx, x; qds = LDLtSolver(nlp, S(0)))
+    FletcherPenaltyNLP(nlp; σ_0::Real = one(eltype(nlp.meta.x0)), ρ_0::Real = zero(eltype(nlp.meta.x0)), δ_0::Real = zero(eltype(nlp.meta.x0)), hessian_approx = Val(2), x0 = nlp.meta.x0, kwargs...)
+
 We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
 
+```math
     minₓ f(x) s.t. c(x) = ℓ
+```
 
 using Fletcher penalty function:
-    
+```math   
     minₓ f(x) - dot(c(x) - ℓ,ys(x)) + ρ/2 dot(c(x) - ℓ,c(x) - ℓ)
-
+```
 where
-
+```math
     ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||²₂ + σ (c(x) - ℓ)^T y + 0.5 δ ||²₂
+```
+and denote `Ys` the gradient of `ys(x)`.
 
-and denote Ys the gradient of ys(x).
+# Arguments
+- `nlp::AbstractNLPModel`: the model solved, see `NLPModels.jl`;
+- `x::AbstractVector`: Initial guess. If `x` is not specified, then `nlp.meta.x0` is used;
+- `σ`, `ρ`, `δ` parameters of the subproblem;
+- `hessian_approx` either `Val(1)` or `Val(2)` for the hessian approximation.
+- `qds`: solver structure for the linear algebra computations, see [`LDLtSolver`](@ref) or [`IterativeSolver`](@ref).
 
-`FletcherPenaltyNLP(:: AbstractNLPModel, :: Number, :: Function)`
-or
-`FletcherPenaltyNLP(:: AbstractNLPModel; σ_0 :: Real = 1.0)`
-
-Notes:
-- Evaluation of the obj, grad, objgrad functions evaluate functions from the orginial nlp.
-These values are stored in `fx`, `cx`, `gx`.
+# Notes:
+- Evaluation of the obj, grad, objgrad functions evaluate functions from the orginial nlp. These values are stored in `fx`, `cx`, `gx`.
 - The value of the penalty vector `ys` is also stored.
+- The hessian structure is dense.
 
-TODO:
-- sparse structure of the hessian?
+# Examples
+```jldoctest
+julia> using FletcherPenaltyNLPSolver, ADNLPModels
+julia> nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0])
+julia> fp_sos  = FletcherPenaltyNLP(nlp)
+"FletcherPenaltyNLP{Float64, Vector{Float64}, Val{2}, Float64, FletcherPenaltyNLPSolver.LDLtSolver{Vector{Float64}, Matrix{Float64}, Vector{Int64}, LDLFactorizations.LDLFactorization{Float64, Int64, Int64, Int64}}, ADNLPModel{Float64, Vector{Float64}}}
+Problem name: Fletcher penalization of Generic
+ All variables: ████████████████████ 2      All constraints: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+          free: ████████████████████ 2                 free: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         lower: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                lower: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         upper: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                upper: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+       low/upp: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0              low/upp: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         fixed: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                fixed: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+        infeas: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               infeas: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+          nnzh: (  0.00% sparsity)   3               linear: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+                                                  nonlinear: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+                                                       nnzj: (------% sparsity)         
 
-Example:
-fp_sos  = FletcherPenaltyNLP(nlp, 0.1, _solve_with_linear_operator)
+Counters:
+           obj: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 grad: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 cons: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+          jcon: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                jgrad: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                  jac: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         jprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               jtprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 hess: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         hprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                jhess: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               jhprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+"
+```
 """
 mutable struct FletcherPenaltyNLP{S, T, A <: Union{Val{1}, Val{2}}, P <: Real, QDS <: QDSolver, Pb} <:
                AbstractNLPModel{S, T}
@@ -213,9 +244,14 @@ function FletcherPenaltyNLP(
   return FletcherPenaltyNLP(nlp, σ_0, ρ_0, δ_0, hessian_approx, x0; kwargs...)
 end
 
+"""
+    p1, q1, p2, q2 = linear_system2(nlp, x)
+
+Call to `solve_two_mixed(nlp, x, nlp.gx, nlp.feas)`, see [`solve_two_mixed`](@ref).
+"""
 function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   g = nlp.gx
-  c = nlp.feas # nlp.cx - get_lcon(nlp.nlp)
+  c = nlp.feas
   σ = nlp.σ
   #rhs1 = vcat(g, T(σ) * c)
   #rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
@@ -227,8 +263,11 @@ function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   return p1, q1, p2, q2
 end
 
-# gs, ys, v, w = _compute_ys_gs!(nlp, x)
-# Improve allocs and all here !
+"""
+    gs, ys, v, w = _compute_ys_gs!(nlp, x)
+
+Compute the Lagrange multipliers and the gradient of the Lagrangian function in-place.
+"""
 function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   shahx = hash(x)
   if shahx != nlp.shahx

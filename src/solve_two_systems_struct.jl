@@ -1,11 +1,25 @@
+"""
+    QDSolver
 
-#=
-Parameters for the system
-[In A'; A -nlp.δ*Im]
-that we are solving twice
-=#
+Abstract structure handling parameters for the system
+```math
+  [ In   A'      ]
+  [ A  -nlp.δ*Im ]
+```
+that we are solving twice.
+
+Its implementation should define:
+- [`solve_two_extras`](@ref)
+- [`solve_two_least_squares`](@ref)
+- [`solve_two_mixed`](@ref)
+"""
 abstract type QDSolver end
 
+"""
+    IterativeSolver(nlp::AbstractNLPModel, ::T) <: QDSolver
+
+It uses `Krylov.jl` methods to solve least-squares and least-norm problems.
+"""
 struct IterativeSolver{
   T <: AbstractFloat,
   S,
@@ -263,6 +277,11 @@ nnzj = nlp.nlp.meta.nnzj
 
 + The LDLFactorizationStruct
 =#
+"""
+    LDLtSolver(nlp::AbstractNLPModel, ::T) <: QDSolver
+
+It uses `LDLFactorization.jl` methods to solve least-squares and least-norm problems.
+"""
 struct LDLtSolver{S, S2, Si, Str} <: QDSolver
   nnz
   rows::Si
@@ -313,11 +332,17 @@ function LDLtSolver(
   return LDLtSolver(nnz, rows, cols, vals, Str, sol)
 end
 
+"""
+    DirectSolver(nlp::AbstractNLPModel, ::T) <: QDSolver
+"""
 struct DirectSolver <: QDSolver end
 #=
  - Store the matrix ?
  - in-place LU factorization ?
 =#
+"""
+    LUSolver(nlp::AbstractNLPModel, ::T) <: QDSolver
+"""
 struct LUSolver <: QDSolver end
 
 #=

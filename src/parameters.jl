@@ -173,19 +173,3 @@ function FPSSSolver(nlp::AbstractNLPModel, ::T; qds_solver = :ldlt, kwargs...) w
   feasibility_solver = GNSolver(nlp.meta.x0, nlp.meta.y0)
   return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver, feasibility_solver)
 end
-
-#=
-function LBFGSSolver{T, V}(
-  meta::AbstractNLPModelMeta;
-) where {T, V}
-  nvar = meta.nvar
-  workspace = (
-    x = V(undef, nvar),
-    xt = V(undef, nvar),
-    gx = V(undef, nvar),
-    gt = V(undef, nvar),
-    d = V(undef, nvar),
-  )
-  return LBFGSSolver{T, V}(workspace)
-end
-=#
