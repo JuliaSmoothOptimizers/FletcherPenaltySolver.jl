@@ -108,6 +108,7 @@ mutable struct GNSolver
   σ₂ #::AbstractFloat = meta.feas_σ₂,
   Δ₀ #::T = meta.feas_Δ₀,
   bad_steps_lim #::Integer = meta.bad_steps_lim,
+  feas_expected_decrease  #::AbstractFloat = eltype(S)(0.95),
 
   # workspace
   workspace_zp
@@ -128,8 +129,9 @@ function GNSolver(
   η₂::AbstractFloat = 0.66,
   σ₁::AbstractFloat = 0.25,
   σ₂::AbstractFloat = 2.0,
-  Δ0::AbstractFloat = one(eltype(S)),
+  Δ₀::AbstractFloat = one(eltype(S)),
   bad_steps_lim::Integer = 3,
+  feas_expected_decrease::AbstractFloat = eltype(S)(0.95),
   TR_compute_step = LsmrSolver(length(y0), length(x0), S),
   aggressive_step = CgSolver(length(x0), length(x0), S),
 ) where {S}
@@ -139,8 +141,9 @@ function GNSolver(
     η₂,
     σ₁,
     σ₂,
-    Δ0,
+    Δ₀,
     bad_steps_lim,
+    feas_expected_decrease,
     S(undef, n),
     S(undef, m),
     S(undef, m),

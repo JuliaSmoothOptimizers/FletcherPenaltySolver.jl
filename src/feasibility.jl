@@ -1,8 +1,22 @@
 #Tangi: same implementation as in DCI.jl
-"""    feasibility_step(nls, x, cx, Jx)
+"""
+    feasibility_step(feasibility_solver, nlp, x, cx, normcx, Jx, ρ, ctol; kwargs...)
 
-Approximately solves min ‖c(x) - l‖ where l is nlp.meta.lcon.
-Given xₖ, finds min ‖cₖ - l + Jₖd‖
+Approximately solves `min ‖c(x) - l‖`, where l is nlp.meta.lcon, using a trust-region Levenberg-Marquardt method.
+# Arguments
+- `η₁::AbstractFloat = feasibility_solver.feas_η₁`: decrease the trust-region radius when Ared/Pred < η₁.
+- `η₂::AbstractFloat = feasibility_solver.feas_η₂`: increase the trust-region radius when Ared/Pred > η₂.
+- `σ₁::AbstractFloat = feasibility_solver.feas_σ₁`: decrease coefficient of the trust-region radius.
+- `σ₂::AbstractFloat = feasibility_solver.feas_σ₂`:increase coefficient of the trust-region radius.
+- `Δ₀::T = feasibility_solver.feas_Δ₀`: initial trust-region radius.
+- `bad_steps_lim::Integer = feasibility_solver.bad_steps_lim`: consecutive bad steps before using a second order step.
+- `expected_decrease::T = feasibility_solver.feas_expected_decrease`: bad steps are when `‖c(z)‖ / ‖c(x)‖ >feas_expected_decrease`.
+- `max_eval::Int = 1_000`: maximum evaluations.
+- `max_time::AbstractFloat = 60.0`: maximum time.
+- `max_feas_iter::Int = typemax(Int64)`: maximum number of iterations.
+# Output
+- `z`, `cz`, `normcz`, `Jz`: the new iterate, and updated evaluations.
+- `status`: Computation status. Possible outcomes are: `:success`, `max_eval`, `max_time`, `max_iter`, `unknown_tired`, `:infeasible`, `:unknown`.
 """
 function feasibility_step(
   feasibility_solver::GNSolver,
@@ -13,11 +27,13 @@ function feasibility_step(
   Jx::Union{LinearOperator{T}, AbstractMatrix{T}},
   ρ::T,
   ctol::AbstractFloat;
-  η₁::AbstractFloat = 1e-3,
-  η₂::AbstractFloat = 0.66,
-  σ₁::AbstractFloat = 0.25,
-  σ₂::AbstractFloat = 2.0,
-  Δ0::T = one(T),
+  η₁::AbstractFloat = feasibility_solver.η₁,
+  η₂::AbstractFloat = feasibility_solver.η₂,
+  σ₁::AbstractFloat = feasibility_solver.σ₁,
+  σ₂::AbstractFloat = feasibility_solver.σ₂,
+  Δ₀::T = feasibility_solver.Δ₀,
+  bad_steps_lim::Integer = feasibility_solver.bad_steps_lim,
+  expected_decrease::T = feasibility_solver.feas_expected_decrease,
   max_eval::Int = 1_000,
   max_time::AbstractFloat = 60.0,
   max_feas_iter::Int = typemax(Int64),
@@ -30,7 +46,7 @@ function feasibility_step(
   Jd = feasibility_solver.workspace_Jd
   normcz = normcx # cons(nlp, x) - get_lcon(nlp) = normcx = normcz for the first z
 
-  Δ = Δ0
+  Δ = Δ₀
 
   feas_iter = 0
   consecutive_bad_steps = 0 # Bad steps are when ‖c(z)‖ / ‖c(x)‖ > 0.95
@@ -67,7 +83,7 @@ function feasibility_step(
         z = zp
         Jz = jac_op!(nlp, z, feasibility_solver.workspace_Jv, feasibility_solver.workspace_Jtv)
         cz = czp
-        if normczp / normcz > T(0.95)
+        if normczp / normcz > expected_decrease
           consecutive_bad_steps += 1
         else
           consecutive_bad_steps = 0
@@ -98,7 +114,7 @@ function feasibility_step(
     )
 
     # Safeguard: aggressive normal step
-    if normcz > ρ && (consecutive_bad_steps ≥ feasibility_solver.bad_steps_lim || failed_step_comp)
+    if normcz > ρ && (consecutive_bad_steps ≥ bad_steps_lim || failed_step_comp)
       Hz = hess_op(nlp, z, cz - get_lcon(nlp), obj_weight = zero(T))
       Krylov.solve!(feasibility_solver.aggressive_step, Hz + Jz' * Jz, Jz' * (cz - get_lcon(nlp)))
       d = feasibility_solver.aggressive_step.x
@@ -171,6 +187,23 @@ function feasibility_step(
   return z, cz, normcz, Jz, status
 end
 
+@doc raw"""
+    TR_lsmr(solver, cz, Jz, ctol, Δ, normcz, Jd)
+
+Compute a direction `d` such that
+```math
+\begin{aligned}
+\min_{d} \quad & \|c + Jz' d \| \\
+\text{s.t.} \quad & \|d\| \leq \Delta,
+\end{aligned}
+```
+using `lsmr` method from `Krylov.jl`.
+# Output
+- `d`: solution
+- `Jd`: product of the solution with `J`.
+- `infeasible`: `true` if the problem is infeasible.
+- `solved`: `true` if the problem has been successfully solved.
+"""
 function TR_lsmr(
   solver,
   cz::AbstractVector{T},
@@ -180,7 +213,20 @@ function TR_lsmr(
   normcz::AbstractFloat,
   Jd::AbstractVector{T},
 ) where {T}
-  Krylov.solve!(solver, Jz, -cz, radius = Δ)
+  Krylov.solve!(
+    solver,
+    Jz,
+    -cz, 
+    radius = Δ,
+    # M = meta.M,
+    # λ = meta.λ,
+    # axtol = meta.axtol,
+    # btol = meta.btol,
+    # atol = meta.atol,
+    # rtol = meta.rtol,
+    # etol = meta.etol,
+    # itmax = meta.itmax,
+  )
   d = solver.x
   stats = solver.stats
 
