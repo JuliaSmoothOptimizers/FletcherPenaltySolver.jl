@@ -62,12 +62,12 @@ If you use FletcherPenaltyNLPSolver in your work, please cite using the format g
 ## Example
 
 We consider in this example the minization of the Rosenbrock function.
-```@example
+```math
     \min_x \ 100 * (x₂ - x₁²)² + (x₁ - 1)²,
 ```
 The problem is modeled using [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) with `[-1.2; 1.0]` as default initial point, and then solved using `fps_solve`.
 
-```julia
+```@example
 using FletcherPenaltyNLPSolver, ADNLPModels
 
 # Rosenbrock
