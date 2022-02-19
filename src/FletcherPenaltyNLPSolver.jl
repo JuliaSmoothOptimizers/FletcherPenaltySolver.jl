@@ -14,6 +14,12 @@ export FletcherPenaltyNLP
 export obj, objgrad, objgrad!, grad!, grad
 export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_structure!
 
+"""
+    Fletcher_penalty_optimality_check(pb::AbstractNLPModel, state::NLPAtX)
+
+Optimality function used by default in the algorithm.
+An alternative is to use the function `KKT` from `Stopping.jl`.
+"""
 function Fletcher_penalty_optimality_check(pb::AbstractNLPModel, state::NLPAtX)
   #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
   #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
@@ -45,27 +51,51 @@ include("feasibility.jl")
 export fps_solve
 
 """
-Solver for equality constrained non-linear programs based on Fletcher's penalty function.
+    fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; subsolver_verbose::Int = 0, lagrange_bound = 1 / sqrt(eps(T)), kwargs...)
 
-    Cite: Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
+Compute a local minimum of a bound and equality-constrained optimization problem using Fletcher's penalty function and the implementation described in
+
+    Estrin, R., Friedlander, M. P., Orban, D., & Saunders, M. A. (2020).
     Implementing a smooth exact penalty function for equality-constrained nonlinear optimization.
     SIAM Journal on Scientific Computing, 42(3), A1809-A1835.
+    https://doi.org/10.1137/19M1238265
 
-`fps_solve(:: NLPStopping, :: AbstractVector{T};  σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
-or
-`fps_solve(:: AbstractNLPModel, :: AbstractVector{T}, σ_0 :: Number = one(T), σ_max :: Number = 1/eps(T), σ_update :: Number = T(1.15), unconstrained_solver :: Function = lbfgs) where T <: AbstractFloat`
+For advanced usage, the principal call to the solver uses a `NLPStopping`, see `Stopping.jl`.
 
-Notes:     
-- If the problem has inequalities, we use slack variables to get only equalities and bounds.
+    fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}; subsolver_verbose::Int = 0, lagrange_bound::T = 1 / sqrt(eps(T)))
+    fps_solve(stp::NLPStopping; subsolver_verbose::Int = 0, lagrange_bound = 1 / sqrt(eps()), kwargs...)
+
+# Arguments
+- `nlp::AbstractNLPModel`: the model solved, see `NLPModels.jl`;
+- `x`: Initial guess. If `x` is not specified, then `nlp.meta.x0` is used.
+
+# Keyword arguments
+- `fpssolver`: see [`FPSSSolver`](@ref);
+- `subsolver_verbose::Int = 0`: if > 0, display iteration information of the subsolver;
+- `lagrange_bound = 1 / sqrt(eps())`: bound used to declare the Lagrange multiplier unbounded.
+
+All the information regarding stopping criteria can be set in the `NLPStopping` object.
+Additional `kwargs` are given to the `NLPStopping`.
+By default, the optimality condition used to declare optimality is [`Fletcher_penalty_optimality_check`](@ref).
+
+# Output
+The returned value is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+If one define a `Stopping` before calling `fps_solve`, it is possible to access all the information computed by the algorithm.
+
+# Notes
+
+- If the problem has inequalities, we use slack variables to get only equalities and bounds via `NLPModelsModifiers.jl`.
 - `stp.current_state.res` contains the gradient of Fletcher's penalty function.
-- `unconstrained_solver` must take an NLPStopping as input.
+- `unconstrained_solver` must take an `NLPStopping` as input, see `StoppingInterface.jl`.
 
-TODO:
-- une façon robuste de mettre à jour le paramètre de pénalité. [Convergence to infeasible stationary points]
-- Extend to bounds and inequality constraints.
-- Handle the tol_check from the paper !
-- Continue to explore the paper.
-- [Long term] Complemetarity constraints
+# Examples
+```julia
+julia> using FletcherPenaltyNLPSolver, ADNLPModels
+julia> nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0]);
+julia> stats = fps_solve(nlp)
+"Execution stats: first-order stationary"
+```
 """
 function fps_solve(
   nlp::AbstractNLPModel,
@@ -83,7 +113,6 @@ function fps_solve(
     x0 = vcat(x0, zeros(T, ns))
     nlp = SlackModel(nlp)
   end
-  #meta = AlgoData(T; kwargs...)
   meta = FPSSSolver(nlp, T(0); kwargs...)
 
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)

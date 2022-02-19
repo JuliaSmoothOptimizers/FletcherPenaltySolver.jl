@@ -1,20 +1,35 @@
-#=
-Add tolerances for the subproblem
-  -
-  -
-  -
-  -
-Add how we decrease the tolerance as a function of sigma?
-  - atol
-  - rtol
-Threshold for restoration
-  - stalling
-  - unbounded
-  - unsuccessful
+"""
+    AlgoData(; kwargs...) 
+    AlgoData(T::DataType; kwargs...)
 
-Random:
-  - set the radius of the ball ? (function of atol and sigma)
-=#
+Structure containing all the parameters used in the [`fps_solve`](@ref) call.
+`T` is the datatype used in the algorithm, by default it is `Float64`.
+Returns a `AlgoData` structure.
+
+# Arguments
+The keyword arguments may include:
+- `σ_0::Real = T(1e3)`: Initialize subproblem's parameter σ;
+- `σ_max::Real = 1 / √eps(T)`: Maximum value for subproblem's parameter σ;
+- `σ_update::Real = T(2)`: Update subproblem's parameter σ;
+- `ρ_0::Real = one(T)`: Initialize subproblem's parameter ρ;
+- `ρ_max::Real = 1 / √eps(T)`: Maximum value for subproblem's parameter ρ;
+- `ρ_update::Real = T(2)`: Update subproblem's parameter ρ;
+- `δ_0::Real = √eps(T)`: Initialize subproblem's parameter δ;
+- `δ_max::Real = 1 / √eps(T)`: Maximum value for subproblem's parameter δ;
+- `δ_update::Real = T(10)`: Update subproblem's parameter δ;
+- `η_1::Real = zero(T)`: Initialize subproblem's parameter η;
+- `η_update::Real = one(T)`: Update subproblem's parameter η;
+- `yM::Real = typemax(T)`: bound on the Lagrange multipliers;
+- `Δ::Real = T(0.95)`: expected decrease in feasibility between two iterations;
+- `unconstrained_solver::Function = StoppingInterface.is_knitro_installed ? NLPModelsKnitro.knitro : ipopt`: solver used for the subproblem;
+- `subpb_unbounded_threshold::Real = 1 / √eps(T)`: below the opposite of this value, the subproblem is unbounded;
+- `atol_sub::Function = atol -> atol`: absolute tolerance for the subproblem in function of `atol`;
+- `rtol_sub::Function = rtol -> rtol`: relative tolerance for the subproblem in function of `rtol`;
+- `hessian_approx = Val(2)`: either `Val(1)` or `Val(2)`, it selects the hessian approximation;
+- `convex_subproblem::Bool = false`: true if the subproblem is convex. Useful to set the `convex` option in `knitro`.
+
+For more details, we refer to the package documentation [fine-tuneFPS.md](https://tmigot.github.io/FletcherPenaltyNLPSolver/dev/fine-tuneFPS/). 
+"""
 struct AlgoData{T <: Real}
 
   #Initialize, Update and Bound parameters of the penalized problem:
@@ -34,7 +49,7 @@ struct AlgoData{T <: Real}
   yM::T
 
   #Algorithmic parameters
-  Δ::T #expected decrease in feasibility between two iterations
+  Δ::T
 
   #Functions used in the algorithm
   unconstrained_solver::Function
@@ -43,7 +58,7 @@ struct AlgoData{T <: Real}
   rtol_sub::Function #(stp.meta.rtol)
 
   hessian_approx
-  convex_subproblem::Bool #Useful to set the `convex` option in Knitro
+  convex_subproblem::Bool
 end
 
 function AlgoData(
@@ -94,20 +109,70 @@ end
 
 AlgoData(; kwargs...) = AlgoData(Float64; kwargs...)
 
+"""
+    UnconstrainedSolver
+
+Abstract structure used for the subproblem solve.
+"""
 abstract type UnconstrainedSolver end
 
+"""
+    KnitroSolver <: UnconstrainedSolver
+
+Structure used for the subproblem solve with `knitro`.
+"""
 mutable struct KnitroSolver <: UnconstrainedSolver end
+
+"""
+    IpoptSolver <: UnconstrainedSolver
+
+Structure used for the subproblem solve with `ipopt`.
+"""
 mutable struct IpoptSolver <: UnconstrainedSolver end
+
+"""
+    LBFGSolver <: UnconstrainedSolver
+
+Structure used for the subproblem solve with `lbfgs`.
+"""
 mutable struct LBFGSSolver <: UnconstrainedSolver end
 
+"""
+    TronSolver <: UnconstrainedSolver
+
+Structure used for the subproblem solve with `tron`.
+"""
+mutable struct TronSolver <: UnconstrainedSolver end
+
+"""
+    GNSolver(x, y; kwargs...)
+
+Structure containing all the parameters used in the feasibility step.
+`x` is an intial guess, and `y` is an initial guess for the Lagrange multiplier.
+Returns a `GNSolver` structure.
+
+# Arguments
+The keyword arguments may include:
+
+- `η₁::T=T(1e-3)`: Feasibility step: decrease the trust-region radius when `Ared/Pred < η₁`.
+- `η₂::T=T(0.66)`: Feasibility step: increase the trust-region radius when `Ared/Pred > η₂`.
+- `σ₁::T=T(0.25)`: Feasibility step: decrease coefficient of the trust-region radius.
+- `σ₂::T=T(2.0)`: Feasibility step: increase coefficient of the trust-region radius.
+- `Δ₀::T=one(T)`: Feasibility step: initial radius.
+- `bad_steps_lim::Integer=3`: Feasibility step: consecutive bad steps before using a second order step.
+- `feas_expected_decrease::T=T(0.95)`: Feasibility step: bad steps are when `‖c(z)‖ / ‖c(x)‖ >feas_expected_decrease`.
+- `TR_compute_step = LsmrSolver(length(y0), length(x0), S)`: Compute the direction in feasibility step.
+- `aggressive_step = CgSolver(length(x0), length(x0), S)`: Compute the direction in feasibility step in agressive mode.
+"""
 mutable struct GNSolver
   # Parameters
-  η₁ #::AbstractFloat = meta.feas_η₁,
-  η₂ #::AbstractFloat = meta.feas_η₂,
-  σ₁ #::AbstractFloat = meta.feas_σ₁,
-  σ₂ #::AbstractFloat = meta.feas_σ₂,
-  Δ₀ #::T = meta.feas_Δ₀,
-  bad_steps_lim #::Integer = meta.bad_steps_lim,
+  η₁
+  η₂
+  σ₁
+  σ₂
+  Δ₀
+  bad_steps_lim
+  feas_expected_decrease
 
   # workspace
   workspace_zp
@@ -128,8 +193,9 @@ function GNSolver(
   η₂::AbstractFloat = 0.66,
   σ₁::AbstractFloat = 0.25,
   σ₂::AbstractFloat = 2.0,
-  Δ0::AbstractFloat = one(eltype(S)),
+  Δ₀::AbstractFloat = one(eltype(S)),
   bad_steps_lim::Integer = 3,
+  feas_expected_decrease::AbstractFloat = eltype(S)(0.95),
   TR_compute_step = LsmrSolver(length(y0), length(x0), S),
   aggressive_step = CgSolver(length(x0), length(x0), S),
 ) where {S}
@@ -139,8 +205,9 @@ function GNSolver(
     η₂,
     σ₁,
     σ₂,
-    Δ0,
+    Δ₀,
     bad_steps_lim,
+    feas_expected_decrease,
     S(undef, n),
     S(undef, m),
     S(undef, m),
@@ -153,15 +220,32 @@ end
 
 const qdsolver_correspondence = Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 
+"""
+    FPSSSolver(nlp, ::T; kwargs...)
+
+Structure regrouping all the structure used during the `fps_solve` call. It returns a `FPSSSolver` structure.
+
+# Arguments
+The keyword arguments may include:
+
+- `meta::AlgoData{T}`: see [`AlgoData`](@ref);
+- `workspace`: allocated space for the solver itself;
+- `qdsolver`: solver structure for the linear algebra part, contains allocation for this part. By default a `LDLtSolver`, but an alternative is `IterativeSolver` ;
+- `unconstrained_solver::UnconstrainedSolver`: by default a `KnitroSolver`, options: `IpoptSolver`, `TronSolver`, `LBFGSSolver`;
+- `feasibility_solver`: by default a `GNSolver`, see [`GNSolver`](@ref);
+
+Note:
+- `unconstrained_solver` is not used.
+- the `qdsolver` is accessible from the dictionary `qdsolver_correspondence`.
+"""
 mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver, FS}
-  meta::AlgoData{T} # AlgoData
-  workspace # allocated space for the solver itself
-  qdsolver::QDS # solver structure for the linear algebra part, contains allocation for this par
+  meta::AlgoData{T}
+  workspace
+  qdsolver::QDS
   unconstrained_solver::US # should be a structure/named typle, with everything related to unconstrained
   feasibility_solver::FS
 end
 
-#Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 function FPSSSolver(nlp::AbstractNLPModel, ::T; qds_solver = :ldlt, kwargs...) where {T}
   meta = AlgoData(T; kwargs...)
   workspace = ()
@@ -170,19 +254,3 @@ function FPSSSolver(nlp::AbstractNLPModel, ::T; qds_solver = :ldlt, kwargs...) w
   feasibility_solver = GNSolver(nlp.meta.x0, nlp.meta.y0)
   return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver, feasibility_solver)
 end
-
-#=
-function LBFGSSolver{T, V}(
-  meta::AbstractNLPModelMeta;
-) where {T, V}
-  nvar = meta.nvar
-  workspace = (
-    x = V(undef, nvar),
-    xt = V(undef, nvar),
-    gx = V(undef, nvar),
-    gt = V(undef, nvar),
-    d = V(undef, nvar),
-  )
-  return LBFGSSolver{T, V}(workspace)
-end
-=#

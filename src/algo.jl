@@ -230,6 +230,11 @@ function fps_solve(
   )
 end
 
+"""
+    restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
+
+Try to find a feasible point, see [`feasibility_step`](@ref).
+"""
 function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
   # by default, we just want a feasible point
   ϵ_feas = feas_tol
@@ -263,6 +268,11 @@ function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_t
   # Should we also update the stp.current_state ??
 end
 
+"""
+    random_restoration!(meta, stp, sub_stp)
+
+Add a random perturbation to the current iterate.
+"""
 function random_restoration!(meta, stp, sub_stp)
   σ = sub_stp.pb.σ
   radius = min(max(stp.meta.atol, 1 / σ, 1e-3), 1.0)
@@ -278,6 +288,11 @@ function random_restoration!(meta, stp, sub_stp)
   # Should we also update the stp.state ??
 end
 
+"""
+    update_parameters!(meta, sub_stp, feas)
+
+Update `σ`. If the current iterate also update `ρ`.
+"""
 function update_parameters!(meta, sub_stp, feas)
   # update parameters to increase feasibility
   # Do something different if ncx > Δ * nc0 ?
@@ -289,6 +304,11 @@ function update_parameters!(meta, sub_stp, feas)
   reinit!(sub_stp.current_state) #reinitialize the state (keeping x)
 end
 
+"""
+    update_parameters_unbdd!(meta, sub_stp, feas)
+
+Start or update `δ`, then call [`update_parameters!(meta, sub_stp, feas)`](@ref)
+"""
 function update_parameters_unbdd!(meta, sub_stp, feas)
   if sub_stp.pb.δ == 0
     sub_stp.pb.δ = meta.δ_0
@@ -298,6 +318,11 @@ function update_parameters_unbdd!(meta, sub_stp, feas)
   update_parameters!(meta, sub_stp, feas)
 end
 
+"""
+    go_log(stp, sub_stp, fx, ncx, mess::String)
+
+Logging shortcut.
+"""
 function go_log(stp, sub_stp, fx, ncx, mess::String)
   @info log_row(
     Any[
