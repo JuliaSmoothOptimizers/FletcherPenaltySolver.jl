@@ -58,8 +58,14 @@ julia> nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0]
 julia> fp_sos  = FletcherPenaltyNLP(nlp)
 ```
 """
-mutable struct FletcherPenaltyNLP{S, T, A <: Union{Val{1}, Val{2}}, P <: Real, QDS <: QDSolver, Pb} <:
-               AbstractNLPModel{S, T}
+mutable struct FletcherPenaltyNLP{
+  S,
+  T,
+  A <: Union{Val{1}, Val{2}},
+  P <: Real,
+  QDS <: QDSolver,
+  Pb,
+} <: AbstractNLPModel{S, T}
   meta::NLPModelMeta{S, T}
   counters::Counters
   nlp::Pb
