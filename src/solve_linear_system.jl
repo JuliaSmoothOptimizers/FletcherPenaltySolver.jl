@@ -1,3 +1,47 @@
+"""
+    invJtJJv, invJtJSsv = solve_two_extras(nlp, x, rhs1, rhs2)
+
+The `IterativeSolver` variant solve successively a regularized least square, see [`solve_least_square`](@ref),
+and a regularized `minres`. It returns only a warning if the method failed.
+
+The `LDLtSolver` variant use successively a regularized `cgls` and a regularized `minres`.
+"""
+function solve_two_extras end
+
+"""
+    p1, q1, p2, q2 = solve_two_least_squares(nlp, x, rhs1, rhs2)
+
+Solve successively two least square regularized by `√nlp.δ`:
+```math
+    min || ∇c' q - rhs || + δ || q ||^2
+```
+`rhs1` and `rhs2` are both of size `nlp.meta.nvar`.
+
+The `IterativeSolver` variant uses two calls to a `Krylov.jl` method, see [`solve_least_square`](@ref).
+Note that `nlp.Aop` is not re-evaluated in this case. It returns only a warning if the method failed.
+
+The `LDLtSolver` variant use an LDLt factorization to solve the large system.
+"""
+function solve_two_least_squares end
+
+"""
+    p1, q1, p2, q2 = solve_two_mixed(nlp, x, rhs1, rhs2)
+
+Solve successively a least square regularized by `√nlp.δ`:
+```math
+    min || ∇c' q - rhs || + δ || q ||^2
+```
+and a least-norm problem.
+
+`rhs1` is of size `nlp.meta.nvar`, and `rhs2` is of size `nlp.meta.ncon`.
+
+The `IterativeSolver` variant uses two calls to a `Krylov.jl` method, see [`solve_least_square`](@ref) and [`solve_least_norm`](@ref).
+It returns only a warning if the method failed.
+
+The `LDLtSolver` variant use an LDLt factorization to solve the large system.
+"""
+function solve_two_mixed end
+
 function solve_two_extras(
   nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2, SS3, It}},
   x::AbstractVector{T},
@@ -40,10 +84,6 @@ function solve_two_least_squares(
   rhs1::AbstractVector,
   rhs2::AbstractVector,
 ) where {T, S, A, P, SS1, SS2, SS3, It}
-  # rhs1 and rhs2 are both of size nlp.meta.nvar
-  #=
-  We solve || ∇c' q - rhs || + δ || q ||^2
-  =#
   # We trust this one
   # nlp.Aop .= jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
   (q1, stats1) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √nlp.δ)
