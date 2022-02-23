@@ -17,12 +17,12 @@
 
   @testset "Multiprecision tests with 1st approximation" begin
     for ptype in [:unc, :bnd, :equ, :ineq, :eqnbnd, :gen]
-      # multiprecision_nlp((nlp; kwargs...) -> fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(1); kwargs...), ptype)
+      # multiprecision_nlp((nlp; kwargs...) -> fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(1), unconstrained_solver = StoppingInterface.tron; kwargs...), ptype, precisions = (Float32, Float64, BigFloat)) # precisions = (Float16, Float32, Float64, BigFloat)
     end
   end
   @testset "Multiprecision tests with 2nd approximation" begin
     for ptype in [:unc, :bnd, :equ, :ineq, :eqnbnd, :gen]
-      # multiprecision_nlp((nlp; kwargs...) -> fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(2); kwargs...), ptype)
+      # multiprecision_nlp((nlp; kwargs...) -> fps_solve(nlp, nlp.meta.x0, hessian_approx = Val(2), unconstrained_solver = StoppingInterface.tron; kwargs...), ptype, precisions = (Float32, Float64, BigFloat)) # precisions = (Float16, Float32, Float64, BigFloat)
     end
   end
 end
