@@ -1,11 +1,5 @@
 function test_fps_model(T, σ, vivi, qds_type)
-  nlp1 = ADNLPModel(
-    x -> dot(x, x),
-    zeros(T, 10),
-    x -> [sum(x) - 1.0],
-    zeros(T, 1),
-    zeros(T, 1),
-  )
+  nlp1 = ADNLPModel(x -> dot(x, x), zeros(T, 10), x -> [sum(x) - 1.0], zeros(T, 1), zeros(T, 1))
   qds = FletcherPenaltyNLPSolver.eval(qds_type)(nlp1, T(0))
   return FletcherPenaltyNLP(nlp1, T(σ), vivi, qds = qds)
 end

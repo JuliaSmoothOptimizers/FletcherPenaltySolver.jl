@@ -216,7 +216,7 @@ function TR_lsmr(
   Krylov.solve!(
     solver,
     Jz,
-    -cz, 
+    -cz,
     radius = Δ,
     # M = meta.M,
     # λ = meta.λ,

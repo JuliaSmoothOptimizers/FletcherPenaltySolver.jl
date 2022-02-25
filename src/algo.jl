@@ -133,7 +133,8 @@ function fps_solve(
     end
 
     #Check optimality conditions: either stop! is true OR the penalty parameter is too small
-    stp.meta.fail_sub_pb = stp.meta.fail_sub_pb || (nlp.σ > meta.σ_max || nlp.ρ > meta.ρ_max || nlp.δ > meta.δ_max)
+    stp.meta.fail_sub_pb =
+      stp.meta.fail_sub_pb || (nlp.σ > meta.σ_max || nlp.ρ > meta.ρ_max || nlp.δ > meta.δ_max)
     OK = stop!(stp)
 
     if !OK
