@@ -141,6 +141,7 @@ function fps_solve(
       ncx = norm(sub_stp.pb.feas) # state.cx is updated in optimal cases only
       feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
+      @show feas, ncx, feas_tol, sub_stp.meta.atol, sub_stp.meta.rtol, sub_stp.pb.feas
       if (sub_stp.meta.optimal || sub_stp.meta.suboptimal)
         if feas #we need to tighten the tolerances
           sub_stp.meta.atol /= 10 # put in parameters
