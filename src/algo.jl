@@ -142,9 +142,9 @@ function fps_solve(
       feas = ncx < feas_tol
       if (sub_stp.meta.optimal || sub_stp.meta.suboptimal)
         if feas #we need to tighten the tolerances
-          # If we reach the tolerence limit here, the tol tighten
-          sub_stp.meta.atol /= 10 # put in parameters
-          sub_stp.meta.rtol /= 10 # put in parameters
+          sub_stp.meta.atol = min(sub_stp.meta.atol / 10, eps(T)) # put in parameters
+          sub_stp.meta.rtol = min(sub_stp.meta.rtol / 10, eps(T)) # put in parameters
+          # If we reach the tolerence limit here, the tol tighten - stalling
           sub_stp.pb.η = max(meta.η_1, sub_stp.pb.η * meta.η_update)
           sub_stp.pb.xk .= state.x
           go_log(stp, sub_stp, state.fx, ncx, "D-ϵ")
