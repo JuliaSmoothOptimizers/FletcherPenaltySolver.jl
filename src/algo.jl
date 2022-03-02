@@ -36,6 +36,7 @@ function fps_solve(
   )
 
   nc0 = norm(state.cx, Inf)
+  feas_tol = stp.meta.atol # norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
   Δ = meta.Δ # 0.95 #expected decrease in feasibility
   unsuccessful_subpb = 0 #number of consecutive failed subproblem solve.
   unbounded_subpb = 0 #number of consecutive failed subproblem solve.
@@ -101,7 +102,6 @@ function fps_solve(
       stalling, unsuccessful_subpb = 0, 0
       unbounded_subpb += 1
       ncx = norm(sub_stp.pb.feas, Inf) # norm(sub_stp.pb.cx - get_lcon(stp.pb), Inf)
-      feas_tol = stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0)
       feas = ncx < norm(feas_tol, Inf)
       if feas
         stp.meta.unbounded_pb = true
@@ -139,12 +139,12 @@ function fps_solve(
 
     if !OK
       ncx = norm(sub_stp.pb.feas) # state.cx is updated in optimal cases only
-      feas_tol = norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
       feas = ncx < feas_tol
       if (sub_stp.meta.optimal || sub_stp.meta.suboptimal)
         if feas #we need to tighten the tolerances
-          sub_stp.meta.atol /= 10 # put in parameters
-          sub_stp.meta.rtol /= 10 # put in parameters
+          sub_stp.meta.atol = max(sub_stp.meta.atol / 10, eps(T)) # put in parameters
+          sub_stp.meta.rtol = max(sub_stp.meta.rtol / 10, eps(T)) # put in parameters
+          # If we reach the tolerence limit here, the tol tighten - stalling
           sub_stp.pb.η = max(meta.η_1, sub_stp.pb.η * meta.η_update)
           sub_stp.pb.xk .= state.x
           go_log(stp, sub_stp, state.fx, ncx, "D-ϵ")
