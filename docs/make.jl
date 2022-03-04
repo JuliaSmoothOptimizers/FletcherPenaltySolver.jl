@@ -14,7 +14,7 @@ function preprocess_docs(content)
   return string(binder_badge, "\n\n", content)
 end
 
-Literate.markdown(EXAMPLE, OUTPUT; preprocess = preprocess_docs, codefence = "```julia" => "```")
+Literate.markdown(EXAMPLE, OUTPUT; preprocess = preprocess_docs, codefence = "```julia" => "```", execute = true)
 
 link_to_env = "# The environment used in this tutorial is the following [Project.toml](https://github.com/tmigot/FletcherPenaltyNLPSolver/blob/gh-pages/Project.toml) and [Manifest.toml](https://github.com/tmigot/FletcherPenaltyNLPSolver/blob/gh-pages/Manifest.toml). "
 function preprocess_notebook(content)
