@@ -1,6 +1,6 @@
 # FletcherPenaltyNLPSolver - Fletcher's Penalty Method
 
-[![docs-stable][docs-stable-img]][docs-stable-url] [![docs-dev][docs-dev-img]][docs-dev-url] [![build-ci][build-ci-img]][build-ci-url] [![codecov][codecov-img]][codecov-url] [![release][release-img]][release-url] [![doi][doi-img]][doi-url]
+[![docs-stable][docs-stable-img]][docs-stable-url] [![docs-dev][docs-dev-img]][docs-dev-url] [![build-ci][build-ci-img]][build-ci-url] [![codecov][codecov-img]][codecov-url] [![release][release-img]][release-url]
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-stable-url]: https://tmigot.github.io/FletcherPenaltyNLPSolver/stable
@@ -12,22 +12,20 @@
 [codecov-url]: https://codecov.io/gh/tmigot/FletcherPenaltyNLPSolver
 [release-img]: https://img.shields.io/github/v/release/tmigot/FletcherPenaltyNLPSolver.svg?style=flat-square
 [release-url]: https://github.com/tmigot/FletcherPenaltyNLPSolver/releases
-[doi-img]: https://joss.theoj.org/papers/10.21105/joss.03991/status.svg
-[doi-url]: https://doi.org/10.21105/joss.03991
 
 FPS is a solver for equality-constrained nonlinear problems, i.e.,
 optimization problems of the form
 
     min f(x)     s.t.     c(x) = 0,  ℓ ≤ x ≤ u.
 
-It uses other JuliaSmoothOptimizers packages for development.
-In particular, [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) is used for defining the problem, and [SolverCore](https://github.com/JuliaSmoothOptimizers/SolverCore.jl) for the output.
+It uses other [JuliaSmoothOptimizers](https://jso-docs.github.io) packages for development.
+In particular, [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) is used for defining the problem, and [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl) for the output.
 If a general inequality-constrained problem is given to the solver, it solves the problem reformulated as a `SlackModel` from [NLPModelsModifiers.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsModifiers.jl).
 
 ## Algorithm
 
-For equality-constrained problems, the method iteratively solves an unconstrained problem. For bound and equality-constrained problems, the subproblems are bound-constrained problems. Any solver compatible with [Stopping](https://github.com/vepiteski/Stopping.jl) can be used.
-By default, we use `ipopt` from [NLPModelsIpopt.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl) to solve the subproblem, but other solvers can be used such as `knitro` from [NLPModelsKnitro.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl) or any solvers from [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl). The Stopping version of these solvers is available in [StoppingInterface](https://github.com/SolverStoppingJulia/StoppingInterface.jl).
+For equality-constrained problems, the method iteratively solves an unconstrained problem. For bound and equality-constrained problems, the subproblems are bound-constrained problems. Any solver compatible with [Stopping.jl](https://github.com/vepiteski/Stopping.jl) can be used.
+By default, we use `ipopt` from [NLPModelsIpopt.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl) to solve the subproblem, but other solvers can be used such as `knitro` from [NLPModelsKnitro.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl) or any solvers from [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl). The Stopping version of these solvers is available in [StoppingInterface.jl](https://github.com/SolverStoppingJulia/StoppingInterface.jl).
 
 It uses [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl) by default to evaluate the derivatives of the penalized subproblem, but one can also use a matrix-free version with [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
 
@@ -40,7 +38,7 @@ It uses [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFacto
 
 ## How to Cite
 
-If you use FletcherPenaltyNLPSolver in your work, please cite using the format given in [CITATION.bib](https://github.com/tmigot/FletcherPenaltyNLPSolver/blob/main/CITATION.bib).
+If you use FletcherPenaltyNLPSolver in your work, please cite using the format given in [CITATION.cff](https://github.com/tmigot/FletcherPenaltyNLPSolver/blob/main/CITATION.cff).
 
 ## Installation
 
@@ -56,8 +54,12 @@ nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0])
 stats = fps_solve(nlp)
 
 # Constrained
-nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0],
-                 x->[x[1] * x[2] - 1], [0.0], [1.0])
+nlp = ADNLPModel(
+  x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2,
+  [-1.2; 1.0],
+  x->[x[1] * x[2] - 1],
+  [0.0],[1.0],
+)
 stats = fps_solve(nlp)
 ```
 
