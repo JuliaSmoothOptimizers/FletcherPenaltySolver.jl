@@ -4,11 +4,11 @@ FPS is a solver for equality-constrained nonlinear problems, i.e.,
 optimization problems of the form
 
 ```math
-    min\_x f(x) \quad \text{s.t.} \quad c(x) = 0, \quad  ℓ ≤ x ≤ u.
+  \min_x f(x) \quad \text{s.t.} \quad c(x) = 0, \quad  ℓ ≤ x ≤ u.
 ```
 
 It uses other JuliaSmoothOptimizers packages for development.
-In particular, [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) is used for defining the problem, and [SolverCore](https://github.com/JuliaSmoothOptimizers/SolverCore.jl) for the output.
+In particular, [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) is used for defining the problem, and [SolverCore.jl](https://github.com/JuliaSmoothOptimizers/SolverCore.jl) for the output.
 If a general inequality-constrained problem is given to the solver, it solves the problem reformulated as a `SlackModel` from [NLPModelsModifiers.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsModifiers.jl).
 
 
@@ -21,13 +21,13 @@ the bound-constrained optimization problem using Fletcher penalty function:
 
 ```math
   \begin{aligned}
-    \min_{x} \ & f(x) - c(x)^T \lambda_\delta(x) + \frac{\rho}{2}\|c(x)\|^2_2, \\
-    \mbox{where } \lambda_\delta(x) \in \arg\min_{y} \frac{1}{2}\| \nabla c(x)^T y - \nabla f(x) \|^2_2 + \sigma c(x)^T y + \frac{\delta}{2}\|y\|^2.
+    \min_x \ & f(x) - c(x)^T \lambda_\delta(x) + \frac{\rho}{2}\|c(x)\|^2_2, \\
+    \mbox{where } \lambda_\delta(x) \in \text{arg}\min_y \frac{1}{2}\| \nabla c(x)^T y - \nabla f(x) \|^2_2 + \sigma c(x)^T y + \frac{\delta}{2}\|y\|^2.
   \end{aligned}
 ```
 
-For equality-constrained problems, the method iteratively solves an unconstrained problem. For bound and equality-constrained problems, the subproblems are bound-constrained problems. Any solver compatible with [Stopping](https://github.com/vepiteski/Stopping.jl) can be used.
-By default, we use `ipopt` from [NLPModelsIpopt.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl) to solve the subproblem, but other solvers can be used such as `knitro` from [NLPModelsKnitro.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl) or any solvers from [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl). The Stopping version of these solvers is available in [StoppingInterface](https://github.com/SolverStoppingJulia/StoppingInterface.jl).
+For equality-constrained problems, the method iteratively solves an unconstrained problem. For bound and equality-constrained problems, the subproblems are bound-constrained problems. Any solver compatible with [Stopping.jl](https://github.com/vepiteski/Stopping.jl) can be used.
+By default, we use `ipopt` from [NLPModelsIpopt.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl) to solve the subproblem, but other solvers can be used such as `knitro` from [NLPModelsKnitro.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsKnitro.jl) or any solvers from [JSOSolvers.jl](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl). The Stopping version of these solvers is available in [StoppingInterface.jl](https://github.com/SolverStoppingJulia/StoppingInterface.jl).
 
 It uses [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFactorizations.jl) by default to evaluate the derivatives of the penalized subproblem, but one can also use a matrix-free version with [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl).
 
@@ -40,7 +40,7 @@ It uses [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFacto
 
 ## How to Cite
 
-If you use FletcherPenaltyNLPSolver in your work, please cite using the format given in [CITATION.bib](https://github.com/tmigot/FletcherPenaltyNLPSolver/blob/main/CITATION.bib).
+If you use FletcherPenaltyNLPSolver in your work, please cite using the format given in [CITATION.cff](https://github.com/tmigot/FletcherPenaltyNLPSolver/blob/main/CITATION.cff).
 
 ## Installation
 
