@@ -3,7 +3,7 @@
 
 Abstract structure handling parameters for the system
 ```math
-  [ In   A'      ]
+  [ In   A'      ]    
   [ A  -nlp.δ*Im ]
 ```
 that we are solving twice.

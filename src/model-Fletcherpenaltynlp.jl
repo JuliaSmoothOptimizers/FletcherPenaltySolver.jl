@@ -26,18 +26,17 @@ We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
 
 ```math
-    minₓ f(x) s.t. c(x) = ℓ
+    minₓ    f(x)    s.t.    c(x) = ℓ, l ≤ x ≤ u
 ```
 
 using Fletcher penalty function:
 ```math   
-    minₓ f(x) - dot(c(x) - ℓ,ys(x)) + ρ/2 dot(c(x) - ℓ,c(x) - ℓ)
+    minₓ    f(x) - (c(x) - ℓ)^T ys(x) + 0.5 ρ ||c(x) - ℓ||²₂    s.t.    l ≤ x ≤ u
 ```
 where
 ```math
-    ys(x) := argmin\\_y 0.5 ||A(x)y - g(x)||²₂ + σ (c(x) - ℓ)^T y + 0.5 δ ||²₂
+    ys(x)    ∈    arg min\\_y    0.5 ||A(x)y - g(x)||²₂ + σ (c(x) - ℓ)^T y + 0.5 || δ ||²₂
 ```
-and denote `Ys` the gradient of `ys(x)`.
 
 # Arguments
 - `nlp::AbstractNLPModel`: the model solved, see `NLPModels.jl`;
@@ -47,9 +46,9 @@ and denote `Ys` the gradient of `ys(x)`.
 - `qds`: solver structure for the linear algebra computations, see [`LDLtSolver`](@ref) or [`IterativeSolver`](@ref).
 
 # Notes:
-- Evaluation of the obj, grad, objgrad functions evaluate functions from the orginial nlp. These values are stored in `fx`, `cx`, `gx`.
+- Evaluation of the `obj`, `grad`, `objgrad` functions evaluate functions from the orginial `nlp`. These values are stored in `fx`, `cx`, `gx`.
 - The value of the penalty vector `ys` is also stored.
-- The hessian structure is dense.
+- The hessian's structure is dense.
 
 # Examples
 ```julia
