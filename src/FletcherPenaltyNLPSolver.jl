@@ -25,6 +25,12 @@ export hess, hprod, hprod!, hess_coord, hess_coord!, hess_structure, hess_struct
 
 Optimality function used by default in the algorithm.
 An alternative is to use the function `KKT` from `Stopping.jl`.
+
+The function returns a vector of length ncon + nvar containing:
+  * |c(x) - lcon| / |x|₂
+  * res / |λ|₂ ; x - max(min(x - res, uvar), lvar)) if it has bounds
+
+The fields `x`, `cx` and `res` need to be filled. If `state.lambda` is `nothing` then we take |λ|₂=1.
 """
 function Fletcher_penalty_optimality_check(pb::AbstractNLPModel{T, S}, state::NLPAtX) where {T, S}
   #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
