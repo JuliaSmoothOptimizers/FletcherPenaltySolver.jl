@@ -97,11 +97,11 @@ function fps_solve(
         mu = sub_stp.current_state.mu,
         res = sub_stp.current_state.gx,
       )
-      go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "Optml")
+      go_log(stp, sub_stp, state.fx, norm(state.cx), "Optml")
     elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb || unbounded_lagrange_multiplier
       stalling, unsuccessful_subpb = 0, 0
       unbounded_subpb += 1
-      ncx = norm(sub_stp.pb.feas, Inf) # norm(sub_stp.pb.cx - get_lcon(stp.pb), Inf)
+      ncx = norm(sub_stp.pb.cx, Inf) # norm(sub_stp.pb.cx, Inf)
       feas = ncx < norm(feas_tol, Inf)
       if feas
         stp.meta.unbounded_pb = true
@@ -111,7 +111,7 @@ function fps_solve(
       stalling, unbounded_subpb = 0, 0
       unsuccessful_subpb += 1
       # ncx = 
-      go_log(stp, sub_stp, sub_stp.current_state.fx, norm(sub_stp.pb.feas), "Tired")
+      go_log(stp, sub_stp, sub_stp.current_state.fx, norm(sub_stp.pb.cx), "Tired")
     elseif sub_stp.meta.iteration_limit || sub_stp.meta.stalled
       stalling, unbounded_subpb = 0, 0
       unsuccessful_subpb += 1
@@ -122,9 +122,9 @@ function fps_solve(
                                     cx     = sub_stp.pb.cx,
                                     lambda = sub_stp.pb.ys,
                                     res    = grad(sub_stp.pb, sub_stp.current_state.x))
-            ncx = norm(state.cx - get_lcon(stp.pb))
+            ncx = norm(state.cx)
       =#
-      ncx = norm(sub_stp.pb.feas)
+      ncx = norm(sub_stp.pb.cx)
       go_log(stp, sub_stp, state.fx, ncx, "Stlld")
     else #exception of unexpected failure
       stp.meta.fail_sub_pb = true
@@ -138,7 +138,7 @@ function fps_solve(
     OK = stop!(stp)
 
     if !OK
-      ncx = norm(sub_stp.pb.feas) # state.cx is updated in optimal cases only
+      ncx = norm(sub_stp.pb.cx) # state.cx is updated in optimal cases only
       feas = ncx < feas_tol
       if (sub_stp.meta.optimal || sub_stp.meta.suboptimal)
         if feas #we need to tighten the tolerances
@@ -156,7 +156,7 @@ function fps_solve(
           restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R")
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
         elseif stalling ≥ 3 || sub_stp.meta.atol < eps(T)
           # infeasible stationary point
           stp.meta.suboptimal = true
@@ -175,12 +175,12 @@ function fps_solve(
           restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R")
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
         elseif !restoration_phase && unbounded_subpb ≥ 3
           restoration_phase = true
           unbounded_subpb = 0
           random_restoration!(meta, stp, sub_stp)
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R-Unbdd")
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R-Unbdd")
         else
           # update parameters to increase feasibility
           update_parameters_unbdd!(meta, sub_stp, feas)
@@ -194,7 +194,7 @@ function fps_solve(
           restoration_phase = true
           unsuccessful_subpb = 0
           random_restoration!(meta, stp, sub_stp)
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R-Unscc")
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R-Unscc")
         elseif !feasibility_phase && unsuccessful_subpb ≥ 3 && !feas
           #we are most likely stuck at an infeasible stationary point.
           #or an undetected unbounded problem
@@ -203,7 +203,7 @@ function fps_solve(
           restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R")
+          go_log(stp, sub_stp, state.fx, norm(state.cx), "R")
         else
           # update parameters to increase feasibility
           update_parameters!(meta, sub_stp, feas)
@@ -222,7 +222,7 @@ function fps_solve(
     stp.pb,
     solution = stp.current_state.x,
     objective = stp.current_state.fx,
-    primal_feas = norm(stp.current_state.cx - get_lcon(stp.pb), Inf),
+    primal_feas = norm(stp.current_state.cx, Inf),
     dual_feas = sub_stp.current_state.current_score,
     multipliers = stp.current_state.lambda,
     multipliers_L = stp.current_state.mu,
