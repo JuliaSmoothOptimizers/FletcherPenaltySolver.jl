@@ -6,6 +6,14 @@ using FastClosures, LinearAlgebra, Logging, SparseArrays
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
 using Stopping, StoppingInterface
 
+function cons_norhs!(nlp, x, cx)
+  cons!(nlp, x, cx)
+  if nlp.meta.ncon > 0
+    cx .-= get_lcon(nlp)
+  end
+  return cx
+end
+
 include("model-Fletcherpenaltynlp.jl")
 
 export FletcherPenaltyNLP
@@ -26,7 +34,7 @@ function Fletcher_penalty_optimality_check(pb::AbstractNLPModel{T, S}, state::NL
   nxk = max(norm(state.x), one(T))
   nlk = isnothing(state.lambda) ? one(T) : max(norm(state.lambda), one(T))
 
-  cx = abs.(state.cx - get_lcon(pb)) / nxk # max.(cx - get_ucon(nlp), get_lcon(nlp) - cx, 0) / nxk
+  cx = abs.(state.cx) / nxk # max.(cx - get_ucon(nlp), get_lcon(nlp) - cx, 0) / nxk
   if has_bounds(pb) # && state.mu == []
     proj = max.(min.(state.x - state.res, pb.meta.uvar), pb.meta.lvar)
     res = state.x - proj

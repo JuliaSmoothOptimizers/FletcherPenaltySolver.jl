@@ -73,7 +73,6 @@ mutable struct FletcherPenaltyNLP{
   shahx::UInt64 # the x at which fx, cx, gx, ys, and gs are computed
   fx::S
   cx::T
-  feas::T # feasibility residual
   gx::T
   Aop::LinearOperators.LinearOperator{S}
   ys::T
@@ -133,7 +132,6 @@ function FletcherPenaltyNLP(
     zero(UInt64),
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
-    Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
     Vector{S}(undef, nlp.meta.ncon),
@@ -190,7 +188,6 @@ function FletcherPenaltyNLP(
     zero(UInt64),
     S(NaN),
     Vector{S}(undef, nlp.meta.ncon),
-    Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
     Vector{S}(undef, nlp.meta.ncon),
@@ -233,11 +230,11 @@ end
 """
     p1, q1, p2, q2 = linear_system2(nlp, x)
 
-Call to `solve_two_mixed(nlp, x, nlp.gx, nlp.feas)`, see [`solve_two_mixed`](@ref).
+Call to `solve_two_mixed(nlp, x, nlp.gx, nlp.cx)`, see [`solve_two_mixed`](@ref).
 """
 function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
   g = nlp.gx
-  c = nlp.feas
+  c = nlp.cx
   σ = nlp.σ
   #rhs1 = vcat(g, T(σ) * c)
   #rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
@@ -260,8 +257,7 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
     nlp.shahx = shahx
     nlp.fx = obj(nlp.nlp, x)
     grad!(nlp.nlp, x, nlp.gx)
-    cons!(nlp.nlp, x, nlp.cx)
-    nlp.feas .= nlp.cx .- get_lcon(nlp.nlp)
+    cons_norhs!(nlp.nlp, x, nlp.cx)
 
     p1, q1, p2, q2 = linear_system2(nlp, x)
 
@@ -285,7 +281,7 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
   _, ys, _, _ = _compute_ys_gs!(nlp, x)
 
   f = nlp.fx
-  c = nlp.feas
+  c = nlp.cx
 
   fx = f - dot(c, nlp.ys) + T(nlp.ρ) / 2 * dot(c, c)
   if nlp.η > 0.0
@@ -306,7 +302,7 @@ function grad!(
 
   gs, ys, v, w = _compute_ys_gs!(nlp, x)
   g = nlp.gx
-  c = nlp.feas
+  c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
@@ -339,7 +335,7 @@ function objgrad!(
   gs, ys, v, w = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.feas
+  c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
@@ -391,7 +387,7 @@ function hess_coord!(
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.feas
+  c = nlp.cx
   A = jac(nlp.nlp, x) # If used, this should be allocated probably
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
@@ -452,7 +448,7 @@ function hprod!(
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.feas
+  c = nlp.cx
 
   @. nlp.Jv = -ys
   hprod!(nlp.nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
@@ -498,7 +494,7 @@ function hprod!(
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
   g = nlp.gx
-  c = nlp.feas
+  c = nlp.cx
 
   hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 
