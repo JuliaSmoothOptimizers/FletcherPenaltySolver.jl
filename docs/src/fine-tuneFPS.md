@@ -1,4 +1,4 @@
-# Advanced-usage of FletcherPenaltyNLPSolver
+# Advanced usage of FletcherPenaltyNLPSolver
 
 ## Contents
 
@@ -17,7 +17,7 @@ FletcherPenaltyNLPSolver exports the function `fps_solve`:
    fps_solve(stp::NLPStopping; subsolver_verbose::Int = 0, lagrange_bound = 1 / sqrt(eps()), kwargs...)
    fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}; subsolver_verbose::Int = 0, lagrange_bound::T = 1 / sqrt(eps(T)))
 ```
-It is therefore possible to either call `fps_solve(nlp, x, kwargs...)` and the keywords arguments are passed to both `NLPStopping` and/or `FPSSSolver` constructor or build an instance of `NLPStopping` and/or `FPSSSolver` directly.
+It is, therefore, possible to either call `fps_solve(nlp, x, kwargs...)` and the keywords arguments are passed to both `NLPStopping` and/or `FPSSSolver` constructor or build an instance of `NLPStopping` and/or `FPSSSolver` directly.
 
 ```@example ex1
 using ADNLPModels, FletcherPenaltyNLPSolver
@@ -67,7 +67,7 @@ Additional parameters used in stopping the algorithm are defined in the followin
 
 ### Algorithmic parameters
 
-The metadata are defined in a `AlgoData` structure at the initialization of `FPSSolver`.
+The metadata is defined in a `AlgoData` structure at the initialization of `FPSSolver`.
 
 | Parameters    | Type          | Default  | Description                                                                                               |
 | ------------- | ------------- | -------- | --------------------------------------------------------------------------------------------------------- |
@@ -90,10 +90,11 @@ The metadata are defined in a `AlgoData` structure at the initialization of `FPS
 | rtol_sub | Function | rtol -> rtol | relative tolerance for the subproblem in function of `rtol` | 
 | hessian_approx | either `Val(1)` or `Val(2)` | Val(2) | it selects the hessian approximation | 
 | convex_subproblem | Bool | false |  true if the subproblem is convex. Useful to set the `convex` option in `knitro`. | 
+| qds_solver | Symbol | :ldlt | Initialize the `QDSolver` to solve quasi-definite systems, either `:ldlt` or `:iterative`. |
 
 ### Feasibility step
 
-The metadata are defined in a `GNSolver` structure at the initialization of `FPSSolver`.
+The metadata for the feasibility procedure is defined in a `GNSolver` structure at the initialization of `FPSSolver`.
 
 | Parameters             | Type                                    | Default                                            | Description                                                                                               |
 | ---------------------- | --------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
