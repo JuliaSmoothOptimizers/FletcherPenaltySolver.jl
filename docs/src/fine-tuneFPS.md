@@ -46,7 +46,7 @@ The `FPSSSolver`, see [`FPSSSolver`](@ref), contains all the metadata and additi
 
 ```@example ex1
 stp = NLPStopping(nlp)
-data = FPSSSolver(nlp, zero(Float64); kwargs...)
+data = FPSSSolver(nlp, Float64; kwargs...)
 stats = fps_solve(stp, data)
 ```
 

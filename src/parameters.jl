@@ -222,7 +222,7 @@ end
 const qdsolver_correspondence = Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 
 """
-    FPSSSolver(nlp, ::T; kwargs...)
+    FPSSSolver(nlp, ::Type{T}; kwargs...)
 
 Structure regrouping all the structure used during the `fps_solve` call. It returns a `FPSSSolver` structure.
 
@@ -247,7 +247,7 @@ mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver,
   feasibility_solver::FS
 end
 
-function FPSSSolver(nlp::AbstractNLPModel, ::T; qds_solver = :ldlt, kwargs...) where {T}
+function FPSSSolver(nlp::AbstractNLPModel, ::Type{T}; qds_solver = :ldlt, kwargs...) where {T}
   meta = AlgoData(T; kwargs...)
   workspace = ()
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
