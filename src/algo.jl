@@ -2,6 +2,7 @@ function fps_solve(
   stp::NLPStopping,
   fpssolver::FPSSSolver{T, QDS, US};
   subsolver_verbose::Int = 0,
+  subsolver_max_iter::Int = 20000,
   lagrange_bound::T = 1 / sqrt(eps(T)),
 ) where {T, QDS, US}
   meta = fpssolver.meta
@@ -28,7 +29,7 @@ function fps_solve(
     NLPAtX(state.x),
     main_stp = stp,
     optimality_check = has_bounds(nlp) ? optim_check_bounded : unconstrained_check,
-    max_iter = 20000,
+    max_iter = subsolver_max_iter,
     atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
     rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
     optimality0 = one(T),
