@@ -63,7 +63,8 @@ Additional parameters used in stopping the algorithm are defined in the followin
 
 | Parameters           | Type          | Default      | Description                                    |
 | -------------------- | ------------- | ------------ | ---------------------------------------------- |
-| lagrange_bound                 | Real| 1 / sqrt(eps(T))         | bounds on estimated Lagrange multipliers.                            |
+| lagrange_bound | Real| 1 / sqrt(eps(T)) | bounds on estimated Lagrange multipliers. |
+| subsolver_max_iter | Real | 20000 | maximum iteration for the subproblem solver. |
 
 ### Algorithmic parameters
 
