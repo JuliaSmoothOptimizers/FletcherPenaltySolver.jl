@@ -125,7 +125,7 @@ function fps_solve(
     x0 = vcat(x0, zeros(T, ns))
     nlp = SlackModel(nlp)
   end
-  meta = FPSSSolver(nlp, T(0); kwargs...)
+  meta = FPSSSolver(nlp, T; kwargs...)
 
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
@@ -194,7 +194,7 @@ function fps_solve(
 )
   nlp = stp.pb
   T = eltype(nlp.meta.x0)
-  meta = FPSSSolver(nlp, T(0); kwargs...)
+  meta = FPSSSolver(nlp, T; kwargs...)
   # Update the state
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)
