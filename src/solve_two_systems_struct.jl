@@ -23,9 +23,9 @@ It uses `Krylov.jl` methods to solve least-squares and least-norm problems.
 struct IterativeSolver{
   T <: AbstractFloat,
   S,
-  SS1 <: KrylovSolver{T, S},
-  SS2 <: KrylovSolver{T, S},
-  SS3 <: KrylovSolver{T, S},
+  SS1 <: KrylovSolver{T, T, S},
+  SS2 <: KrylovSolver{T, T, S},
+  SS3 <: KrylovSolver{T, T, S},
   It <: Integer,
 } <: QDSolver
   # parameters for least-square solve
@@ -112,17 +112,17 @@ function IterativeSolver(
   ne_etol::T = √eps(T),
   ne_itmax::Int = 0,
   ne_conlim::T = 1 / √eps(T),
-  solver_struct_least_square::KrylovSolver{T, S} = LsqrSolver(
+  solver_struct_least_square::KrylovSolver{T, T, S} = LsqrSolver(
     nlp.meta.nvar,
     nlp.meta.ncon,
     Vector{T},
   ),
-  solver_struct_least_norm::KrylovSolver{T, S} = CraigSolver( # LnlqSolver(
+  solver_struct_least_norm::KrylovSolver{T, T, S} = CraigSolver( # LnlqSolver(
     nlp.meta.ncon,
     nlp.meta.nvar,
     Vector{T},
   ),
-  solver_struct_pinv::KrylovSolver{T, S} = MinresSolver(nlp.meta.ncon, nlp.meta.nvar, Vector{T}),
+  solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(nlp.meta.ncon, nlp.meta.nvar, Vector{T}),
   kwargs...,
 ) where {T, S}
   return IterativeSolver(
