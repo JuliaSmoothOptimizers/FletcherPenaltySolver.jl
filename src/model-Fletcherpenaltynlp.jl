@@ -99,6 +99,7 @@ mutable struct FletcherPenaltyNLP{
   qdsolver::QDS
 
   hessian_approx::A
+  explicit_linear_constraints::Bool
 end
 
 function FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
@@ -110,10 +111,10 @@ function FletcherPenaltyNLP(
   σ,
   hessian_approx,
   x0::AbstractVector{S};
+  explicit_linear_constraints = true,
   qds = LDLtSolver(nlp, S(0)),
 ) where {S}
   nvar = nlp.meta.nvar
-
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
@@ -152,6 +153,7 @@ function FletcherPenaltyNLP(
     zero(typeof(σ)),
     qds,
     hessian_approx,
+    explicit_linear_constraints,
   )
 end
 
@@ -166,10 +168,16 @@ function FletcherPenaltyNLP(
   δ,
   hessian_approx,
   x0::AbstractVector{S};
+  explicit_linear_constraints = true,
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
   nvar = nlp.meta.nvar
-
+  if explicit_linear_constraints
+    (rows, cols) = jac_structure(nlp)
+    nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
+  else
+    nnzj = 0
+  end
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
@@ -190,7 +198,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.ncon),
     Vector{S}(undef, nlp.meta.nvar),
     LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
-    Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, nlp.meta.ncon), # ncon_pen
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
@@ -208,6 +216,7 @@ function FletcherPenaltyNLP(
     zero(typeof(σ)),
     qds,
     hessian_approx,
+    explicit_linear_constraints,
   )
 end
 
