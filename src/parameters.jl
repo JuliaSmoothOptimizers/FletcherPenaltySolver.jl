@@ -58,6 +58,7 @@ struct AlgoData{T <: Real}
   rtol_sub::Function #(stp.meta.rtol)
 
   hessian_approx
+  explicit_linear_constraints::Bool
   convex_subproblem::Bool
 end
 
@@ -82,6 +83,7 @@ function AlgoData(
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,
   hessian_approx = Val(2),
+  explicit_linear_constraints = true,
   convex_subproblem::Bool = false,
   kwargs...,
 )
@@ -104,6 +106,7 @@ function AlgoData(
     atol_sub,
     rtol_sub,
     hessian_approx,
+    explicit_linear_constraints,
     convex_subproblem,
   )
 end
