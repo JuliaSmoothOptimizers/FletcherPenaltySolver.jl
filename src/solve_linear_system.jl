@@ -117,7 +117,11 @@ function solve_two_mixed(
   #=
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
-  nlp.Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  if nlp.explicit_linear_constraints
+    nlp.Aop = jac_nln_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  else
+    nlp.Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
+  end
   (q1, stats1) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √nlp.δ)
 
   # nlp.qdsolver.q1 .= q1
@@ -144,7 +148,11 @@ function solve_two_extras(
   rhs2::AbstractVector,
 ) where {T, S, Tt, A, P, S2, Si, Str}
   τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
-  nlp.Aop = jac_op(nlp.nlp, x)
+  if nlp.explicit_linear_constraints
+    nlp.Aop = jac_nln_op(nlp.nlp, x)
+  else
+    nlp.Aop = jac_op(nlp.nlp, x)
+  end
   (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ) # use Krylov.solve!
 
   JtJ = nlp.Aop * nlp.Aop'
@@ -159,7 +167,8 @@ function solve_two_least_squares(
   rhs2::AbstractVector,
 ) where {T, S, Tt, A, P, S2, Si, Str}
   #set the memory for the matrix in the FletcherPenaltyNLP
-  nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
+  nvar = nlp.nlp.meta.nvar
+  ncon = nlp.explicit_linear_constraints ? nlp.nlp.meta.nnln : nlp.nlp.meta.ncon
 
   # nnz = nvar + nnzj + ncon
   #=
@@ -203,8 +212,9 @@ function solve_two_mixed(
   rhs2::AbstractVector,
 ) where {T, S, Tt, A, P, S2, Si, Str}
   # set the memory for the matrix in the FletcherPenaltyNLP
-  nnzj = nlp.nlp.meta.nnzj
-  nvar, ncon = nlp.nlp.meta.nvar, nlp.nlp.meta.ncon
+  nnzj = nlp.explicit_linear_constraints ? nlp.nlp.meta.nln_nnzj : nlp.nlp.meta.nnzj
+  nvar = nlp.nlp.meta.nvar
+  ncon = nlp.explicit_linear_constraints ? nlp.nlp.meta.nnln : nlp.nlp.meta.ncon
 
   # nnz = nvar + nnzj + ncon
   rows = nlp.qdsolver.rows # zeros(Int, nnz)
@@ -213,7 +223,11 @@ function solve_two_mixed(
 
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = (1 + nvar):(nvar + nnzj)
-  @views jac_coord!(nlp.nlp, x, vals[nnz_idx])
+  if nlp.explicit_linear_constraints
+    @views jac_nln_coord!(nlp.nlp, x, vals[nnz_idx])
+  else
+    @views jac_coord!(nlp.nlp, x, vals[nnz_idx])
+  end
   # -δI (nvar .+ 1:ncon, nvar .+ 1:ncon)
   nnz_idx = (1 + nvar + nnzj):(ncon + nvar + nnzj) # nvar .+ nnzj .+ (1:ncon)
   vals[nnz_idx] .= -nlp.δ

@@ -96,15 +96,16 @@ end
 function IterativeSolver(
   nlp::AbstractNLPModel,
   ::T;
+  explicit_linear_constraints = true,
   # M = opEye(),
   ls_atol::T = √eps(T),
   ls_rtol::T = √eps(T),
-  ls_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+  ls_itmax::Integer = 5 * ((explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon) + nlp.meta.nvar),
   ln_atol::T = √eps(T),
   ln_rtol::T = √eps(T),
   ln_btol::T = √eps(T),
   ln_conlim::T = 1 / √eps(T),
-  ln_itmax::Integer = 5 * (nlp.meta.ncon + nlp.meta.nvar),
+  ln_itmax::Integer = 5 * ((explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon) + nlp.meta.nvar),
   ne_atol::T = √eps(T) / 100,
   ne_rtol::T = √eps(T) / 100,
   ne_ratol::T = zero(T),
@@ -114,17 +115,18 @@ function IterativeSolver(
   ne_conlim::T = 1 / √eps(T),
   solver_struct_least_square::KrylovSolver{T, T, S} = LsqrSolver(
     nlp.meta.nvar,
-    nlp.meta.ncon,
+    explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     Vector{T},
   ),
   solver_struct_least_norm::KrylovSolver{T, T, S} = CraigSolver( # LnlqSolver(
-    nlp.meta.ncon,
+    explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     nlp.meta.nvar,
     Vector{T},
   ),
-  solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(nlp.meta.ncon, nlp.meta.nvar, Vector{T}),
+  solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon, nlp.meta.nvar, Vector{T}),
   kwargs...,
 ) where {T, S}
+  ncon = explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon
   return IterativeSolver(
     # M,
     ls_atol,
@@ -145,13 +147,13 @@ function IterativeSolver(
     solver_struct_least_square,
     solver_struct_least_norm,
     solver_struct_pinv,
-    Vector{T}(undef, nlp.meta.ncon + nlp.meta.nvar),
-    Vector{T}(undef, nlp.meta.ncon),
+    Vector{T}(undef, ncon + nlp.meta.nvar),
+    Vector{T}(undef, ncon),
     Vector{T}(undef, nlp.meta.nvar),
     Vector{T}(undef, nlp.meta.nvar),
-    Vector{T}(undef, nlp.meta.ncon),
+    Vector{T}(undef, ncon),
     Vector{T}(undef, nlp.meta.nvar),
-    Vector{T}(undef, nlp.meta.ncon),
+    Vector{T}(undef, ncon),
   )
 end
 
@@ -294,13 +296,15 @@ end
 function LDLtSolver(
   nlp,
   ::T;
+  explicit_linear_constraints = true,
   ldlt_tol = √eps(T),
   ldlt_r1 = √eps(T),
   ldlt_r2 = -√eps(T),
   kwargs...,
 ) where {T <: Number}
-  nnzj = nlp.meta.nnzj
-  nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
+  nnzj = explicit_linear_constraints ? nlp.meta.nln_nnzj : nlp.meta.nnzj
+  nvar = nlp.meta.nvar
+  ncon = explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon
 
   nnz = nvar + nnzj + ncon
   rows = zeros(Int, nnz)
