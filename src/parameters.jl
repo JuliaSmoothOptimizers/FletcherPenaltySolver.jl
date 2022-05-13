@@ -77,8 +77,8 @@ function AlgoData(
   η_update::Real = one(T),
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
-  subproblem_solver::Function = StoppingInterface.is_knitro_installed ?
-                                   StoppingInterface.knitro : StoppingInterface.ipopt,
+  subproblem_solver::Function = StoppingInterface.is_knitro_installed ? StoppingInterface.knitro :
+                                StoppingInterface.ipopt,
   subpb_unbounded_threshold::Real = 1 / √eps(T),
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,

@@ -174,7 +174,7 @@ function FletcherPenaltyNLP(
   nvar = nlp.meta.nvar
   if explicit_linear_constraints
     (rows, cols) = jac_structure(nlp)
-    nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:nlp.meta.nnzj))
+    nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:(nlp.meta.nnzj)))
   else
     nnzj = 0
   end
