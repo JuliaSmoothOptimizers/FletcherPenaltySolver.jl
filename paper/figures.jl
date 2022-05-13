@@ -3,17 +3,13 @@ using JLD2, Plots, SolverBenchmark
 using PyPlot
 pyplot()
 
-@load "ipopt_dcildl_fps_82.jld2" stats
+@load "ipopt_dcildl_fps_percival_82_equality.jld2" stats
 solved(df) = (df.status .== :first_order)
 
-# Number of problems solved by ipopt
-@show sum(solved(stats[:ipopt]))
-# Number of problems solved by dci
-@show sum(solved(stats[:dcildl]))
-# Number of problems solved by fps
-@show sum(solved(stats[:fps]))
-# Number of problems solved by fpsff
-@show sum(solved(stats[:fpsff]))
+for solver in keys(stats)
+  @show "Number of problems solved by $(solver)"
+  @show sum(solved(stats[solver]))
+end
 
 tim_dci = stats[:dcildl][solved(stats[:dcildl]), :elapsed_time]
 tim_ipopt = stats[:ipopt][solved(stats[:dcildl]), :elapsed_time]

@@ -29,6 +29,21 @@ solvers = Dict(
       ctol = tol,
       rtol = tol,
   ),
+  :percival => nlp -> percival(
+    nlp,
+    #μ::Real = T(10.0),
+    max_iter = typemax(Int64),
+    max_time = max_time,
+    max_eval = typemax(Int64),
+    atol = tol,
+    ctol = tol,
+    rtol = tol,
+    #subsolver_logger::AbstractLogger = NullLogger(),
+    #inity = nothing,
+    #subproblem_modifier = identity,
+    #subsolver_max_eval = max_eval,
+    #subsolver_kwargs = Dict(:max_cgiter => nlp.meta.nvar),
+  ),
   :fpsff =>
     nlp -> fps_solve(
       nlp,
@@ -83,4 +98,4 @@ solvers = Dict(
 stats = bmark_solvers(solvers, cutest_problems)
 
 using JLD2
-@save "ipopt_dcildl_fps_$(string(length(problems))).jld2" stats
+@save "ipopt_dcildl_fps_percival_$(string(length(problems)))_equality.jld2" stats
