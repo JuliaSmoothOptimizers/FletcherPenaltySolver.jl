@@ -6,9 +6,12 @@ using FastClosures, LinearAlgebra, Logging, SparseArrays
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
 using Stopping, StoppingInterface
 
-function cons_norhs!(nlp, x, cx)
-  cons!(nlp, x, cx)
-  if nlp.meta.ncon > 0
+function cons_norhs!(nlp, x, cx) # evaluation of the origin NLPModel
+  if (nlp.meta.ncon > 0) & (length(cx) == nlp.meta.nnln)
+    cons_nln!(nlp, x, cx)
+    cx .-= get_lcon(nlp)[nlp.meta.nln]
+  elseif nlp.meta.ncon > 0
+    cons!(nlp, x, cx)
     cx .-= get_lcon(nlp)
   end
   return cx

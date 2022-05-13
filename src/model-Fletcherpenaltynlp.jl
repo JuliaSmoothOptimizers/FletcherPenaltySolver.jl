@@ -115,6 +115,19 @@ function FletcherPenaltyNLP(
   qds = LDLtSolver(nlp, S(0)),
 ) where {S}
   nvar = nlp.meta.nvar
+  if explicit_linear_constraints
+    lin = collect(1:nlp.meta.nlin)
+    nnzj = nlp.meta.lin_nnzj
+    lin_nnzj = nlp.meta.lin_nnzj
+    nln_nnzj = 0
+    npen = nlp.meta.nnln
+  else
+    lin = Int[]
+    nnzj = 0
+    lin_nnzj = 0
+    nln_nnzj = 0
+    npen = nlp.meta.ncon
+  end
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
@@ -124,6 +137,13 @@ function FletcherPenaltyNLP(
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
+    ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
+    ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
+    lin = lin,
+    nnzj = nnzj,
+    lin_nnzj = lin_nnzj,
+    nln_nnzj = nln_nnzj,
   )
 
   return FletcherPenaltyNLP(
@@ -132,21 +152,21 @@ function FletcherPenaltyNLP(
     nlp,
     zero(UInt64),
     S(NaN),
-    Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
-    LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
-    Vector{S}(undef, nlp.meta.ncon),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.ncon),
-    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
-    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
+    LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
+    Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.ncon),
-    Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
+    Vector{S}(undef, npen),
+    Vector{S}(undef, nlp.meta.nvar + npen),
+    Vector{S}(undef, nlp.meta.nvar + npen),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, npen),
+    Array{S, 2}(undef, npen, nlp.meta.nvar),
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
@@ -173,10 +193,17 @@ function FletcherPenaltyNLP(
 ) where {S}
   nvar = nlp.meta.nvar
   if explicit_linear_constraints
-    (rows, cols) = jac_structure(nlp)
-    nnzj = length(findall(i -> rows[i] ∈ nlp.meta.lin, 1:(nlp.meta.nnzj)))
+    lin = collect(1:nlp.meta.nlin)
+    nnzj = nlp.meta.lin_nnzj
+    lin_nnzj = nlp.meta.lin_nnzj
+    nln_nnzj = 0
+    npen = nlp.meta.nnln
   else
+    lin = Int[]
     nnzj = 0
+    lin_nnzj = 0
+    nln_nnzj = 0
+    npen = nlp.meta.ncon
   end
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
@@ -187,6 +214,13 @@ function FletcherPenaltyNLP(
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
+    ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
+    ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
+    lin = lin,
+    nnzj = nnzj,
+    lin_nnzj = lin_nnzj,
+    nln_nnzj = nln_nnzj,
   )
   counters = Counters()
   return FletcherPenaltyNLP(
@@ -195,21 +229,21 @@ function FletcherPenaltyNLP(
     nlp,
     zero(UInt64),
     S(NaN),
-    Vector{S}(undef, nlp.meta.ncon),
+    Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
-    LinearOperator{S}(nlp.meta.ncon, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
-    Vector{S}(undef, nlp.meta.ncon), # ncon_pen
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.ncon),
-    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
-    Vector{S}(undef, nlp.meta.nvar + nlp.meta.ncon),
+    LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
+    Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.ncon),
-    Array{S, 2}(undef, nlp.meta.ncon, nlp.meta.nvar),
+    Vector{S}(undef, npen),
+    Vector{S}(undef, nlp.meta.nvar + npen),
+    Vector{S}(undef, nlp.meta.nvar + npen),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, nlp.meta.nvar),
+    Vector{S}(undef, npen),
+    Array{S, 2}(undef, npen, nlp.meta.nvar),
     σ,
     ρ,
     δ,
@@ -225,14 +259,14 @@ end
 include("solve_linear_system.jl")
 
 function FletcherPenaltyNLP(
-  nlp::AbstractNLPModel;
-  σ_0::Real = one(eltype(nlp.meta.x0)),
-  ρ_0::Real = zero(eltype(nlp.meta.x0)),
-  δ_0::Real = zero(eltype(nlp.meta.x0)),
+  nlp::AbstractNLPModel{T, S};
+  σ_0::Real = one(T),
+  ρ_0::Real = zero(T),
+  δ_0::Real = zero(T),
   hessian_approx = Val(2),
   x0 = nlp.meta.x0,
   kwargs...,
-)
+) where {T, S}
   return FletcherPenaltyNLP(nlp, σ_0, ρ_0, δ_0, hessian_approx, x0; kwargs...)
 end
 
@@ -321,7 +355,11 @@ function grad!(
 
   #regularization term
   if ρ > 0.0
-    jtprod!(nlp.nlp, x, c, nlp.Jcρ) # J' * c * ρ
+    if nlp.explicit_linear_constraints
+      jtprod_nln!(nlp.nlp, x, c, nlp.Jcρ) # J' * c * ρ
+    else
+      jtprod!(nlp.nlp, x, c, nlp.Jcρ) # J' * c * ρ
+    end
     @. gx += nlp.Jcρ * T(ρ) # Should the product by rho be done here?
   end
   if nlp.η > 0.0
@@ -355,7 +393,11 @@ function objgrad!(
 
   #regularization term
   if ρ > 0.0
-    jtprod!(nlp.nlp, x, c, nlp.Jcρ)
+    if nlp.explicit_linear_constraints
+      jtprod_nln!(nlp.nlp, x, c, nlp.Jcρ) # J' * c * ρ
+    else
+      jtprod!(nlp.nlp, x, c, nlp.Jcρ) # J' * c * ρ
+    end
     @. gx += nlp.Jcρ * T(ρ) # gs - Ysc + Jc
     fx += T(ρ) / 2 * dot(c, c)
   end
@@ -391,7 +433,8 @@ function hess_coord!(
   increment!(nlp, :neval_hess)
 
   nvar = nlp.meta.nvar
-  ncon = nlp.nlp.meta.ncon
+  ncon = nlp.explicit_linear_constraints ? nlp.nlp.meta.nnln : nlp.nlp.meta.ncon
+  ind_con = nlp.explicit_linear_constraints ? nlp.nlp.meta.nln : 1:nlp.nlp.meta.ncon
 
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
@@ -415,8 +458,10 @@ function hess_coord!(
   end
 
   if nlp.hessian_approx == Val(1)
-    for j = 1:ncon
-      nlp.Ss[j, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
+    k = 0
+    for j in ind_con
+      k += 1
+      nlp.Ss[k, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
     end
     Hx += -AinvAtA * nlp.Ss - nlp.Ss' * invAtA * A
   end
@@ -473,8 +518,13 @@ function hprod!(
   @. Hv = p2 - nlp.v + 2 * T(σ) * nlp.Hsv
 
   if ρ > 0.0
-    jprod!(nlp.nlp, x, v, nlp.Jv)
-    jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    if nlp.explicit_linear_constraints
+      jprod_nln!(nlp.nlp, x, v, nlp.Jv)
+      jtprod_nln!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    else
+      jprod!(nlp.nlp, x, v, nlp.Jv)
+      jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    end
     hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
     @. Hv += nlp.v + T(ρ) * nlp.Jcρ
@@ -518,7 +568,11 @@ function hprod!(
   ghjvprod!(nlp.nlp, x, gs, v, nlp.w) # Ssv = ghjvprod(nlp.nlp, x, gs, v)
   Ssv = nlp.w
   invJtJJv, invJtJSsv = solve_two_extras(nlp, x, v, Ssv)
-  jtprod!(nlp.nlp, x, invJtJSsv, nlp.v) # JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
+  if nlp.explicit_linear_constraints
+    jtprod_nln!(nlp.nlp, x, invJtJSsv, nlp.v) # JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
+  else
+    jtprod!(nlp.nlp, x, invJtJSsv, nlp.v) # JtinvJtJSsv = jtprod(nlp.nlp, x, invJtJSsv)
+  end
 
   # @. Hv = nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - nlp.v - SsinvJtJJv
   # @. Hv = p2 - HsPtv + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
@@ -528,8 +582,13 @@ function hprod!(
   @. Hv -= nlp.Jcρ
 
   if ρ > 0.0
-    jprod!(nlp.nlp, x, v, nlp.Jv)
-    jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    if nlp.explicit_linear_constraints
+      jprod_nln!(nlp.nlp, x, v, nlp.Jv)
+      jtprod_nln!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    else
+      jprod!(nlp.nlp, x, v, nlp.Jv)
+      jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
+    end
     hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
     @. Hv += T(ρ) * (nlp.v + nlp.Jcρ)
@@ -540,4 +599,96 @@ function hprod!(
 
   Hv .*= obj_weight
   return Hv
+end
+
+function NLPModels.cons_lin!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  c::AbstractVector{T},
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nlin c
+  increment!(nlp, :neval_cons_lin)
+  return cons_lin!(nlp.nlp, x, c)
+end
+
+function NLPModels.jac_lin_structure!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  rows::AbstractVector{<:Integer},
+  cols::AbstractVector{<:Integer},
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.lin_nnzj rows cols
+  return jac_lin_structure!(nlp.nlp, rows, cols)
+end
+
+function NLPModels.jac_lin_coord!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  vals::AbstractVector{T},
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.lin_nnzj vals
+  increment!(nlp, :neval_jac_lin)
+  return jac_lin_coord!(nlp.nlp, x, vals)
+end
+
+function NLPModels.jprod_lin!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  v::AbstractVector,
+  Jv::AbstractVector,
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x v
+  @lencheck nlp.meta.nlin Jv
+  increment!(nlp, :neval_jprod_lin)
+  return jprod_lin!(nlp.nlp, x, v, Jv)
+end
+
+function NLPModels.jtprod_lin!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  v::AbstractVector,
+  Jtv::AbstractVector,
+  ) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x Jtv
+  @lencheck nlp.meta.nlin v
+  increment!(nlp, :neval_jtprod_lin)
+  return jtprod_lin!(nlp.nlp, x, v, Jtv)
+end
+
+function NLPModels.hess(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  y::AbstractVector;
+  obj_weight::Real = one(eltype(x)),
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.ncon y
+  return hess(nlp, x, obj_weight = obj_weight)
+end
+
+function NLPModels.hess_coord!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  y::AbstractVector,
+  vals::AbstractVector;
+  obj_weight::Real = one(eltype(x)),
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.ncon y
+  @lencheck nlp.meta.nnzh vals
+  return hess_coord!(nlp, x, vals, obj_weight = obj_weight)
+end
+
+function NLPModels.hprod!(
+  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  x::AbstractVector{T},
+  y::AbstractVector,
+  v::AbstractVector,
+  Hv::AbstractVector;
+  obj_weight::Real = one(eltype(x)),
+) where {T, S, Tt, V, P, QDS}
+  @lencheck nlp.meta.nvar x v Hv
+  @lencheck nlp.meta.ncon y
+  return hprod!(nlp, x, v, Hv, obj_weight = obj_weight)
 end
