@@ -77,7 +77,7 @@ function fps_solve(
   while !OK
     reinit!(sub_stp) #reinit the sub-stopping.
     #Solve the subproblem
-    sub_stp = meta.unconstrained_solver(sub_stp, subsolver_verbose = subsolver_verbose)
+    sub_stp = meta.subproblem_solver(sub_stp, subsolver_verbose = subsolver_verbose)
 
     unbounded_lagrange_multiplier = norm(sub_stp.pb.ys, Inf) ≥ lagrange_bound # add to stopping meta?
 

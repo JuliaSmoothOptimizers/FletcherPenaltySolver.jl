@@ -17,7 +17,7 @@ In the following example, we use `tron` from [`JSOSolvers.jl`](https://github.co
 using ADNLPModels, FletcherPenaltyNLPSolver, JSOSolvers
 T = Float32
 nlp = ADNLPModel(x -> (1 - x[1])^2, T[-1.2; 1.0], x -> [10 * (x[2] - x[1]^2)], T[0.0], T[0.0])
-stats = fps_solve(nlp, hessian_approx = Val(2), unconstrained_solver = tron, rtol = T(1e-6))
+stats = fps_solve(nlp, hessian_approx = Val(2), subproblem_solver = tron, rtol = T(1e-6))
 (stats.dual_feas, stats.primal_feas, stats.status, typeof(stats.solution))
 ```
 
@@ -30,7 +30,7 @@ In the following example, we choose a problem with equality constraints from [`O
 ```@example ex2
 using ADNLPModels, FletcherPenaltyNLPSolver, OptimizationProblems
 nlp = OptimizationProblems.ADNLPProblems.hs28()
-stats = fps_solve(nlp, unconstrained_solver = tron, qds_solver = :iterative)
+stats = fps_solve(nlp, subproblem_solver = tron, qds_solver = :iterative)
 (stats.dual_feas, stats.primal_feas, stats.status, stats.elapsed_time)
 ```
 Exploring `nlp`'s counter, we can see that no Hessian or Jacobian matrix has been evaluated.
@@ -41,7 +41,7 @@ We can compare this result with `ipopt` that uses the Jacobian and Hessian matri
 ```@example ex2
 using NLPModels
 reset!(nlp);
-stats = fps_solve(nlp, unconstrained_solver = ipopt, qds_solver = :iterative)
+stats = fps_solve(nlp, subproblem_solver = ipopt, qds_solver = :iterative)
 (stats.dual_feas, stats.primal_feas, stats.status, stats.elapsed_time)
 ```
 

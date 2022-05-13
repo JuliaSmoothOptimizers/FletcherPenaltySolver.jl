@@ -99,7 +99,7 @@ If one define a `Stopping` before calling `fps_solve`, it is possible to access 
 
 - If the problem has inequalities, we use slack variables to get only equalities and bounds via `NLPModelsModifiers.jl`.
 - `stp.current_state.res` contains the gradient of Fletcher's penalty function.
-- `unconstrained_solver` must take an `NLPStopping` as input, see `StoppingInterface.jl`.
+- `subproblem_solver` must take an `NLPStopping` as input, see `StoppingInterface.jl`.
 
 # Examples
 ```julia

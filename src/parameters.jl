@@ -21,7 +21,7 @@ The keyword arguments may include:
 - `η_update::Real = one(T)`: Update subproblem's parameter η;
 - `yM::Real = typemax(T)`: bound on the Lagrange multipliers;
 - `Δ::Real = T(0.95)`: expected decrease in feasibility between two iterations;
-- `unconstrained_solver::Function = StoppingInterface.is_knitro_installed ? NLPModelsKnitro.knitro : ipopt`: solver used for the subproblem;
+- `subproblem_solver::Function = StoppingInterface.is_knitro_installed ? NLPModelsKnitro.knitro : ipopt`: solver used for the subproblem;
 - `subpb_unbounded_threshold::Real = 1 / √eps(T)`: below the opposite of this value, the subproblem is unbounded;
 - `atol_sub::Function = atol -> atol`: absolute tolerance for the subproblem in function of `atol`;
 - `rtol_sub::Function = rtol -> rtol`: relative tolerance for the subproblem in function of `rtol`;
@@ -52,7 +52,7 @@ struct AlgoData{T <: Real}
   Δ::T
 
   #Functions used in the algorithm
-  unconstrained_solver::Function
+  subproblem_solver::Function
   subpb_unbounded_threshold
   atol_sub::Function # (stp.meta.atol)
   rtol_sub::Function #(stp.meta.rtol)
@@ -77,7 +77,7 @@ function AlgoData(
   η_update::Real = one(T),
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
-  unconstrained_solver::Function = StoppingInterface.is_knitro_installed ?
+  subproblem_solver::Function = StoppingInterface.is_knitro_installed ?
                                    StoppingInterface.knitro : StoppingInterface.ipopt,
   subpb_unbounded_threshold::Real = 1 / √eps(T),
   atol_sub::Function = atol -> atol,
@@ -101,7 +101,7 @@ function AlgoData(
     η_update,
     yM,
     Δ,
-    unconstrained_solver,
+    subproblem_solver,
     subpb_unbounded_threshold,
     atol_sub,
     rtol_sub,
@@ -114,39 +114,39 @@ end
 AlgoData(; kwargs...) = AlgoData(Float64; kwargs...)
 
 """
-    UnconstrainedSolver
+    SubProblemSolver
 
 Abstract structure used for the subproblem solve.
 """
-abstract type UnconstrainedSolver end
+abstract type SubProblemSolver end
 
 """
-    KnitroSolver <: UnconstrainedSolver
+    KnitroSolver <: SubProblemSolver
 
 Structure used for the subproblem solve with `knitro`.
 """
-mutable struct KnitroSolver <: UnconstrainedSolver end
+mutable struct KnitroSolver <: SubProblemSolver end
 
 """
-    IpoptSolver <: UnconstrainedSolver
+    IpoptSolver <: SubProblemSolver
 
 Structure used for the subproblem solve with `ipopt`.
 """
-mutable struct IpoptSolver <: UnconstrainedSolver end
+mutable struct IpoptSolver <: SubProblemSolver end
 
 """
-    LBFGSolver <: UnconstrainedSolver
+    LBFGSolver <: SubProblemSolver
 
 Structure used for the subproblem solve with `lbfgs`.
 """
-mutable struct LBFGSSolver <: UnconstrainedSolver end
+mutable struct LBFGSSolver <: SubProblemSolver end
 
 """
-    TronSolver <: UnconstrainedSolver
+    TronSolver <: SubProblemSolver
 
 Structure used for the subproblem solve with `tron`.
 """
-mutable struct TronSolver <: UnconstrainedSolver end
+mutable struct TronSolver <: SubProblemSolver end
 
 """
     GNSolver(x, y; kwargs...)
@@ -235,18 +235,18 @@ The keyword arguments may include:
 - `meta::AlgoData{T}`: see [`AlgoData`](@ref);
 - `workspace`: allocated space for the solver itself;
 - `qdsolver`: solver structure for the linear algebra part, contains allocation for this part. By default a `LDLtSolver`, but an alternative is `IterativeSolver` ;
-- `unconstrained_solver::UnconstrainedSolver`: by default a `KnitroSolver`, options: `IpoptSolver`, `TronSolver`, `LBFGSSolver`;
+- `subproblem_solver::SubProblemSolver`: by default a `KnitroSolver`, options: `IpoptSolver`, `TronSolver`, `LBFGSSolver`;
 - `feasibility_solver`: by default a `GNSolver`, see [`GNSolver`](@ref);
 
 Note:
-- `unconstrained_solver` is not used.
+- `subproblem_solver` is not used.
 - the `qdsolver` is accessible from the dictionary `qdsolver_correspondence`.
 """
-mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: UnconstrainedSolver, FS}
+mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: SubProblemSolver, FS}
   meta::AlgoData{T}
   workspace
   qdsolver::QDS
-  unconstrained_solver::US # should be a structure/named typle, with everything related to unconstrained
+  subproblem_solver::US # should be a structure/named typle, with everything related to unconstrained
   feasibility_solver::FS
 end
 
@@ -254,7 +254,7 @@ function FPSSSolver(nlp::AbstractNLPModel, ::Type{T}; qds_solver = :ldlt, kwargs
   meta = AlgoData(T; kwargs...)
   workspace = ()
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
-  unconstrained_solver = KnitroSolver()
+  subproblem_solver = KnitroSolver()
   feasibility_solver = GNSolver(nlp.meta.x0, nlp.meta.y0)
-  return FPSSSolver(meta, workspace, qdsolver, unconstrained_solver, feasibility_solver)
+  return FPSSSolver(meta, workspace, qdsolver, subproblem_solver, feasibility_solver)
 end
