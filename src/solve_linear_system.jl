@@ -50,12 +50,12 @@ function solve_two_extras(
 ) where {T, S, A, P, SS1, SS2, SS3, It}
   τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
   # (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ)
-  (invJtJJv, invJtJJvstats) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √τ)
+  (invJtJJv, invJtJJvstats) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √τ, invQbound(nlp, x))
   if !invJtJJvstats.solved
     @warn "Failed solving 1st linear system lsqr in extra."
   end
 
-  JtJ = nlp.Aop * nlp.Aop'
+  JtJ = nlp.Aop * Qbound(nlp, x) * nlp.Aop'
   # (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
   solve!(
     nlp.qdsolver.solver_struct_pinv,
@@ -86,7 +86,7 @@ function solve_two_least_squares(
 ) where {T, S, A, P, SS1, SS2, SS3, It}
   # We trust this one
   # nlp.Aop .= jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √nlp.δ)
+  (q1, stats1) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √nlp.δ, invQbound(nlp, x))
   # nlp.qdsolver.q1 .= q1
   # nlp.qdsolver.p1 = rhs1 - nlp.Aop' * q1
   mul!(nlp.qdsolver.p1, nlp.Aop', q1) # nlp.qdsolver.p1 .= nlp.Aop' * q1
@@ -95,7 +95,7 @@ function solve_two_least_squares(
     @warn "Failed solving 1st linear system lsqr."
   end
 
-  (q2, stats2) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs2, √nlp.δ)
+  (q2, stats2) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs2, √nlp.δ, invQbound(nlp, x))
   # nlp.qdsolver.q2 .= q2
   # nlp.qdsolver.p2 = rhs2 - nlp.Aop' * q2
   mul!(nlp.qdsolver.p2, nlp.Aop', q2) # nlp.qdsolver.p2 .= nlp.Aop' * q2
@@ -118,7 +118,7 @@ function solve_two_mixed(
   We solve || ∇c' q - rhs || + δ || q ||^2
   =#
   nlp.Aop = jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
-  (q1, stats1) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √nlp.δ)
+  (q1, stats1) = solve_least_square(nlp.qdsolver, nlp.Aop', rhs1, √nlp.δ, invQbound(nlp, x))
 
   # nlp.qdsolver.q1 .= q1
   mul!(nlp.qdsolver.p1, nlp.Aop', q1) # nlp.qdsolver.p1 .= nlp.Aop' * q1
@@ -127,7 +127,7 @@ function solve_two_mixed(
     @warn "Failed solving 1st linear system lsqr in mixed."
   end
 
-  (p2, q2, stats2) = solve_least_norm(nlp.qdsolver, nlp.Aop, -rhs2, nlp.δ)
+  (p2, q2, stats2) = solve_least_norm(nlp.qdsolver, nlp.Aop, -rhs2, nlp.δ, invQbound(nlp, x))
   @. nlp.qdsolver.p2 = -p2
   # nlp.qdsolver.q2 .= q2
 
@@ -211,6 +211,9 @@ function solve_two_mixed(
   cols = nlp.qdsolver.cols # zeros(Int, nnz)
   vals = nlp.qdsolver.vals # zeros(T, nnz)
 
+  # Q\^{-1}
+  nnz_idx = 1:nvar
+  invqbound!(nlp, x, view(vals, nnz_idx))
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = (1 + nvar):(nvar + nnzj)
   @views jac_coord!(nlp.nlp, x, vals[nnz_idx])

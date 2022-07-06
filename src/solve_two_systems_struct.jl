@@ -160,6 +160,7 @@ function solve_least_square(
   A,
   b,
   λ,
+  M, # inverse of the norm used for the least square
 ) where {T, S, SS1, SS2, SS3, It}
   solve!(
     qdsolver.solver_struct_least_square,
@@ -169,6 +170,7 @@ function solve_least_square(
     atol = qdsolver.ls_atol,
     rtol = qdsolver.ls_rtol,
     itmax = qdsolver.ls_itmax,
+    M = M,
   )
   x = qdsolver.solver_struct_least_square.x
   stats = qdsolver.solver_struct_least_square.stats
@@ -203,6 +205,7 @@ function solve_least_norm(
   A,
   b,
   δ,
+  N, # inverse of the norm used for the least norm
 ) where {T, S, SS1, SS2 <: CraigSolver, SS3, It}
   if δ != 0
     craig!(
@@ -210,6 +213,7 @@ function solve_least_norm(
       A,
       b,
       M = 1 / δ * opEye(length(b)),
+      N = N,
       sqd = true,
       atol = qdsolver.ln_atol,
       rtol = qdsolver.ln_rtol,
@@ -222,6 +226,7 @@ function solve_least_norm(
       qdsolver.solver_struct_least_norm,
       A,
       b,
+      N = N,
       atol = qdsolver.ln_atol,
       rtol = qdsolver.ln_rtol,
       btol = qdsolver.ln_btol,
@@ -239,6 +244,7 @@ function solve_least_norm(
   A,
   b,
   δ,
+  N, # inverse of the norm used for the least norm
 ) where {T, S, SS1, SS2, SS3, It}
   ncon = length(b)
   if δ != 0
@@ -247,6 +253,7 @@ function solve_least_norm(
       A,
       b,
       M = 1 / δ * opEye(ncon),
+      N = N,
       atol = qdsolver.ln_atol,
       rtol = qdsolver.ln_rtol,
       itmax = qdsolver.ln_itmax,
@@ -256,6 +263,7 @@ function solve_least_norm(
       qdsolver.solver_struct_least_norm,
       A,
       b,
+      N = N,
       atol = qdsolver.ln_atol,
       rtol = qdsolver.ln_rtol,
       itmax = qdsolver.ln_itmax,
@@ -307,10 +315,10 @@ function LDLtSolver(
   cols = zeros(Int, nnz)
   vals = zeros(T, nnz)
 
-  # I (1:nvar, 1:nvar)
+  # Q^{-1} (1:nvar, 1:nvar)
   nnz_idx = 1:nvar
   rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
-  vals[nnz_idx] .= ones(T, nvar)
+  # vals[nnz_idx] .= ones(T, nvar)
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
   @views jac_structure!(nlp, cols[nnz_idx], rows[nnz_idx]) #transpose

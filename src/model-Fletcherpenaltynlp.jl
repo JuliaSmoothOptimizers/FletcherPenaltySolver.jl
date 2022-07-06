@@ -35,8 +35,9 @@ using Fletcher penalty function:
 ```
 where
 ```math
-    ys(x)    ∈    arg min\\_y    0.5 ||A(x)y - g(x)||²₂ + σ (c(x) - ℓ)^T y + 0.5 || δ ||²₂
+    ys(x)    ∈    arg min\\_y    0.5 ||A(x)y - g(x)||²  + σ (c(x) - ℓ)^T y + 0.5 δ || y ||²₂
 ```
+and `Q(x)` is used for the norm.
 
 # Arguments
 - `nlp::AbstractNLPModel`: the model solved, see `NLPModels.jl`;
@@ -234,6 +235,52 @@ function FletcherPenaltyNLP(
   kwargs...,
 )
   return FletcherPenaltyNLP(nlp, σ_0, ρ_0, δ_0, hessian_approx, x0; kwargs...)
+end
+
+# Everything related to the smoothing of bound projection
+function qbound(nlp::FletcherPenaltyNLP, x)
+  qx = similar(x)
+  return qbound!(nlp, x, qx)
+end
+
+function qbound!(nlp::FletcherPenaltyNLP, x, qx::AbstractVector{T}) where {T}
+  for i=1:length(qx)
+    ω_i = min(1, 0.5 * (nlp.meta.uvar[i] - nlp.meta.lvar[i]))
+    qx[i] = if ((nlp.meta.lvar[i] == -Inf) & (nlp.meta.uvar[i] == Inf)) | (nlp.meta.lvar[i] == nlp.meta.uvar[i])
+      one(T)
+    elseif abs(nlp.meta.uvar[i] + nlp.meta.lvar[i] - 2 * x[i]) <= ω_i
+      (nlp.meta.uvar[i] - nlp.meta.lvar[i]) / 2 - ω_i / 4 - (2x[i] - nlp.meta.uvar[i] - nlp.meta.lvar[i])^2 / (4 * ω_i)
+    else
+      min(x[i] - nlp.meta.lvar[i], nlp.meta.uvar[i] - x[i] )
+    end
+  end
+  return qx
+end
+
+function invqbound!(nlp::FletcherPenaltyNLP, x, qx::AbstractVector{T}) where {T}
+  qbound!(nlp, x, qx)
+  qx .= 1 ./ qx
+  return qx
+end
+
+function Qbound(nlp::FletcherPenaltyNLP, x)
+  n = nlp.meta.nvar
+  return opDiagonal(n, n, qbound(nlp, x)) # spdiagm(0 => qbound(nlp, x))
+end
+
+function demiQbound(nlp::FletcherPenaltyNLP, x)
+  n = nlp.meta.nvar
+  return opDiagonal(n, n, sqrt.(qbound(nlp, x))) # spdiagm(0 => qbound(nlp, x))
+end
+
+function invQbound(nlp::FletcherPenaltyNLP, x)
+  n = nlp.meta.nvar
+  return opDiagonal(n, n, 1 ./ qbound(nlp, x)) # spdiagm(0 => 1 / qbound(nlp, x))
+end
+
+function invdemiQbound(nlp::FletcherPenaltyNLP, x)
+  n = nlp.meta.nvar
+  return opDiagonal(n, n, 1 ./ sqrt.(qbound(nlp, x))) # spdiagm(0 => 1 / qbound(nlp, x))
 end
 
 """
