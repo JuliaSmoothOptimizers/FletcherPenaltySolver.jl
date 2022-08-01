@@ -315,10 +315,10 @@ function LDLtSolver(
   cols = zeros(Int, nnz)
   vals = zeros(T, nnz)
 
-  # Q^{-1} (1:nvar, 1:nvar)
+  # I (1:nvar, 1:nvar)
   nnz_idx = 1:nvar
   rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
-  # vals[nnz_idx] .= ones(T, nvar)
+  vals[nnz_idx] .= ones(T, nvar)
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
   @views jac_structure!(nlp, cols[nnz_idx], rows[nnz_idx]) #transpose

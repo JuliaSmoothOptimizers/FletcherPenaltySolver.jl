@@ -246,8 +246,10 @@ end
 function qbound!(nlp::FletcherPenaltyNLP, x, qx::AbstractVector{T}) where {T}
   for i=1:length(qx)
     ω_i = min(1, 0.5 * (nlp.meta.uvar[i] - nlp.meta.lvar[i]))
-    qx[i] = if ((nlp.meta.lvar[i] == -Inf) & (nlp.meta.uvar[i] == Inf)) | (nlp.meta.lvar[i] == nlp.meta.uvar[i])
+    qx[i] = if (nlp.meta.lvar[i] == -Inf) & (nlp.meta.uvar[i] == Inf)
       one(T)
+    elseif nlp.meta.lvar[i] == nlp.meta.uvar[i]
+      abs(x[i] - nlp.meta.lvar[i]) # to be smoothened
     elseif abs(nlp.meta.uvar[i] + nlp.meta.lvar[i] - 2 * x[i]) <= ω_i
       (nlp.meta.uvar[i] - nlp.meta.lvar[i]) / 2 - ω_i / 4 - (2x[i] - nlp.meta.uvar[i] - nlp.meta.lvar[i])^2 / (4 * ω_i)
     else
@@ -257,10 +259,27 @@ function qbound!(nlp::FletcherPenaltyNLP, x, qx::AbstractVector{T}) where {T}
   return qx
 end
 
-function invqbound!(nlp::FletcherPenaltyNLP, x, qx::AbstractVector{T}) where {T}
-  qbound!(nlp, x, qx)
-  qx .= 1 ./ qx
-  return qx
+function dqbound(nlp::FletcherPenaltyNLP, x)
+  dqx = similar(x)
+  return dqbound!(nlp, x, dqx)
+end
+
+function dqbound!(nlp::FletcherPenaltyNLP, x, dqx::AbstractVector{T}) where {T}
+  for i=1:length(dqx)
+    ω_i = min(1, 0.5 * (nlp.meta.uvar[i] - nlp.meta.lvar[i]))
+    dqx[i] = if (nlp.meta.lvar[i] == -Inf) & (nlp.meta.uvar[i] == Inf)
+      zero(T)
+    elseif nlp.meta.lvar[i] == nlp.meta.uvar[i]
+      zero(T) # abs(x[i] - nlp.meta.lvar[i]) # to be smoothened
+    elseif abs(nlp.meta.uvar[i] + nlp.meta.lvar[i] - 2 * x[i]) <= ω_i
+      (2x[i] - nlp.meta.uvar[i] - nlp.meta.lvar[i]) / ω_i
+    elseif x[i] - nlp.meta.lvar[i] < nlp.meta.uvar[i] - x[i]
+      one(T)
+    elseif x[i] - nlp.meta.lvar[i] > nlp.meta.uvar[i] - x[i]
+      -one(T)
+    end
+  end
+  return dqx
 end
 
 function Qbound(nlp::FletcherPenaltyNLP, x)
@@ -268,19 +287,21 @@ function Qbound(nlp::FletcherPenaltyNLP, x)
   return opDiagonal(n, n, qbound(nlp, x)) # spdiagm(0 => qbound(nlp, x))
 end
 
+function demiqbound(nlp::FletcherPenaltyNLP, x)
+  return sqrt.(qbound(nlp, x))
+end
+
 function demiQbound(nlp::FletcherPenaltyNLP, x)
   n = nlp.meta.nvar
   return opDiagonal(n, n, sqrt.(qbound(nlp, x))) # spdiagm(0 => qbound(nlp, x))
 end
 
-function invQbound(nlp::FletcherPenaltyNLP, x)
-  n = nlp.meta.nvar
-  return opDiagonal(n, n, 1 ./ qbound(nlp, x)) # spdiagm(0 => 1 / qbound(nlp, x))
-end
-
-function invdemiQbound(nlp::FletcherPenaltyNLP, x)
-  n = nlp.meta.nvar
-  return opDiagonal(n, n, 1 ./ sqrt.(qbound(nlp, x))) # spdiagm(0 => 1 / qbound(nlp, x))
+function R(nlp::FletcherPenaltyNLP, x,v)
+  rxv = similar(x)
+  for i=1:length(x)
+    rxv[i] = v[i] * q[i]
+  end
+  return opDiagonal(n, n, sqrt.(qbound(nlp, x)))
 end
 
 """
@@ -317,8 +338,9 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
 
     p1, q1, p2, q2 = linear_system2(nlp, x)
 
-    nlp.gs .= p1 + T(nlp.σ) * p2 #_sol1[1:nvar]
     nlp.ys .= q1 + T(nlp.σ) * q2 #_sol1[(nvar + 1):(nvar + ncon)]
+    # nlp.gs .= invdemiQboud(nlp, x) * (p1 + T(nlp.σ) * p2) #_sol1[1:nvar]
+    nlp.gs = g - jtprod(nlp, x, ys) # To avoid the numberical instability
 
     nlp.v .= p2 #_sol2[1:nvar]
     nlp.w .= q2 #_sol2[(nvar + 1):(nvar + ncon)]
@@ -361,10 +383,13 @@ function grad!(
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
+  hprod!(nlp.nlp, x, ys, demiQbound(nlp, x) * v, nlp.Hsv, obj_weight = one(T))
   hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
-  @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
+  jtprod!(nlp.nlp, x, w, nlp.Jcρ) # J' * w
+  # @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
+  Rs = dqbound(nlp, x) .* gs
+  @. gx = gs - nlp.Hsv - T(σ) * nlp.Jcρ + Rs .* nlp.Jcρ + nlp.Sstw
 
   #regularization term
   if ρ > 0.0
@@ -394,10 +419,19 @@ function objgrad!(
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
+  #=
   hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
   hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
   @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
+  =#
+  hprod!(nlp.nlp, x, ys, demiQbound(nlp, x) * v, nlp.Hsv, obj_weight = one(T))
+  hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
+  #Ysc = Hsv - T(σ) * v - Sstw
+  jtprod!(nlp.nlp, x, w, nlp.Jcρ) # J' * w
+  # @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
+  Rs = dqbound(nlp, x) .* gs
+  @. gx = gs - nlp.Hsv - T(σ) * nlp.Jcρ + Rs .* nlp.Jcρ + nlp.Sstw
   fx = f - dot(c, ys)
 
   #regularization term
@@ -508,11 +542,15 @@ function hprod!(
 
   @. nlp.Jv = -ys
   hprod!(nlp.nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
+  @show nlp.Hsv
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
+  @show p1, p2
   @. nlp.Hsv = v - p1 # Ptv = v - p1
+  @show nlp.Hsv
   hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
+  @show nlp.v
 
   # PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   # Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
