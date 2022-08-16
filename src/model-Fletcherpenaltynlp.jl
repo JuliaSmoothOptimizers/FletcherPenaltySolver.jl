@@ -112,7 +112,7 @@ function FletcherPenaltyNLP(
   σ,
   hessian_approx,
   x0::AbstractVector{S};
-  explicit_linear_constraints = true,
+  explicit_linear_constraints = false,
   qds = LDLtSolver(nlp, S(0)),
 ) where {S}
   nvar = nlp.meta.nvar
@@ -191,7 +191,7 @@ function FletcherPenaltyNLP(
   δ,
   hessian_approx,
   x0::AbstractVector{S};
-  explicit_linear_constraints = true,
+  explicit_linear_constraints = false,
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
   nvar = nlp.meta.nvar
