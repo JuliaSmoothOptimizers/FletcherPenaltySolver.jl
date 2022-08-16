@@ -317,7 +317,11 @@ function LDLtSolver(
   vals[nnz_idx] .= ones(T, nvar)
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
-  @views jac_structure!(nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
+  if explicit_linear_constraints
+    @views jac_nln_structure!(nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
+  else
+    @views jac_structure!(nlp, cols[nnz_idx], rows[nnz_idx]) #transpose
+  end
   cols[nnz_idx] .+= nvar
   # -δI (nvar .+ 1:ncon, nvar .+ 1:ncon)
   nnz_idx = nvar .+ nnzj .+ (1:ncon)
