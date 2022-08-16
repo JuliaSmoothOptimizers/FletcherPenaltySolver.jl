@@ -94,7 +94,7 @@ using NLPModelsIpopt
 stats_ipopt = ipopt(nlp, x0 = stats_trunk.solution, tol = 1e-5, print_level = 0)
 
 # The problem was successfully solved, and we can extract the function evaluations from the stats.
-stats_ipopt.counters
+nlp.counters
 
 # Reinitialize the counters before re-solving.
 reset!(nlp);
@@ -107,7 +107,7 @@ stats_fps_solve = with_logger(NullLogger()) do
 end
 
 # The problem was successfully solved, and we can extract the function evaluations from the stats.
-stats_fps_solve.counters
+nlp.counters
 
 # We now compare the two solvers with respect to the time spent,
 stats_ipopt.elapsed_time, stats_fps_solve.elapsed_time
