@@ -89,6 +89,7 @@ mutable struct FletcherPenaltyNLP{
   Jcρ::T
   Jv::T
   Ss::Array{S, 2} # only when Val(1)
+  lag_mul::T # size `ncon` if explicit_linear_constraints
 
   # Problem parameter
   σ::P
@@ -128,6 +129,7 @@ function FletcherPenaltyNLP(
     nln_nnzj = 0
     npen = nlp.meta.ncon
   end
+  ncon = explicit_linear_constraints ? nlp.meta.nlin : 0
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
@@ -137,7 +139,7 @@ function FletcherPenaltyNLP(
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
-    ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    ncon = ncon,
     lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
     ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
     lin = lin,
@@ -167,6 +169,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, npen),
     Array{S, 2}(undef, npen, nlp.meta.nvar),
+    explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[], # pre-allocate for hess/hprod
     σ,
     zero(typeof(σ)),
     zero(typeof(σ)),
@@ -205,6 +208,7 @@ function FletcherPenaltyNLP(
     nln_nnzj = 0
     npen = nlp.meta.ncon
   end
+  ncon = explicit_linear_constraints ? nlp.meta.nlin : 0
   meta = NLPModelMeta{S, Vector{S}}(
     nvar,
     x0 = x0,
@@ -214,7 +218,7 @@ function FletcherPenaltyNLP(
     minimize = true,
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
-    ncon = explicit_linear_constraints ? nlp.meta.nlin : 0,
+    ncon = ncon,
     lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
     ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
     lin = lin,
@@ -244,6 +248,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, npen),
     Array{S, 2}(undef, npen, nlp.meta.nvar),
+    explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[],
     σ,
     ρ,
     δ,
@@ -314,6 +319,65 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
   return nlp.gs, nlp.ys, nlp.v, nlp.w
 end
 
+"""
+    hprod_nln!(nlp::FletcherPenaltyNLP, x, y, v, Hv; obj_weight = one(S)) where {S}
+
+Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
+"""
+function hprod_nln!(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y, v, Hv; obj_weight = one(S)) where {S}
+  return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
+    nlp.lag_mul .= zero(S)
+    nlp.lag_mul[nlp.meta.nln] .= y
+    hprod!(nlp.nlp, x, nlp.lag_mul, v, Hv, obj_weight = obj_weight)
+  else
+    hprod!(nlp.nlp, x, y, v, Hv, obj_weight = obj_weight)
+  end
+end
+
+"""
+    hess_nln_nln!(nlp::FletcherPenaltyNLP, x, y, vals; obj_weight = one(S)) where {S}
+
+Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
+"""
+function hess_nln_coord!(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y, vals; obj_weight = one(S)) where {S}
+  return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
+    nlp.lag_mul .= zero(S)
+    nlp.lag_mul[nlp.meta.nln] .= y
+    hess_coord!(nlp.nlp, x, nlp.lag_mul, vals, obj_weight = obj_weight)
+  else
+    hess_coord!(nlp.nlp, x, y, vals, obj_weight = obj_weight)
+  end
+end
+
+"""
+    hess_nln(nlp::FletcherPenaltyNLP, x, y; obj_weight = one(S)) where {S}
+
+Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
+"""
+function hess_nln(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y; obj_weight = one(S)) where {S}
+  return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
+    nlp.lag_mul .= zero(S)
+    nlp.lag_mul[nlp.meta.nln] .= y
+    hess(nlp.nlp, x, nlp.lag_mul, obj_weight = obj_weight)
+  else
+    hess(nlp.nlp, x, y, obj_weight = obj_weight)
+  end
+end
+
+"""
+    ghjvprod_nln!(nlp::FletcherPenaltyNLP, x, y, v, Hv; obj_weight = one(S)) where {S}
+
+Redefine the NLPModel function `ghjvprod` to account for Lagrange multiplier of size < ncon.
+"""
+function ghjvprod_nln!(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y, v, vals) where {S}
+  return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
+    ghjvprod!(nlp.nlp, x, y, v, nlp.lag_mul)
+    vals .= nlp.lag_mul[nlp.nlp.meta.nln]
+  else
+    ghjvprod!(nlp.nlp, x, y, v, vals)
+  end
+end
+
 function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
   nvar = get_nvar(nlp)
   @lencheck nvar x
@@ -348,8 +412,8 @@ function grad!(
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
-  hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
+  hprod_nln!(nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
+  hprod_nln!(nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
   @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
 
@@ -385,8 +449,8 @@ function objgrad!(
   c = nlp.cx
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  hprod!(nlp.nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
-  hprod!(nlp.nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
+  hprod_nln!(nlp, x, ys, v, nlp.Hsv, obj_weight = one(T))
+  hprod_nln!(nlp, x, w, gs, nlp.Sstw; obj_weight = zero(T))
   #Ysc = Hsv - T(σ) * v - Sstw
   @. gx = gs - nlp.Hsv + T(σ) * v + nlp.Sstw
   fx = f - dot(c, ys)
@@ -440,10 +504,14 @@ function hess_coord!(
   f = nlp.fx
   g = nlp.gx
   c = nlp.cx
-  A = jac(nlp.nlp, x) # If used, this should be allocated probably
+  if nlp.explicit_linear_constraints
+    A = jac_nln(nlp.nlp, x) # If used, this should be allocated probably
+  else
+    A = jac(nlp.nlp, x) # If used, this should be allocated probably
+  end
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  Hs = Symmetric(hess(nlp.nlp, x, -ys), :L)
+  Hs = Symmetric(hess_nln(nlp, x, -ys), :L)
   Im = Matrix(I, ncon, ncon)
   τ = T(max(nlp.δ, 1e-14))
   invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
@@ -505,12 +573,12 @@ function hprod!(
   c = nlp.cx
 
   @. nlp.Jv = -ys
-  hprod!(nlp.nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
+  hprod_nln!(nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
   @. nlp.Hsv = v - p1 # Ptv = v - p1
-  hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
+  hprod_nln!(nlp, x, nlp.Jv, nlp.Hsv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
   # PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   # Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
@@ -525,7 +593,7 @@ function hprod!(
       jprod!(nlp.nlp, x, v, nlp.Jv)
       jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
     end
-    hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
+    hprod_nln!(nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
     @. Hv += nlp.v + T(ρ) * nlp.Jcρ
   end
@@ -555,7 +623,7 @@ function hprod!(
   g = nlp.gx
   c = nlp.cx
 
-  hprod!(nlp.nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
+  hprod_nln!(nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
   @. nlp.Hsv = v - p1 # Ptv = v - p1
@@ -563,9 +631,9 @@ function hprod!(
 
   @. nlp.Jv = -ys
   # HsPtv = nlp.Jcρ
-  hprod!(nlp.nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
+  hprod_nln!(nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
 
-  ghjvprod!(nlp.nlp, x, gs, v, nlp.w) # Ssv = ghjvprod(nlp.nlp, x, gs, v)
+  ghjvprod_nln!(nlp, x, gs, v, nlp.w) # Ssv = ghjvprod(nlp.nlp, x, gs, v)
   Ssv = nlp.w
   invJtJJv, invJtJSsv = solve_two_extras(nlp, x, v, Ssv)
   if nlp.explicit_linear_constraints
@@ -578,7 +646,7 @@ function hprod!(
   # @. Hv = p2 - HsPtv + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
   # @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
   @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v
-  hprod!(nlp.nlp, x, invJtJJv, gs, nlp.Jcρ, obj_weight = zero(T)) # SsinvJtJJv
+  hprod_nln!(nlp, x, invJtJJv, gs, nlp.Jcρ, obj_weight = zero(T)) # SsinvJtJJv
   @. Hv -= nlp.Jcρ
 
   if ρ > 0.0
@@ -589,7 +657,7 @@ function hprod!(
       jprod!(nlp.nlp, x, v, nlp.Jv)
       jtprod!(nlp.nlp, x, nlp.Jv, nlp.Jcρ) # JtJv = jtprod(nlp.nlp, x, Jv)
     end
-    hprod!(nlp.nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
+    hprod_nln!(nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
     @. Hv += T(ρ) * (nlp.v + nlp.Jcρ)
   end
