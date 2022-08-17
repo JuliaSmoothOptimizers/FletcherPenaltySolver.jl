@@ -4,11 +4,11 @@ function test_fps_model(T, σ, vivi, qds_type)
   return FletcherPenaltyNLP(nlp1, T(σ), vivi, qds = qds)
 end
 
-function test_fps_lin_model(T, σ, vivi, qds_type)
+function test_fps_lin_model(T, σ, vivi, qds_type, use_linear = false)
   nvar = 10
   nlp1 = ADNLPModel(x -> dot(x, x), zeros(T, nvar), sparse(ones(T, 1, nvar)), ones(T, 1), ones(T, 1))
-  qds = FletcherPenaltyNLPSolver.eval(qds_type)(nlp1, T(0))
-  return FletcherPenaltyNLP(nlp1, T(σ), vivi, qds = qds)
+  qds = FletcherPenaltyNLPSolver.eval(qds_type)(nlp1, T(0), explicit_linear_constraints = use_linear)
+  return FletcherPenaltyNLP(nlp1, T(σ), vivi, qds = qds, explicit_linear_constraints = use_linear)
 end
 
 @testset "NLP tests" begin
@@ -21,6 +21,10 @@ end
     (T = Float64) -> test_fps_lin_model(T, 0.5, Val(2), :LDLtSolver),
     (T = Float64) -> test_fps_lin_model(T, 0.5, Val(1), :IterativeSolver),
     (T = Float64) -> test_fps_lin_model(T, 0.5, Val(2), :IterativeSolver),
+    (T = Float64) -> test_fps_lin_model(T, 0.5, Val(1), :LDLtSolver, true),
+    (T = Float64) -> test_fps_lin_model(T, 0.5, Val(2), :LDLtSolver, true),
+    (T = Float64) -> test_fps_lin_model(T, 0.5, Val(1), :IterativeSolver, true),
+    (T = Float64) -> test_fps_lin_model(T, 0.5, Val(2), :IterativeSolver, true),
   ]
   for nlp_from_T in problemset
     nlp = nlp_from_T()
