@@ -51,7 +51,7 @@ using NLPModelsIpopt
 
 stats_ipopt = ipopt(nlp, x0 = stats_trunk.solution, tol = 1e-5, print_level = 0)
 
-stats_ipopt.counters
+nlp.counters
 
 reset!(nlp);
 
@@ -61,7 +61,7 @@ stats_fps_solve = with_logger(NullLogger()) do
   fps_solve(nlp, stats_trunk.solution, atol = 1e-5, rtol = 1e-5)
 end
 
-stats_fps_solve.counters
+nlp.counters
 
 stats_ipopt.elapsed_time, stats_fps_solve.elapsed_time
 
