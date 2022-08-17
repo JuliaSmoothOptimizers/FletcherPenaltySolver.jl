@@ -305,7 +305,7 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
     nlp.shahx = shahx
     nlp.fx = obj(nlp.nlp, x)
     grad!(nlp.nlp, x, nlp.gx)
-    cons_norhs!(nlp.nlp, x, nlp.cx)
+    cons_norhs!(nlp, x, nlp.cx)
 
     p1, q1, p2, q2 = linear_system2(nlp, x)
 
@@ -317,6 +317,34 @@ function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T
   end
 
   return nlp.gs, nlp.ys, nlp.v, nlp.w
+end
+
+"""
+    cons_norhs!(nlp::FletcherPenaltyNLP, x, cx)
+
+Redefine the NLPModel function `cons!` to account for non-zero right-hand side in the equation constraint.
+It returns `cons(nlp, x) - nlp.meta.lcon`.
+  """
+function cons_norhs!(nlp::FletcherPenaltyNLP, x, cx) # evaluation of the origin NLPModel
+  if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0) # & (length(cx) == nlp.meta.nnln)
+    cons_nln!(nlp.nlp, x, cx)
+    cx .-= get_lcon(nlp.nlp)[nlp.nlp.meta.nln]
+  elseif nlp.nlp.meta.ncon > 0
+    cons!(nlp.nlp, x, cx)
+    cx .-= get_lcon(nlp.nlp)
+  end
+  return cx
+end
+
+function cons_norhs!(nlp, x, cx) # evaluation of the origin NLPModel
+  if (nlp.meta.ncon > 0) & (length(cx) == nlp.meta.nnln)
+    cons_nln!(nlp, x, cx)
+    cx .-= get_lcon(nlp)[nlp.meta.nln]
+  elseif nlp.meta.ncon > 0
+    cons!(nlp, x, cx)
+    cx .-= get_lcon(nlp)
+  end
+  return cx
 end
 
 """
@@ -521,7 +549,7 @@ function hess_coord!(
   Hx = Hs - Pt * Hs - Hs * Pt + 2 * T(σ) * Pt
   #regularization term
   if ρ > 0.0
-    Hc = hess(nlp.nlp, x, c * T(ρ), obj_weight = zero(T))
+    Hc = hess_nln(nlp, x, c * T(ρ), obj_weight = zero(T))
     Hx += Hc + T(ρ) * A' * A
   end
 
