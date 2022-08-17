@@ -42,7 +42,7 @@ makedocs(
   modules = [FletcherPenaltyNLPSolver],
   doctest = true,
   # linkcheck = true,
-  # strict = true,
+  strict = true,
   format = Documenter.HTML(
     assets = ["assets/style.css"],
     prettyurls = get(ENV, "CI", nothing) == "true",
