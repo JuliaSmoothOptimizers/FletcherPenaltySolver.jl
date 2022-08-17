@@ -96,7 +96,7 @@ end
 function IterativeSolver(
   nlp::AbstractNLPModel,
   ::T;
-  explicit_linear_constraints = true,
+  explicit_linear_constraints = false,
   # M = opEye(),
   ls_atol::T = √eps(T),
   ls_rtol::T = √eps(T),
@@ -296,7 +296,7 @@ end
 function LDLtSolver(
   nlp,
   ::T;
-  explicit_linear_constraints = true,
+  explicit_linear_constraints = false,
   ldlt_tol = √eps(T),
   ldlt_r1 = √eps(T),
   ldlt_r2 = -√eps(T),

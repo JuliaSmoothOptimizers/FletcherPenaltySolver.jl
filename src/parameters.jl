@@ -82,7 +82,7 @@ function AlgoData(
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,
   hessian_approx = Val(2),
-  explicit_linear_constraints = true,
+  explicit_linear_constraints = false,
   convex_subproblem::Bool = false,
   kwargs...,
 )
