@@ -539,7 +539,7 @@ function hess_coord!(
   end
   σ, ρ, δ = nlp.σ, nlp.ρ, nlp.δ
 
-  Hs = Symmetric(hess_nln(nlp, x, -ys), :L)
+  Hs = hess_nln(nlp, x, -ys)
   Im = Matrix(I, ncon, ncon)
   τ = T(max(nlp.δ, 1e-14))
   invAtA = pinv(Matrix(A * A') + τ * Im) #inv(Matrix(A*A') + τ * Im) # Euh... wait !
@@ -557,7 +557,7 @@ function hess_coord!(
     k = 0
     for j in ind_con
       k += 1
-      nlp.Ss[k, :] = gs' * Symmetric(jth_hess(nlp.nlp, x, j), :L)
+      nlp.Ss[k, :] = gs' * jth_hess(nlp.nlp, x, j)
     end
     Hx += -AinvAtA * nlp.Ss - nlp.Ss' * invAtA * A
   end
