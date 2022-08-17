@@ -31,12 +31,23 @@ function fps_solve(
 
   #First call to the stopping
   OK = start!(stp)
-  #Prepare the subproblem-stopping for the unconstrained minimization.
+  #Prepare the subproblem-stopping for the subproblem minimization.
+  sub_state = if nlp.meta.ncon > 0
+    NLPAtX(state.x, nlp.meta.y0, Jx = jac(nlp, state.x), res = zeros(T, nlp.meta.nvar))
+  else
+    NLPAtX(state.x, res = zeros(T, nlp.meta.nvar))
+  end
   sub_stp = NLPStopping(
     nlp,
-    NLPAtX(state.x),
+    sub_state,
     main_stp = stp,
-    optimality_check = has_bounds(nlp) ? optim_check_bounded : unconstrained_check,
+    optimality_check = if nlp.meta.ncon > 0
+      KKT
+    elseif has_bounds(nlp)
+      optim_check_bounded
+    else
+      unconstrained_check
+    end,
     max_iter = subsolver_max_iter,
     atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
     rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
@@ -96,6 +107,17 @@ function fps_solve(
       end
       unsuccessful_subpb, unbounded_subpb = 0, 0
 
+      @show sub_stp.pb.ys sub_stp.current_state.lambda sub_stp.current_state.current_score
+      multipliers = sub_stp.pb.ys
+      #multipliers[stp.pb.meta.lin] = sub_stp.current_state.lambda
+      #multipliers[setdiff(1:stp.pb.meta.ncon, stp.pb.meta.lin)] = sub_stp.pb.ys
+      #=
+      if stp.pb.meta.nlin > 0 && nlp.explicit_linear_constraints
+        multipliers[stp.pb.meta.lin] += sub_stp.current_state.lambda
+      end
+      sub_stp.current_state.res .= 0
+      @show sub_stp.current_state.res sub_stp.current_state.gx
+      =#
       Stopping.update!(
         state,
         x = sub_stp.current_state.x,
@@ -103,9 +125,9 @@ function fps_solve(
         gx = sub_stp.pb.gx,
         cx = sub_stp.pb.cx + get_lcon(stp.pb),
         Jx = jac_op(stp.pb, sub_stp.current_state.x),
-        lambda = sub_stp.pb.ys,
+        lambda = multipliers,
         mu = sub_stp.current_state.mu,
-        res = sub_stp.current_state.gx,
+        res = sub_stp.current_state.gx, # res = sub_stp.current_state.res,
         convert = true,
       )
       go_log(stp, sub_stp, state.fx, norm(sub_stp.pb.cx), "Optml")
@@ -277,7 +299,13 @@ function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_t
   # sub_stp.pb.ρ = max(ρ / meta.ρ_update^(1.5), meta.ρ_0)
 
   # reinitialize the State(s) as the problem changed
-  reinit!(sub_stp.current_state, x = stp.current_state.x) #reinitialize the State (keeping x)
+  reinit!(
+    sub_stp.current_state,
+    x = stp.current_state.x,
+    cx = sub_stp.current_state.cx,
+    Jx = sub_stp.current_state.Jx,
+    res = sub_stp.current_state.res,
+  ) #reinitialize the State (keeping x, cx, Jx)
   # Should we also update the stp.current_state ??
 end
 
@@ -297,7 +325,13 @@ function random_restoration!(meta, stp, sub_stp)
   # sub_stp.pb.ρ = max(ρ/meta.ρ_update^(1.5), meta.ρ_0)
 
   # reinitialize the State(s) as the problem changed
-  reinit!(sub_stp.current_state, x = stp.current_state.x) #reinitialize the State (keeping x)
+  reinit!(
+    sub_stp.current_state,
+    x = stp.current_state.x,
+    cx = sub_stp.current_state.cx,
+    Jx = sub_stp.current_state.Jx,
+    res = sub_stp.current_state.res,
+  ) #reinitialize the State (keeping x, cx, Jx)
   # Should we also update the stp.state ??
 end
 
@@ -314,7 +348,12 @@ function update_parameters!(meta, sub_stp, feas)
     sub_stp.pb.ρ *= meta.ρ_update
   end
   #reinitialize the State(s) as the problem changed
-  reinit!(sub_stp.current_state) #reinitialize the state (keeping x)
+  reinit!(
+    sub_stp.current_state,
+    cx = sub_stp.current_state.cx,
+    Jx = sub_stp.current_state.Jx,
+    res = sub_stp.current_state.res,
+  ) #reinitialize the state (keeping x, cx, Jx)
 end
 
 """
