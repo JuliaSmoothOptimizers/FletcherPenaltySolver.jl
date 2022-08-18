@@ -30,7 +30,11 @@ function fps_solve(
   )
 
   #First call to the stopping
-  OK = start!(stp)
+  OK = if (get_ncon(stp.pb) > 0) & (stp.current_state.cx == [])
+    update_and_start!(stp, lambda = stp.pb.meta.y0, cx = cons(stp.pb, stp.current_state.x)) # , convert = true)
+  else
+    start!(stp)
+  end
   #Prepare the subproblem-stopping for the subproblem minimization.
   sub_state = if nlp.meta.ncon > 0
     NLPAtX(state.x, nlp.meta.y0, Jx = jac(nlp, state.x), res = zeros(T, nlp.meta.nvar))
@@ -108,13 +112,13 @@ function fps_solve(
       unsuccessful_subpb, unbounded_subpb = 0, 0
 
       if stp.pb.meta.nlin > 0 && nlp.explicit_linear_constraints
-        stp.current_state.lambda[stp.pb.meta.lin] .= sub_stp.current_state.lambda
-        stp.current_state.lambda[stp.pb.meta.nln] .= sub_stp.pb.ys
+        stp.current_state.lambda[stp.pb.meta.lin] .= -sub_stp.current_state.lambda
+        stp.current_state.lambda[stp.pb.meta.nln] .= -sub_stp.pb.ys
         stp.current_state.cx[stp.pb.meta.lin] .= sub_stp.current_state.cx
         stp.current_state.cx[stp.pb.meta.nln] .= sub_stp.pb.cx .+ get_lcon(stp.pb)[stp.pb.meta.nln]
         Stopping.update!(state, res = sub_stp.current_state.gx + sub_stp.current_state.Jx' * sub_stp.current_state.lambda)
       else
-        stp.current_state.lambda .= sub_stp.pb.ys
+        stp.current_state.lambda .= -sub_stp.pb.ys
         stp.current_state.cx .= sub_stp.pb.cx + get_lcon(stp.pb)
         Stopping.update!(state, res = sub_stp.current_state.gx)
       end
