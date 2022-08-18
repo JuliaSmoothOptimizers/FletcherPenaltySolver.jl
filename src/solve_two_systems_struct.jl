@@ -157,6 +157,11 @@ function IterativeSolver(
   )
 end
 
+"""
+    solve_least_square(qdsolver::IterativeSolver, A, b, λ)
+
+Solve least squares problem with regularization λ.
+"""
 function solve_least_square(
   qdsolver::IterativeSolver{T, S, SS1, SS2, SS3, It},
   A,
@@ -236,6 +241,11 @@ function solve_least_norm(
   return (x, y, stats)
 end
 
+"""
+    solve_least_norm(qdsolver::IterativeSolver, A, b, λ)
+
+Solve least squares problem with regularization δ.
+"""
 function solve_least_norm(
   qdsolver::IterativeSolver{T, S, SS1, SS2, SS3, It},
   A,
