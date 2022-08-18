@@ -28,7 +28,7 @@ So, it is not necessary to compute and store explicitly those matrices.
 In the following example, we choose a problem with equality constraints from [`OptimizationProblems.jl`](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl).
 
 ```@example ex2
-using ADNLPModels, FletcherPenaltyNLPSolver, OptimizationProblems
+using ADNLPModels, FletcherPenaltyNLPSolver, JSOSolvers, OptimizationProblems
 nlp = OptimizationProblems.ADNLPProblems.hs28()
 stats = fps_solve(nlp, subproblem_solver = tron, qds_solver = :iterative)
 (stats.dual_feas, stats.primal_feas, stats.status, stats.elapsed_time)
@@ -39,7 +39,7 @@ nlp.counters
 ```
 We can compare this result with `ipopt` that uses the Jacobian and Hessian matrices.
 ```@example ex2
-using NLPModels
+using NLPModels, NLPModelsIpopt
 reset!(nlp);
 stats = fps_solve(nlp, subproblem_solver = ipopt, qds_solver = :iterative)
 (stats.dual_feas, stats.primal_feas, stats.status, stats.elapsed_time)
@@ -75,7 +75,7 @@ Another possibility is to reuse the `Stopping` for another solve.
 ```@example ex3
 new_x0 = 4 * ones(2)
 reinit!(stp, rstate = true, x = new_x0)
-reset!(stp.pb)
+Stopping.reset!(stp.pb)
 stats = fps_solve(stp)
 ```
 
