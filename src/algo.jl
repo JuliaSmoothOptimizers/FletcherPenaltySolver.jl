@@ -107,27 +107,24 @@ function fps_solve(
       end
       unsuccessful_subpb, unbounded_subpb = 0, 0
 
-      @show sub_stp.pb.ys sub_stp.current_state.lambda sub_stp.current_state.current_score
-      multipliers = sub_stp.pb.ys
-      #multipliers[stp.pb.meta.lin] = sub_stp.current_state.lambda
-      #multipliers[setdiff(1:stp.pb.meta.ncon, stp.pb.meta.lin)] = sub_stp.pb.ys
-      #=
       if stp.pb.meta.nlin > 0 && nlp.explicit_linear_constraints
-        multipliers[stp.pb.meta.lin] += sub_stp.current_state.lambda
+        stp.current_state.lambda[stp.pb.meta.lin] .= sub_stp.current_state.lambda
+        stp.current_state.lambda[stp.pb.meta.nln] .= sub_stp.pb.ys
+        stp.current_state.cx[stp.pb.meta.lin] .= sub_stp.current_state.cx
+        stp.current_state.cx[stp.pb.meta.nln] .= sub_stp.pb.cx .+ get_lcon(stp.pb)[stp.pb.meta.nln]
+        Stopping.update!(state, res = sub_stp.current_state.gx + sub_stp.current_state.Jx' * sub_stp.current_state.lambda)
+      else
+        stp.current_state.lambda .= sub_stp.pb.ys
+        stp.current_state.cx .= sub_stp.pb.cx + get_lcon(stp.pb)
+        Stopping.update!(state, res = sub_stp.current_state.gx)
       end
-      sub_stp.current_state.res .= 0
-      @show sub_stp.current_state.res sub_stp.current_state.gx
-      =#
       Stopping.update!(
         state,
         x = sub_stp.current_state.x,
         fx = sub_stp.pb.fx,
         gx = sub_stp.pb.gx,
-        cx = sub_stp.pb.cx + get_lcon(stp.pb),
         Jx = jac_op(stp.pb, sub_stp.current_state.x),
-        lambda = multipliers,
         mu = sub_stp.current_state.mu,
-        res = sub_stp.current_state.gx, # res = sub_stp.current_state.res,
         convert = true,
       )
       go_log(stp, sub_stp, state.fx, norm(sub_stp.pb.cx), "Optml")
