@@ -100,12 +100,16 @@ function IterativeSolver(
   # M = opEye(),
   ls_atol::T = √eps(T),
   ls_rtol::T = √eps(T),
-  ls_itmax::Integer = 5 * ((explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon) + nlp.meta.nvar),
+  ls_itmax::Integer = 5 * (
+    (explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon) + nlp.meta.nvar
+  ),
   ln_atol::T = √eps(T),
   ln_rtol::T = √eps(T),
   ln_btol::T = √eps(T),
   ln_conlim::T = 1 / √eps(T),
-  ln_itmax::Integer = 5 * ((explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon) + nlp.meta.nvar),
+  ln_itmax::Integer = 5 * (
+    (explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon) + nlp.meta.nvar
+  ),
   ne_atol::T = √eps(T) / 100,
   ne_rtol::T = √eps(T) / 100,
   ne_ratol::T = zero(T),
@@ -123,7 +127,11 @@ function IterativeSolver(
     nlp.meta.nvar,
     Vector{T},
   ),
-  solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon, nlp.meta.nvar, Vector{T}),
+  solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(
+    explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
+    nlp.meta.nvar,
+    Vector{T},
+  ),
   kwargs...,
 ) where {T, S}
   ncon = explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon

@@ -117,7 +117,7 @@ function FletcherPenaltyNLP(
 ) where {S}
   nvar = nlp.meta.nvar
   if explicit_linear_constraints
-    lin = collect(1:nlp.meta.nlin)
+    lin = collect(1:(nlp.meta.nlin))
     nnzj = nlp.meta.lin_nnzj
     lin_nnzj = nlp.meta.lin_nnzj
     nln_nnzj = 0
@@ -196,7 +196,7 @@ function FletcherPenaltyNLP(
 ) where {S}
   nvar = nlp.meta.nvar
   if explicit_linear_constraints
-    lin = collect(1:nlp.meta.nlin)
+    lin = collect(1:(nlp.meta.nlin))
     nnzj = nlp.meta.lin_nnzj
     lin_nnzj = nlp.meta.lin_nnzj
     nln_nnzj = 0
@@ -352,7 +352,14 @@ end
 
 Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
 """
-function hprod_nln!(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y, v, Hv; obj_weight = one(S)) where {S}
+function hprod_nln!(
+  nlp::FletcherPenaltyNLP,
+  x::AbstractVector{S},
+  y,
+  v,
+  Hv;
+  obj_weight = one(S),
+) where {S}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     nlp.lag_mul .= zero(S)
     nlp.lag_mul[nlp.meta.nln] .= y
@@ -367,7 +374,13 @@ end
 
 Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
 """
-function hess_nln_coord!(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y, vals; obj_weight = one(S)) where {S}
+function hess_nln_coord!(
+  nlp::FletcherPenaltyNLP,
+  x::AbstractVector{S},
+  y,
+  vals;
+  obj_weight = one(S),
+) where {S}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     nlp.lag_mul .= zero(S)
     nlp.lag_mul[nlp.meta.nln] .= y
@@ -526,7 +539,7 @@ function hess_coord!(
 
   nvar = nlp.meta.nvar
   ncon = nlp.explicit_linear_constraints ? nlp.nlp.meta.nnln : nlp.nlp.meta.ncon
-  ind_con = nlp.explicit_linear_constraints ? nlp.nlp.meta.nln : 1:nlp.nlp.meta.ncon
+  ind_con = nlp.explicit_linear_constraints ? nlp.nlp.meta.nln : 1:(nlp.nlp.meta.ncon)
 
   gs, ys, _, _ = _compute_ys_gs!(nlp, x)
   f = nlp.fx
@@ -745,7 +758,7 @@ function NLPModels.jtprod_lin!(
   x::AbstractVector{T},
   v::AbstractVector,
   Jtv::AbstractVector,
-  ) where {T, S, Tt, V, P, QDS}
+) where {T, S, Tt, V, P, QDS}
   @lencheck nlp.meta.nvar x Jtv
   @lencheck nlp.meta.nlin v
   increment!(nlp, :neval_jtprod_lin)

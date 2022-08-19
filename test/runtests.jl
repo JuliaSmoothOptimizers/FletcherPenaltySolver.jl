@@ -71,10 +71,10 @@ include("solvertest.jl")
     [-1.2; 1.0],
     [1],
     [1],
-    [-1.],
+    [-1.0],
     x -> [10 * (x[2] - x[1]^2)],
-    [-1., 0.],
-    [-1., 0.],
+    [-1.0, 0.0],
+    [-1.0, 0.0],
     name = "mgh01feas";
   )
   stats = fps_solve(nlp, explicit_linear_constraints = true)
@@ -88,10 +88,10 @@ include("solvertest.jl")
     [-1.2; 1.0],
     [1],
     [1],
-    [-1.],
+    [-1.0],
     x -> [10 * (x[2] - x[1]^2)],
-    [-1., 1.],
-    [-1., 1.],
+    [-1.0, 1.0],
+    [-1.0, 1.0],
     name = "mgh01feas-bis";
   )
   stats = fps_solve(nlp, explicit_linear_constraints = true)
