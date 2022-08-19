@@ -127,7 +127,7 @@ function fps_solve(
         x = sub_stp.current_state.x,
         fx = sub_stp.pb.fx,
         gx = sub_stp.pb.gx,
-        Jx = jac_op(stp.pb, sub_stp.current_state.x),
+        Jx = jac(stp.pb, sub_stp.current_state.x),
         mu = sub_stp.current_state.mu,
         convert = true,
       )
@@ -274,7 +274,7 @@ Try to find a feasible point, see [`feasibility_step`](@ref).
 function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
   # by default, we just want a feasible point
   ϵ_feas = feas_tol
-  Jx = jac_op(stp.pb, stp.current_state.x)
+  Jx = jac(stp.pb, stp.current_state.x)
   z, cz, normcz, Jz, status_feas = feasibility_step(
     feasibility_solver,
     stp.pb,
