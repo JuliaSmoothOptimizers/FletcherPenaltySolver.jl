@@ -116,7 +116,10 @@ function fps_solve(
         stp.current_state.lambda[stp.pb.meta.nln] .= -sub_stp.pb.ys
         stp.current_state.cx[stp.pb.meta.lin] .= sub_stp.current_state.cx
         stp.current_state.cx[stp.pb.meta.nln] .= sub_stp.pb.cx .+ get_lcon(stp.pb)[stp.pb.meta.nln]
-        Stopping.update!(state, res = sub_stp.current_state.gx + sub_stp.current_state.Jx' * sub_stp.current_state.lambda)
+        Stopping.update!(
+          state,
+          res = sub_stp.current_state.gx + sub_stp.current_state.Jx' * sub_stp.current_state.lambda,
+        )
       else
         stp.current_state.lambda .= -sub_stp.pb.ys
         stp.current_state.cx .= sub_stp.pb.cx + get_lcon(stp.pb)

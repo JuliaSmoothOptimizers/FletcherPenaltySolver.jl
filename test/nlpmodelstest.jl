@@ -6,8 +6,10 @@ end
 
 function test_fps_lin_model(T, σ, vivi, qds_type, use_linear = false)
   nvar = 10
-  nlp1 = ADNLPModel(x -> dot(x, x), zeros(T, nvar), sparse(ones(T, 1, nvar)), ones(T, 1), ones(T, 1))
-  qds = FletcherPenaltyNLPSolver.eval(qds_type)(nlp1, T(0), explicit_linear_constraints = use_linear)
+  nlp1 =
+    ADNLPModel(x -> dot(x, x), zeros(T, nvar), sparse(ones(T, 1, nvar)), ones(T, 1), ones(T, 1))
+  qds =
+    FletcherPenaltyNLPSolver.eval(qds_type)(nlp1, T(0), explicit_linear_constraints = use_linear)
   return FletcherPenaltyNLP(nlp1, T(σ), vivi, qds = qds, explicit_linear_constraints = use_linear)
 end
 
@@ -36,7 +38,11 @@ end
         check_nlp_dimensions(nlp, linear_api = true)
       end
       @testset "Multiple precision support" begin
-        multiple_precision_nlp(nlp_from_T, linear_api = true, precisions = [Float16, Float32, Float64])
+        multiple_precision_nlp(
+          nlp_from_T,
+          linear_api = true,
+          precisions = [Float16, Float32, Float64],
+        )
       end
       @testset "View subarray" begin
         view_subarray_nlp(nlp)
