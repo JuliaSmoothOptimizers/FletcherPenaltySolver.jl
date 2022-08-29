@@ -55,7 +55,7 @@ nlp.counters
 
 reset!(nlp);
 
-using FletcherPenaltyNLPSolver, Logging
+using FletcherPenaltySolver, Logging
 
 stats_fps_solve = with_logger(NullLogger()) do
   fps_solve(nlp, stats_trunk.solution, atol = 1e-5, rtol = 1e-5)
