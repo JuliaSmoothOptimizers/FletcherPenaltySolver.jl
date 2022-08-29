@@ -40,11 +40,11 @@ It uses [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFacto
 
 ## How to Cite
 
-If you use FletcherPenaltySolver.jl in your work, please cite using the format given in [CITATION.cff](https://github.com/tmigot/FletcherPenaltySolver.jl/blob/main/CITATION.cff).
+If you use FletcherPenaltySolver.jl in your work, please cite using the format given in [CITATION.cff](https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/blob/main/CITATION.cff).
 
 ## Installation
 
-1. `pkg> add https://github.com/tmigot/FletcherPenaltySolver.jl`
+1. `pkg> add https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl`
 
 ## Example
 

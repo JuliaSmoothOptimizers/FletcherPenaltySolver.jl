@@ -3,15 +3,15 @@
 [![docs-stable][docs-stable-img]][docs-stable-url] [![docs-dev][docs-dev-img]][docs-dev-url] [![build-ci][build-ci-img]][build-ci-url] [![codecov][codecov-img]][codecov-url] [![release][release-img]][release-url]
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docs-stable-url]: https://tmigot.github.io/FletcherPenaltySolver.jl/stable
+[docs-stable-url]: https://JuliaSmoothOptimizers.github.io/FletcherPenaltySolver.jl/stable
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-purple.svg
-[docs-dev-url]: https://tmigot.github.io/FletcherPenaltySolver.jl/dev
-[build-ci-img]: https://github.com/tmigot/FletcherPenaltySolver.jl/workflows/CI/badge.svg?branch=main
-[build-ci-url]: https://github.com/tmigot/FletcherPenaltySolver.jl/actions
-[codecov-img]: https://codecov.io/gh/tmigot/FletcherPenaltySolver.jl/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/tmigot/FletcherPenaltySolver.jl
-[release-img]: https://img.shields.io/github/v/release/tmigot/FletcherPenaltySolver.jl.svg?style=flat-square
-[release-url]: https://github.com/tmigot/FletcherPenaltySolver.jl/releases
+[docs-dev-url]: https://JuliaSmoothOptimizers.github.io/FletcherPenaltySolver.jl/dev
+[build-ci-img]: https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/workflows/CI/badge.svg?branch=main
+[build-ci-url]: https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/actions
+[codecov-img]: https://codecov.io/gh/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/JuliaSmoothOptimizers/FletcherPenaltySolver.jl
+[release-img]: https://img.shields.io/github/v/release/JuliaSmoothOptimizers/FletcherPenaltySolver.jl.svg?style=flat-square
+[release-url]: https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/releases
 
 FPS is a solver for equality-constrained nonlinear problems, i.e.,
 optimization problems of the form
@@ -38,11 +38,11 @@ It uses [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFacto
 
 ## How to Cite
 
-If you use FletcherPenaltySolver.jl in your work, please cite using the format given in [CITATION.cff](https://github.com/tmigot/FletcherPenaltySolver.jl/blob/main/CITATION.cff).
+If you use FletcherPenaltySolver.jl in your work, please cite using the format given in [CITATION.cff](https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/blob/main/CITATION.cff).
 
 ## Installation
 
-`pkg> add https://github.com/tmigot/FletcherPenaltySolver.jl`
+`pkg> add https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl`
 
 ## Example
 
