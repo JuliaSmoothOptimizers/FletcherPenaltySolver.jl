@@ -9,7 +9,7 @@ EXAMPLE = joinpath(@__DIR__, "assets", "example.jl")
 OUTPUT = joinpath(@__DIR__, "src")
 
 # Generate markdown
-binder_badge = "# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tmigot/FletcherPenaltySolver/gh-pages?labpath=dev%2Fexample.ipynb)"
+binder_badge = "# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/gh-pages?labpath=dev%2Fexample.ipynb)"
 function preprocess_docs(content)
   return string(binder_badge, "\n\n", content)
 end
@@ -22,7 +22,7 @@ Literate.markdown(
   execute = true,
 )
 
-link_to_env = "# The environment used in this tutorial is the following [Project.toml](https://github.com/tmigot/FletcherPenaltySolver/blob/gh-pages/Project.toml) and [Manifest.toml](https://github.com/tmigot/FletcherPenaltySolver/blob/gh-pages/Manifest.toml). "
+link_to_env = "# The environment used in this tutorial is the following [Project.toml](https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/blob/gh-pages/Project.toml) and [Manifest.toml](https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/blob/gh-pages/Manifest.toml). "
 function preprocess_notebook(content)
   return string(link_to_env, "\n\n", content)
 end
@@ -52,7 +52,7 @@ makedocs(
 )
 
 deploydocs(
-  repo = "github.com/tmigot/FletcherPenaltySolver.git",
+  repo = "github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl.git",
   push_preview = true,
   devbranch = "main",
 )

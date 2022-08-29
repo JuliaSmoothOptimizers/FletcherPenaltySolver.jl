@@ -28,7 +28,7 @@ The keyword arguments may include:
 - `hessian_approx = Val(2)`: either `Val(1)` or `Val(2)`, it selects the hessian approximation;
 - `convex_subproblem::Bool = false`: true if the subproblem is convex. Useful to set the `convex` option in `knitro`.
 
-For more details, we refer to the package documentation [fine-tuneFPS.md](https://tmigot.github.io/FletcherPenaltySolver/dev/fine-tuneFPS/). 
+For more details, we refer to the package documentation [fine-tuneFPS.md](https://JuliaSmoothOptimizers.github.io/FletcherPenaltySolver.jl/dev/fine-tuneFPS/). 
 """
 struct AlgoData{T <: Real}
 
