@@ -11,7 +11,7 @@ using Stopping, StoppingInterface
 using Test
 
 #This package
-using FletcherPenaltyNLPSolver
+using FletcherPenaltySolver
 
 include("nlpmodelstest.jl")
 

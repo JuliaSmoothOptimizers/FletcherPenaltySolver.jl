@@ -4,9 +4,9 @@
 Pages = ["tutorial.md"]
 ```
 
-## FletcherPenaltyNLPSolver Tutorial
+## FletcherPenaltySolver Tutorial
 
-In this tutorial, we explore on small instances various possibilities offered by `fps_solve` defined in the package `FletcherPenaltyNLPSolver`.
+In this tutorial, we explore on small instances various possibilities offered by `fps_solve` defined in the package `FletcherPenaltySolver`.
 
 ### Type stable algorithm
 
@@ -14,7 +14,7 @@ The algorithm is implemented in pure Julia, so if one also chooses an unconstrai
 In the following example, we use `tron` from [`JSOSolvers.jl`](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl) on a simple example in `Float32`.
 
 ```@example ex1
-using ADNLPModels, FletcherPenaltyNLPSolver, JSOSolvers
+using ADNLPModels, FletcherPenaltySolver, JSOSolvers
 T = Float32
 nlp = ADNLPModel(x -> (1 - x[1])^2, T[-1.2; 1.0], x -> [10 * (x[2] - x[1]^2)], T[0.0], T[0.0])
 stats = fps_solve(nlp, hessian_approx = Val(2), subproblem_solver = tron, rtol = T(1e-6))
@@ -28,7 +28,7 @@ So, it is not necessary to compute and store explicitly those matrices.
 In the following example, we choose a problem with equality constraints from [`OptimizationProblems.jl`](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl).
 
 ```@example ex2
-using ADNLPModels, FletcherPenaltyNLPSolver, JSOSolvers, OptimizationProblems
+using ADNLPModels, FletcherPenaltySolver, JSOSolvers, OptimizationProblems
 nlp = OptimizationProblems.ADNLPProblems.hs28()
 stats = fps_solve(nlp, subproblem_solver = tron, qds_solver = :iterative)
 (stats.dual_feas, stats.primal_feas, stats.status, stats.elapsed_time)
@@ -52,7 +52,7 @@ nlp.counters
 ### Stopping-solver
 
 ```@example ex3
-using ADNLPModels, FletcherPenaltyNLPSolver, Stopping
+using ADNLPModels, FletcherPenaltySolver, Stopping
 f(x) = (x[1] - 1)^2 + 4 * (x[2] - x[1]^2)^2
 c(x) = [x[1]^2 + x[2]^2 - 2]
 T = Float64

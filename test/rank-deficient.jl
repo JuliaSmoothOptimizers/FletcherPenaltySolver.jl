@@ -14,7 +14,7 @@ so hessian_approx = 1 cannot be used.
 
 using ADNLPModels, CUTEst, NLPModels, NLPModelsIpopt, Test, LinearAlgebra
 #This package
-using FletcherPenaltyNLPSolver
+using FletcherPenaltySolver
 using Pkg; Pkg.update()
 =#
 ################################################################################

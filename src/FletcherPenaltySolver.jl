@@ -1,4 +1,4 @@
-module FletcherPenaltyNLPSolver
+module FletcherPenaltySolver
 
 using FastClosures, LinearAlgebra, Logging, SparseArrays
 
@@ -95,7 +95,7 @@ If one define a `Stopping` before calling `fps_solve`, it is possible to access 
 
 # Examples
 ```julia
-julia> using FletcherPenaltyNLPSolver, ADNLPModels
+julia> using FletcherPenaltySolver, ADNLPModels
 julia> nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0]);
 julia> stats = fps_solve(nlp)
 "Execution stats: first-order stationary"

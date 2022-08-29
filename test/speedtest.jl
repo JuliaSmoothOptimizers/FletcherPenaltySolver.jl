@@ -1,4 +1,4 @@
-using FletcherPenaltyNLPSolver, ADNLPModels, LinearAlgebra, Test, NLPModels
+using FletcherPenaltySolver, ADNLPModels, LinearAlgebra, Test, NLPModels
 using Random
 using BenchmarkTools
 
@@ -72,8 +72,8 @@ reset!(nlp)
 print(nlp.counters)
 reset!(nlp)
 =#
-qds = FletcherPenaltyNLPSolver.IterativeSolver(nlp, 0.0)
-# qds = FletcherPenaltyNLPSolver.LDLtSolver(nlp, 0.0)
+qds = FletcherPenaltySolver.IterativeSolver(nlp, 0.0)
+# qds = FletcherPenaltySolver.LDLtSolver(nlp, 0.0)
 fpnlp = FletcherPenaltyNLP(nlp, qds = qds)
 xr = rand(nlp.meta.nvar)
 @btime obj(fpnlp, xr);
@@ -87,11 +87,11 @@ print(nlp.counters)
 
 rhs1 = grad(fpnlp, xr);
 rhs2 = rand(nlp.meta.nvar);
-@btime FletcherPenaltyNLPSolver.solve_two_least_squares(fpnlp, xr, rhs1, rhs2)
+@btime FletcherPenaltySolver.solve_two_least_squares(fpnlp, xr, rhs1, rhs2)
 # 12.987 μs (91 allocations: 6.14 KiB)
 
 rhs2 = cons(fpnlp.nlp, xr)
-@btime FletcherPenaltyNLPSolver.solve_two_mixed(fpnlp, xr, rhs1, rhs2);
+@btime FletcherPenaltySolver.solve_two_mixed(fpnlp, xr, rhs1, rhs2);
 #  19.561 μs (76 allocations: 4.86 KiB)
 
 #=

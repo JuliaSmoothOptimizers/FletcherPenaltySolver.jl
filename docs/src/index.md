@@ -1,10 +1,10 @@
-# FletcherPenaltyNLPSolver - Fletcher's Penalty Method
+# FletcherPenaltySolver.jl - Fletcher's Penalty Method
 
 FPS is a solver for equality-constrained nonlinear problems, i.e.,
 optimization problems of the form
 
 ```math
-  \min_x f(x) \quad \text{s.t.} \quad c(x) = 0, \quad  ℓ ≤ x ≤ u.
+  \min_x f(x) \quad \text{s.t.} \quad c(x) = 0.
 ```
 
 It uses other JuliaSmoothOptimizers packages for development.
@@ -40,11 +40,11 @@ It uses [LDLFactorizations.jl](https://github.com/JuliaSmoothOptimizers/LDLFacto
 
 ## How to Cite
 
-If you use FletcherPenaltyNLPSolver in your work, please cite using the format given in [CITATION.cff](https://github.com/tmigot/FletcherPenaltyNLPSolver/blob/main/CITATION.cff).
+If you use FletcherPenaltySolver.jl in your work, please cite using the format given in [CITATION.cff](https://github.com/tmigot/FletcherPenaltySolver.jl/blob/main/CITATION.cff).
 
 ## Installation
 
-1. `pkg> add https://github.com/tmigot/FletcherPenaltyNLPSolver`
+1. `pkg> add https://github.com/tmigot/FletcherPenaltySolver.jl`
 
 ## Example
 
@@ -55,7 +55,7 @@ We consider in this example the minization of the Rosenbrock function.
 The problem is modeled using [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) with `[-1.2; 1.0]` as default initial point, and then solved using `fps_solve`.
 
 ```@example
-using FletcherPenaltyNLPSolver, ADNLPModels
+using FletcherPenaltySolver, ADNLPModels
 
 # Rosenbrock
 nlp = ADNLPModel(x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, [-1.2; 1.0])
@@ -69,7 +69,7 @@ We consider in this example the minization of the Rosenbrock function over an in
 The problem is modeled using [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) with `[-1.2; 1.0]` as default initial point, and then solved using `fps_solve`.
 
 ```@example
-using FletcherPenaltyNLPSolver, ADNLPModels
+using FletcherPenaltySolver, ADNLPModels
 
 nlp = ADNLPModel(
   x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2,
@@ -83,7 +83,7 @@ stats = fps_solve(nlp)
 
 # Bug reports and discussions
 
-If you think you found a bug, feel free to open an [issue](https://github.com/JuliaSmoothOptimizers/FletcherPenaltyNLPSolver/issues).
+If you think you found a bug, feel free to open an [issue](https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/issues).
 Focused suggestions and requests can also be opened as issues. Before opening a pull request, start an issue or a discussion on the topic, please.
 
 If you want to ask a question not suited for a bug report, feel free to start a discussion [here](https://github.com/JuliaSmoothOptimizers/Organization/discussions). This forum is for general discussion about this repository and the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers), so questions about any of our packages are welcome.
