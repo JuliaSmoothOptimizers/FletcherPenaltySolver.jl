@@ -1,4 +1,4 @@
-# # Solve Large-Scale Problem with FletcherPenaltyNLPSolver
+# # Solve Large-Scale Problem with FletcherPenaltySolver.jl
 
 # In this tutorial we use `fps_solve` to solve a large-scale optimization problem resulting from the discretization of a PDE-constrained optimization problem and compare the solve with Ipopt.
 
@@ -100,7 +100,7 @@ nlp.counters
 reset!(nlp);
 
 # `NullLogger` avoids printing iteration information.
-using FletcherPenaltyNLPSolver, Logging
+using FletcherPenaltySolver, Logging
 
 stats_fps_solve = with_logger(NullLogger()) do
   fps_solve(nlp, stats_trunk.solution, atol = 1e-5, rtol = 1e-5)
@@ -116,4 +116,4 @@ stats_ipopt.elapsed_time, stats_fps_solve.elapsed_time
 (stats_ipopt.objective, stats_ipopt.primal_feas, stats_ipopt.dual_feas),
 (stats_fps_solve.objective, stats_fps_solve.primal_feas, stats_fps_solve.dual_feas)
 
-# Overall `FletcherPenaltyNLPSolver` is doing great for solving large-scale optimization problems!
+# Overall `FletcherPenaltySolver` is doing great for solving large-scale optimization problems!

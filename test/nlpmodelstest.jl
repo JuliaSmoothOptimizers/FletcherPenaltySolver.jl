@@ -1,6 +1,6 @@
 function test_fps_model(T, σ, vivi, qds_type)
   nlp1 = ADNLPModel(x -> dot(x, x), zeros(T, 10), x -> [sum(x)], ones(T, 1), ones(T, 1))
-  qds = FletcherPenaltyNLPSolver.eval(qds_type)(nlp1, T(0))
+  qds = FletcherPenaltySolver.eval(qds_type)(nlp1, T(0))
   return FletcherPenaltyNLP(nlp1, T(σ), vivi, qds = qds)
 end
 
@@ -9,7 +9,7 @@ function test_fps_lin_model(T, σ, vivi, qds_type, use_linear = false)
   nlp1 =
     ADNLPModel(x -> dot(x, x), zeros(T, nvar), sparse(ones(T, 1, nvar)), ones(T, 1), ones(T, 1))
   qds =
-    FletcherPenaltyNLPSolver.eval(qds_type)(nlp1, T(0), explicit_linear_constraints = use_linear)
+    FletcherPenaltySolver.eval(qds_type)(nlp1, T(0), explicit_linear_constraints = use_linear)
   return FletcherPenaltyNLP(nlp1, T(σ), vivi, qds = qds, explicit_linear_constraints = use_linear)
 end
 

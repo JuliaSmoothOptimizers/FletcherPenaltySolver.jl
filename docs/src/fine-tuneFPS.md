@@ -1,4 +1,4 @@
-# Advanced usage of FletcherPenaltyNLPSolver
+# Advanced usage of FletcherPenaltySolver.jl
 
 ## Contents
 
@@ -11,7 +11,7 @@ It is also possible to fine-tune the parameters used in the implementation in tw
 
 ## Examples
 
-FletcherPenaltyNLPSolver exports the function `fps_solve`:
+FletcherPenaltySolver.jl exports the function `fps_solve`:
 ```
    fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; subsolver_verbose::Int = 0, lagrange_bound = 1 / sqrt(eps(T)), kwargs...)
    fps_solve(stp::NLPStopping; subsolver_verbose::Int = 0, lagrange_bound = 1 / sqrt(eps()), kwargs...)
@@ -20,7 +20,7 @@ FletcherPenaltyNLPSolver exports the function `fps_solve`:
 It is, therefore, possible to either call `fps_solve(nlp, x, kwargs...)` and the keywords arguments are passed to both `NLPStopping` and/or `FPSSSolver` constructor or build an instance of `NLPStopping` and/or `FPSSSolver` directly.
 
 ```@example ex1
-using ADNLPModels, FletcherPenaltyNLPSolver
+using ADNLPModels, FletcherPenaltySolver
 
 nlp = ADNLPModel(
   x -> 100 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2, 
@@ -35,7 +35,7 @@ stats = fps_solve(nlp)
 The alternative using `NLPStopping`, see `Stopping.jl`, allow to reuse the same memory if one would re-solve a problem of the same dimension
 
 ```@example ex1
-using ADNLPModels, FletcherPenaltyNLPSolver, Stopping
+using ADNLPModels, FletcherPenaltySolver, Stopping
 stp = NLPStopping(nlp)
 stats = fps_solve(stp)
 stp.current_state.x .= rand(2)

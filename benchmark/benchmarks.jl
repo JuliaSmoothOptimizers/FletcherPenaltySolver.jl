@@ -4,7 +4,7 @@ using BenchmarkTools, DataFrames, Dates, JLD2, Plots
 using CUTEst,
   NLPModels, NLPModelsKnitro, NLPModelsIpopt, BenchmarkProfiles, SolverBenchmark, SolverCore
 #This package
-using DCISolver, FletcherPenaltyNLPSolver
+using DCISolver, FletcherPenaltySolver
 
 function runcutest(cutest_problems, solvers; today::String = string(today()))
   list = ""

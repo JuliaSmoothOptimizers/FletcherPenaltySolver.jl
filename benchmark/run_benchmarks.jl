@@ -3,7 +3,7 @@ bmark_dir = @__DIR__
 println(@__DIR__)
 Pkg.activate(bmark_dir)
 #Pkg.instantiate()
-repo_name = "FletcherPenaltyNLPSolver" # string(split(ARGS[1], ".")[1])
+repo_name = "FletcherPenaltySolver" # string(split(ARGS[1], ".")[1])
 bmarkname = lowercase(repo_name)
 
 # if we are running these benchmarks from the git repository
