@@ -20,7 +20,7 @@ StoppingInterface = "53949629-e8ff-437b-b6e7-14da1a85bf25"
 [compat]
 FastClosures = "0.2, 0.3"
 Krylov = "0.8"
-LDLFactorizations = "0.8"
+LDLFactorizations = "0.8, 0.9"
 LinearOperators = "1, 2"
 NLPModels = "0.18, 0.19"
 NLPModelsModifiers = "0.5, 0.6"
