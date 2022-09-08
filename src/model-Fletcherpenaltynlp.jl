@@ -75,6 +75,7 @@ mutable struct FletcherPenaltyNLP{
   cx::T
   gx::T
   Aop::LinearOperators.LinearOperator{S}
+  JtJ::LinearOperators.LinearOperator{S} # = nlp.Aop * nlp.Aop' / not used
   ys::T
   gs::T
   xk::T # last iterate
@@ -148,6 +149,8 @@ function FletcherPenaltyNLP(
     nln_nnzj = nln_nnzj,
   )
 
+  Aop = LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v)
+  JtJ = Aop * Aop'
   return FletcherPenaltyNLP(
     meta,
     Counters(),
@@ -156,7 +159,8 @@ function FletcherPenaltyNLP(
     S(NaN),
     Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
-    LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
+    Aop,
+    JtJ,
     Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
@@ -227,6 +231,8 @@ function FletcherPenaltyNLP(
     nln_nnzj = nln_nnzj,
   )
   counters = Counters()
+  Aop = LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v)
+  JtJ = Aop * Aop'
   return FletcherPenaltyNLP(
     meta,
     counters,
@@ -235,7 +241,8 @@ function FletcherPenaltyNLP(
     S(NaN),
     Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
-    LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v),
+    Aop,
+    JtJ,
     Vector{S}(undef, npen),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
@@ -613,18 +620,18 @@ function hprod!(
   g = nlp.gx
   c = nlp.cx
 
-  @. nlp.Jv = -ys
+  nlp.Jv .= .-ys
   hprod_nln!(nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
   #Hsv    = hprod(nlp.nlp, x, -ys+ρ*c, v, obj_weight = 1.0)
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
-  @. nlp.Hsv = v - p1 # Ptv = v - p1
+  nlp.Hsv .= v .- p1 # Ptv = v - p1
   hprod_nln!(nlp, x, nlp.Jv, nlp.Hsv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
   # PtHsv = nlp.Hsv - pt_sol2[1:nvar]
   # Hv .= nlp.Hsv - PtHsv - nlp.v + 2 * T(σ) * Ptv
   # Hv .= pt_sol2[1:nvar] - nlp.v + 2 * T(σ) * Ptv
-  @. Hv = p2 - nlp.v + 2 * T(σ) * nlp.Hsv
+  Hv .= p2 .- nlp.v .+ 2 .* T(σ) .* nlp.Hsv
 
   if ρ > 0.0
     if nlp.explicit_linear_constraints
@@ -636,10 +643,10 @@ function hprod!(
     end
     hprod_nln!(nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    @. Hv += nlp.v + T(ρ) * nlp.Jcρ
+    Hv .+= nlp.v .+ T(ρ) .* nlp.Jcρ
   end
   if nlp.η > 0.0
-    @. Hv += T(nlp.η) * v
+    Hv .+= T(nlp.η) .* v
   end
 
   Hv .*= obj_weight
@@ -667,10 +674,10 @@ function hprod!(
   hprod_nln!(nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
-  @. nlp.Hsv = v - p1 # Ptv = v - p1
+  nlp.Hsv .= v .- p1 # Ptv = v - p1
   # PtHsv = nlp.Hsv - p2
 
-  @. nlp.Jv = -ys
+  nlp.Jv .= .-ys
   # HsPtv = nlp.Jcρ
   hprod_nln!(nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
 
@@ -686,9 +693,9 @@ function hprod!(
   # @. Hv = nlp.Hsv - PtHsv - HsPtv + 2 * T(σ) * Ptv - nlp.v - SsinvJtJJv
   # @. Hv = p2 - HsPtv + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
   # @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v - SsinvJtJJv
-  @. Hv = p2 - nlp.Jcρ + 2 * T(σ) * nlp.Hsv - nlp.v
+  Hv .= p2 .- nlp.Jcρ .+ 2 .* T(σ) .* nlp.Hsv .- nlp.v
   hprod_nln!(nlp, x, invJtJJv, gs, nlp.Jcρ, obj_weight = zero(T)) # SsinvJtJJv
-  @. Hv -= nlp.Jcρ
+  Hv .-= nlp.Jcρ
 
   if ρ > 0.0
     if nlp.explicit_linear_constraints
@@ -700,10 +707,10 @@ function hprod!(
     end
     hprod_nln!(nlp, x, c, v, nlp.v, obj_weight = zero(T)) # Hcv = hprod(nlp.nlp, x, c, v, obj_weight = zero(T))
 
-    @. Hv += T(ρ) * (nlp.v + nlp.Jcρ)
+    Hv .+= T(ρ) .* (nlp.v .+ nlp.Jcρ)
   end
   if nlp.η > 0.0
-    @. Hv += T(nlp.η) * v
+    Hv .+= T(nlp.η) .* v
   end
 
   Hv .*= obj_weight
