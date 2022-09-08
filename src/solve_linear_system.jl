@@ -55,7 +55,7 @@ function solve_two_extras(
     @warn "Failed solving 1st linear system lsqr in extra."
   end
 
-  JtJ = nlp.Aop * nlp.Aop'
+  JtJ = nlp.Aop * nlp.Aop' # this allocates
   # (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
   solve!(
     nlp.qdsolver.solver_struct_pinv,
@@ -199,10 +199,10 @@ function solve_two_least_squares(
     @warn "_solve_ldlt_factorization: failed _factorization"
   end
 
-  return sol[1:nvar, 1],
-  sol[(nvar + 1):(nvar + ncon), 1],
-  sol[1:nvar, 2],
-  sol[(nvar + 1):(nvar + ncon), 2]
+  return view(sol, 1:nvar, 1),
+  view(sol, (nvar + 1):(nvar + ncon), 1),
+  view(sol, 1:nvar, 2),
+  view(sol, (nvar + 1):(nvar + ncon), 2)
 end
 
 function solve_two_mixed(
@@ -247,8 +247,8 @@ function solve_two_mixed(
     @warn "_solve_ldlt_factorization: failed _factorization"
   end
 
-  return sol[1:nvar, 1],
-  sol[(nvar + 1):(nvar + ncon), 1],
-  sol[1:nvar, 2],
-  sol[(nvar + 1):(nvar + ncon), 2]
+  return view(sol, 1:nvar, 1),
+  view(sol, (nvar + 1):(nvar + ncon), 1),
+  view(sol, 1:nvar, 2),
+  view(sol, (nvar + 1):(nvar + ncon), 2)
 end
