@@ -25,6 +25,8 @@ The function returns a vector of length ncon + nvar containing:
 The fields `x`, `cx` and `res` need to be filled. If `state.lambda` is `nothing` then we take |λ|₂=1.
 """
 function Fletcher_penalty_optimality_check(pb::AbstractNLPModel{T, S}, state::NLPAtX) where {T, S}
+  cx = view(state.current_score, 1:get_ncon(pb))
+  res = view(state.current_score, (1 + get_ncon(pb)):(get_ncon(pb) + get_nvar(pb)))
   #i) state.cx #<= \epsilon  (1 + \| x k \|_\infty  + \| c(x 0 )\|_\infty  )
   #ii) state.gx <= #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
   #iii) state.res (gradient phi_s) #\epsilon  (1 + \| y k \|  \infty  + \| g \σ  (x 0 )\|  \infty  )
@@ -32,19 +34,18 @@ function Fletcher_penalty_optimality_check(pb::AbstractNLPModel{T, S}, state::NL
   nxk = max(norm(state.x), one(T))
   nlk = isnothing(state.lambda) ? one(T) : max(norm(state.lambda), one(T))
 
-  cx = max.(state.cx - get_ucon(pb), get_lcon(pb) - state.cx, 0) / nxk
+  cx .= max.(state.cx .- get_ucon(pb), get_lcon(pb) .- state.cx, 0) ./ nxk
   if has_bounds(pb) # && state.mu == []
-    proj = max.(min.(state.x - state.res, pb.meta.uvar), pb.meta.lvar)
-    res = state.x - proj
+    res .= state.x .- max.(min.(state.x .- state.res, pb.meta.uvar), pb.meta.lvar)
     # elseif has_bounds(pb)
     #  gix = min.(state.x - pb.meta.lvar, pb.meta.uvar - state.x)
     #  mu = state.mu
     #  res = max.(state.res, min.(mu, gix, mu .* gix))
   else
-    res = state.res / nlk
+    res .= state.res ./ nlk
   end
 
-  return vcat(cx, res)
+  return state.current_score
 end
 
 include("parameters.jl")
