@@ -20,19 +20,14 @@ function fps_solve(
   σ, ρ, δ = meta.σ_0, meta.ρ_0, zero(T)
 
   #Initialize the unconstrained NLP with Fletcher's penalty function.
-  nlp = FletcherPenaltyNLP(
-    stp.pb,
-    σ,
-    ρ,
-    δ,
-    meta.hessian_approx,
-    explicit_linear_constraints = meta.explicit_linear_constraints,
-    qds = fpssolver.qdsolver,
-  )
+  nlp = fpssolver.model
+  nlp.σ = σ
+  nlp.ρ = ρ
+  nlp.δ = δ
 
   #First call to the stopping
   OK = if (get_ncon(stp.pb) > 0) & (stp.current_state.cx == [])
-    update_and_start!(stp, lambda = stp.pb.meta.y0, cx = cons(stp.pb, stp.current_state.x)) # , convert = true)
+    update_and_start!(stp, lambda = stp.pb.meta.y0, cx = cons(stp.pb, stp.current_state.x))
   else
     start!(stp)
   end
