@@ -1,6 +1,7 @@
 function fps_solve(
   stp::NLPStopping,
   fpssolver::FPSSSolver{T, QDS, US};
+  verbose::Int = 0,
   subsolver_verbose::Int = 0,
   subsolver_max_iter::Int = 20000,
   lagrange_bound::T = 1 / sqrt(eps(T)),
@@ -67,7 +68,7 @@ function fps_solve(
   stalling = 0 #number of consecutive successful subproblem solve without progress
   feasibility_phase, restoration_phase = false, false
 
-  @info log_header(
+  verbose > 0 && @info log_header(
     [:iter, :step, :f, :c, :score, :σ, :ρ, :δ, :stat, :η, :λ],
     [Int, String, T, T, T, T, T, T, Symbol, T, T],
     hdr_override = Dict(
@@ -81,7 +82,7 @@ function fps_solve(
       :λ => "‖λ‖",
     ),
   )
-  @info log_row(
+  verbose > 0 && @info log_row(
     Any[
       0,
       "Init",
@@ -134,7 +135,7 @@ function fps_solve(
         mu = sub_stp.current_state.mu,
         convert = true,
       )
-      go_log(stp, sub_stp, state.fx, norm(sub_stp.pb.cx), "Optml")
+      go_log(stp, sub_stp, state.fx, norm(sub_stp.pb.cx), "Optml", verbose)
     elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb || unbounded_lagrange_multiplier
       stalling, unsuccessful_subpb = 0, 0
       unbounded_subpb += 1
@@ -143,12 +144,12 @@ function fps_solve(
       if feas
         stp.meta.unbounded_pb = true
       end
-      go_log(stp, sub_stp, sub_stp.current_state.fx, ncx, "Unbdd")
+      go_log(stp, sub_stp, sub_stp.current_state.fx, ncx, "Unbdd", verbose)
     elseif sub_stp.meta.tired || sub_stp.meta.resources
       stalling, unbounded_subpb = 0, 0
       unsuccessful_subpb += 1
       # ncx = 
-      go_log(stp, sub_stp, sub_stp.current_state.fx, norm(sub_stp.pb.cx), "Tired")
+      go_log(stp, sub_stp, sub_stp.current_state.fx, norm(sub_stp.pb.cx), "Tired", verbose)
     elseif sub_stp.meta.iteration_limit || sub_stp.meta.stalled
       stalling, unbounded_subpb = 0, 0
       unsuccessful_subpb += 1
@@ -162,7 +163,7 @@ function fps_solve(
             ncx = norm(state.cx)
       =#
       ncx = norm(sub_stp.pb.cx)
-      go_log(stp, sub_stp, state.fx, ncx, "Stlld")
+      go_log(stp, sub_stp, state.fx, ncx, "Stlld", verbose)
     else #exception of unexpected failure
       stp.meta.fail_sub_pb = true
       @warn "Exception of unexpected failure: $(status(sub_stp, list = true))"
@@ -184,7 +185,7 @@ function fps_solve(
           # If we reach the tolerence limit here, the tol tighten - stalling
           sub_stp.pb.η = max(meta.η_1, sub_stp.pb.η * meta.η_update)
           sub_stp.pb.xk .= state.x
-          go_log(stp, sub_stp, state.fx, ncx, "D-ϵ")
+          go_log(stp, sub_stp, state.fx, ncx, "D-ϵ", verbose)
         elseif !feasibility_phase && (stalling ≥ 3 || sub_stp.meta.atol < eps(T))
           #we are most likely stuck at an infeasible stationary point.
           #or an undetected unbounded problem
@@ -193,7 +194,7 @@ function fps_solve(
           restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R")
+          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R", verbose)
         elseif stalling ≥ 3 || sub_stp.meta.atol < eps(T)
           # infeasible stationary point
           stp.meta.suboptimal = true
@@ -201,7 +202,7 @@ function fps_solve(
         else
           # update parameters to increase feasibility
           update_parameters!(meta, sub_stp, feas)
-          go_log(stp, sub_stp, state.fx, ncx, "D")
+          go_log(stp, sub_stp, state.fx, ncx, "D", verbose)
         end
       elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb || unbounded_lagrange_multiplier
         if !feasibility_phase && unbounded_subpb ≥ 3 && !feas
@@ -212,16 +213,16 @@ function fps_solve(
           restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R")
+          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R", verbose)
         elseif !restoration_phase && unbounded_subpb ≥ 3
           restoration_phase = true
           unbounded_subpb = 0
           random_restoration!(meta, stp, sub_stp)
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R-Unbdd")
+          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R-Unbdd", verbose)
         else
           # update parameters to increase feasibility
           update_parameters_unbdd!(meta, sub_stp, feas)
-          go_log(stp, sub_stp, state.fx, ncx, "D")
+          go_log(stp, sub_stp, state.fx, ncx, "D", verbose)
         end
       elseif sub_stp.meta.tired ||
              sub_stp.meta.resources ||
@@ -231,7 +232,7 @@ function fps_solve(
           restoration_phase = true
           unsuccessful_subpb = 0
           random_restoration!(meta, stp, sub_stp)
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R-Unscc")
+          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R-Unscc", verbose)
         elseif !feasibility_phase && unsuccessful_subpb ≥ 3 && !feas
           #we are most likely stuck at an infeasible stationary point.
           #or an undetected unbounded problem
@@ -240,11 +241,11 @@ function fps_solve(
           restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
 
           stalling, unsuccessful_subpb = 0, 0
-          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R")
+          go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R", verbose)
         else
           # update parameters to increase feasibility
           update_parameters!(meta, sub_stp, feas)
-          go_log(stp, sub_stp, state.fx, ncx, "D")
+          go_log(stp, sub_stp, state.fx, ncx, "D", verbose)
         end
       else
         @show "Euh... How?", stp.pb.meta.name
@@ -375,12 +376,13 @@ function update_parameters_unbdd!(meta, sub_stp, feas)
 end
 
 """
-    go_log(stp, sub_stp, fx, ncx, mess::String)
+    go_log(stp, sub_stp, fx, ncx, mess::String, verbose)
 
 Logging shortcut.
 """
-function go_log(stp, sub_stp, fx, ncx, mess::String)
-  @info log_row(
+function go_log(stp, sub_stp, fx, ncx, mess::String, verbose)
+  iter = stp.meta.nb_of_stop
+  verbose > 0 && mod(iter, verbose) == 0 && @info log_row(
     Any[
       stp.meta.nb_of_stop,
       mess,
