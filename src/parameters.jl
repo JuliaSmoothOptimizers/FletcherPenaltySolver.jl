@@ -241,12 +241,13 @@ Note:
 - `subproblem_solver` is not used.
 - the `qdsolver` is accessible from the dictionary `qdsolver_correspondence`.
 """
-mutable struct FPSSSolver{T <: Real, QDS <: QDSolver, US <: SubProblemSolver, FS}
+mutable struct FPSSSolver{T <: Real, S, P, QDS <: QDSolver, US <: SubProblemSolver, FS, Pb <: AbstractNLPModel{T, S}, A <: Union{Val{1}, Val{2}}}
   meta::AlgoData{T}
   workspace
   qdsolver::QDS
   subproblem_solver::US # should be a structure/named typle, with everything related to unconstrained
   feasibility_solver::FS
+  model::FletcherPenaltyNLP{T, S, A, P, QDS, Pb}
 end
 
 function FPSSSolver(nlp::AbstractNLPModel, ::Type{T}; qds_solver = :ldlt, kwargs...) where {T}
@@ -255,5 +256,14 @@ function FPSSSolver(nlp::AbstractNLPModel, ::Type{T}; qds_solver = :ldlt, kwargs
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
   subproblem_solver = KnitroSolver()
   feasibility_solver = GNSolver(nlp.meta.x0, nlp.meta.y0)
-  return FPSSSolver(meta, workspace, qdsolver, subproblem_solver, feasibility_solver)
+  model = FletcherPenaltyNLP(
+    nlp,
+    meta.σ_0,
+    meta.ρ_0,
+    zero(T),
+    meta.hessian_approx,
+    explicit_linear_constraints = meta.explicit_linear_constraints,
+    qds = qdsolver,
+  )
+  return FPSSSolver(meta, workspace, qdsolver, subproblem_solver, feasibility_solver, model)
 end
