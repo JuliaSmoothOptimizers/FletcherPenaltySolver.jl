@@ -178,11 +178,7 @@ function fps_solve(
   return stats
 end
 
-function fps_solve(
-  stp::NLPStopping;
-  subsolver_verbose::Int = 0,
-  kwargs...,
-)
+function fps_solve(stp::NLPStopping; subsolver_verbose::Int = 0, kwargs...)
   nlp = stp.pb
   T = eltype(nlp.meta.x0)
   meta = FPSSSolver(stp, T; kwargs...)
@@ -190,11 +186,7 @@ function fps_solve(
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)
 
-  return fps_solve(
-    stp,
-    meta;
-    subsolver_verbose = subsolver_verbose,
-  )
+  return fps_solve(stp, meta; subsolver_verbose = subsolver_verbose)
 end
 
 include("algo.jl")
