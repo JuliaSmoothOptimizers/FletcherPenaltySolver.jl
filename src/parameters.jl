@@ -249,14 +249,35 @@ Note:
 - `subproblem_solver` is not used.
 - the `qdsolver` is accessible from the dictionary `qdsolver_correspondence`.
 """
-mutable struct FPSSSolver{T <: Real, S, P, QDS <: QDSolver, US <: SubProblemSolver, FS, Pb <: AbstractNLPModel{T, S}, A <: Union{Val{1}, Val{2}}, Score, M, SRC, MStp, LoS}
+mutable struct FPSSSolver{
+  T <: Real,
+  S,
+  P,
+  QDS <: QDSolver,
+  US <: SubProblemSolver,
+  FS,
+  Pb <: AbstractNLPModel{T, S},
+  A <: Union{Val{1}, Val{2}},
+  Score,
+  M,
+  SRC,
+  MStp,
+  LoS,
+}
   meta::AlgoData{T}
   workspace
   qdsolver::QDS
   subproblem_solver::US # should be a structure/named typle, with everything related to unconstrained
   feasibility_solver::FS
   model::FletcherPenaltyNLP{T, S, A, P, QDS, Pb}
-  sub_stp::NLPStopping{FletcherPenaltyNLP{T, S, A, P, QDS, Pb}, M, SRC, NLPAtX{Score, T, S}, MStp, LoS}
+  sub_stp::NLPStopping{
+    FletcherPenaltyNLP{T, S, A, P, QDS, Pb},
+    M,
+    SRC,
+    NLPAtX{Score, T, S},
+    MStp,
+    LoS,
+  }
 end
 
 function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) where {T}
@@ -298,5 +319,13 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
     optimality0 = one(T),
     unbounded_threshold = meta.subpb_unbounded_threshold,
   )
-  return FPSSSolver(meta, workspace, qdsolver, subproblem_solver, feasibility_solver, model, sub_stp)
+  return FPSSSolver(
+    meta,
+    workspace,
+    qdsolver,
+    subproblem_solver,
+    feasibility_solver,
+    model,
+    sub_stp,
+  )
 end

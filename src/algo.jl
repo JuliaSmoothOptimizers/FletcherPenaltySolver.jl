@@ -354,19 +354,21 @@ Logging shortcut.
 """
 function go_log(stp, sub_stp, fx, ncx, mess::String, verbose)
   iter = stp.meta.nb_of_stop
-  verbose > 0 && mod(iter, verbose) == 0 && @info log_row(
-    Any[
-      stp.meta.nb_of_stop,
-      mess,
-      fx,
-      ncx,
-      sub_stp.current_state.current_score,
-      sub_stp.pb.σ,
-      sub_stp.pb.ρ,
-      sub_stp.pb.δ,
-      status(sub_stp),
-      sub_stp.pb.η,
-      norm(sub_stp.pb.ys, Inf),
-    ],
-  )
+  verbose > 0 &&
+    mod(iter, verbose) == 0 &&
+    @info log_row(
+      Any[
+        stp.meta.nb_of_stop,
+        mess,
+        fx,
+        ncx,
+        sub_stp.current_state.current_score,
+        sub_stp.pb.σ,
+        sub_stp.pb.ρ,
+        sub_stp.pb.δ,
+        status(sub_stp),
+        sub_stp.pb.η,
+        norm(sub_stp.pb.ys, Inf),
+      ],
+    )
 end
