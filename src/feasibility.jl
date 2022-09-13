@@ -236,7 +236,7 @@ function TR_lsmr(
     @warn "Fail lsmr in TR_lsmr: $(stats.status)"
   end
 
-  Jd .= Jz * d #lsmr doesn't return this information
+  mul!(Jd, Jz, d) #lsmr doesn't return this information
 
   return d, Jd, infeasible, solved
 end
