@@ -56,7 +56,7 @@ include("feasibility.jl")
 export fps_solve
 
 """
-    fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; subsolver_verbose::Int = 0, lagrange_bound = 1 / sqrt(eps(T)), kwargs...)
+    fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; subsolver_verbose::Int = 0, kwargs...)
 
 Compute a local minimum of a bound and equality-constrained optimization problem using Fletcher's penalty function and the implementation described in
 
@@ -67,8 +67,8 @@ Compute a local minimum of a bound and equality-constrained optimization problem
 
 For advanced usage, the principal call to the solver uses a `NLPStopping`, see `Stopping.jl`.
 
-    fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}; subsolver_verbose::Int = 0, lagrange_bound::T = 1 / sqrt(eps(T)))
-    fps_solve(stp::NLPStopping; subsolver_verbose::Int = 0, lagrange_bound = 1 / sqrt(eps()), kwargs...)
+    fps_solve(stp::NLPStopping, fpssolver::FPSSSolver{T, QDS, US}; subsolver_verbose::Int = 0)
+    fps_solve(stp::NLPStopping; subsolver_verbose::Int = 0, kwargs...)
 
 # Arguments
 - `nlp::AbstractNLPModel`: the model solved, see `NLPModels.jl`;
@@ -76,8 +76,8 @@ For advanced usage, the principal call to the solver uses a `NLPStopping`, see `
 
 # Keyword arguments
 - `fpssolver`: see [`FPSSSolver`](@ref);
+- `verbose::Int = 0`: if > 0, display iteration information of the solver;
 - `subsolver_verbose::Int = 0`: if > 0, display iteration information of the subsolver;
-- `lagrange_bound = 1 / sqrt(eps())`: bound used to declare the Lagrange multiplier unbounded.
 
 All the information regarding stopping criteria can be set in the `NLPStopping` object.
 Additional `kwargs` are given to the `NLPStopping`.
@@ -106,7 +106,6 @@ function fps_solve(
   nlp::AbstractNLPModel,
   x0::AbstractVector{T} = nlp.meta.x0;
   subsolver_verbose::Int = 0,
-  lagrange_bound = 1 / sqrt(eps(T)),
   kwargs...,
 ) where {T}
   if !(nlp.meta.minimize)
@@ -118,7 +117,6 @@ function fps_solve(
     x0 = vcat(x0, zeros(T, ns))
     nlp = SlackModel(nlp)
   end
-  meta = FPSSSolver(nlp, T; kwargs...)
 
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
@@ -142,8 +140,9 @@ function fps_solve(
     # max_cntrs = Stopping.init_max_counters();
     kwargs...,
   )
-  stats =
-    fps_solve(stp, meta; subsolver_verbose = subsolver_verbose, lagrange_bound = lagrange_bound)
+
+  meta = FPSSSolver(stp, T; kwargs...)
+  stats = fps_solve(stp, meta; subsolver_verbose = subsolver_verbose)
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
@@ -182,12 +181,11 @@ end
 function fps_solve(
   stp::NLPStopping;
   subsolver_verbose::Int = 0,
-  lagrange_bound = 1 / sqrt(eps()),
   kwargs...,
 )
   nlp = stp.pb
   T = eltype(nlp.meta.x0)
-  meta = FPSSSolver(nlp, T; kwargs...)
+  meta = FPSSSolver(stp, T; kwargs...)
   # Update the state
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)
@@ -196,7 +194,6 @@ function fps_solve(
     stp,
     meta;
     subsolver_verbose = subsolver_verbose,
-    lagrange_bound = T(lagrange_bound),
   )
 end
 

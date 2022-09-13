@@ -3,8 +3,6 @@ function fps_solve(
   fpssolver::FPSSSolver{T, QDS, US};
   verbose::Int = 0,
   subsolver_verbose::Int = 0,
-  subsolver_max_iter::Int = 20000,
-  lagrange_bound::T = 1 / sqrt(eps(T)),
 ) where {T, QDS, US}
   meta = fpssolver.meta
   feasibility_solver = fpssolver.feasibility_solver
@@ -32,28 +30,7 @@ function fps_solve(
     start!(stp)
   end
   #Prepare the subproblem-stopping for the subproblem minimization.
-  sub_state = if nlp.meta.ncon > 0
-    NLPAtX(state.x, nlp.meta.y0, Jx = jac(nlp, state.x), res = zeros(T, nlp.meta.nvar))
-  else
-    NLPAtX(state.x, res = zeros(T, nlp.meta.nvar))
-  end
-  sub_stp = NLPStopping(
-    nlp,
-    sub_state,
-    main_stp = stp,
-    optimality_check = if nlp.meta.ncon > 0
-      KKT
-    elseif has_bounds(nlp)
-      optim_check_bounded
-    else
-      unconstrained_check
-    end,
-    max_iter = subsolver_max_iter,
-    atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
-    rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
-    optimality0 = one(T),
-    unbounded_threshold = meta.subpb_unbounded_threshold,
-  )
+  sub_stp = fpssolver.sub_stp
 
   nc0 = norm(state.cx, Inf)
   feas_tol = stp.meta.atol # norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
@@ -98,7 +75,7 @@ function fps_solve(
     #Solve the subproblem
     sub_stp = meta.subproblem_solver(sub_stp, subsolver_verbose = subsolver_verbose)
 
-    unbounded_lagrange_multiplier = norm(sub_stp.pb.ys, Inf) ≥ lagrange_bound # add to stopping meta?
+    unbounded_lagrange_multiplier = norm(sub_stp.pb.ys, Inf) ≥ meta.lagrange_bound
 
     #Update the State with the info given by the subproblem:
     if sub_stp.meta.optimal || sub_stp.meta.suboptimal
