@@ -23,10 +23,12 @@ The keyword arguments may include:
 - `Δ::Real = T(0.95)`: expected decrease in feasibility between two iterations;
 - `subproblem_solver::Function = ipopt`: solver used for the subproblem;
 - `subpb_unbounded_threshold::Real = 1 / √eps(T)`: below the opposite of this value, the subproblem is unbounded;
+- `subsolver_max_iter::Int = 20000`: maximum of iteration for the subproblem solver;
 - `atol_sub::Function = atol -> atol`: absolute tolerance for the subproblem in function of `atol`;
 - `rtol_sub::Function = rtol -> rtol`: relative tolerance for the subproblem in function of `rtol`;
 - `hessian_approx = Val(2)`: either `Val(1)` or `Val(2)`, it selects the hessian approximation;
-- `convex_subproblem::Bool = false`: true if the subproblem is convex. Useful to set the `convex` option in `knitro`.
+- `convex_subproblem::Bool = false`: true if the subproblem is convex. Useful to set the `convex` option in `knitro`;
+- `lagrange_bound::T = 1 / sqrt(eps(T))`: upper-bound on the Lagrange multiplier.
 
 For more details, we refer to the package documentation [fine-tuneFPS.md](https://JuliaSmoothOptimizers.github.io/FletcherPenaltySolver.jl/dev/fine-tuneFPS/). 
 """
@@ -54,12 +56,14 @@ struct AlgoData{T <: Real}
   #Functions used in the algorithm
   subproblem_solver::Function
   subpb_unbounded_threshold
+  subsolver_max_iter::Int
   atol_sub::Function # (stp.meta.atol)
   rtol_sub::Function #(stp.meta.rtol)
 
   hessian_approx
   explicit_linear_constraints::Bool
   convex_subproblem::Bool
+  lagrange_bound::T
 end
 
 function AlgoData(
@@ -79,11 +83,13 @@ function AlgoData(
   Δ::Real = T(0.95),
   subproblem_solver::Function = StoppingInterface.ipopt,
   subpb_unbounded_threshold::Real = 1 / √eps(T),
+  subsolver_max_iter::Int = 20000,
   atol_sub::Function = atol -> atol,
   rtol_sub::Function = rtol -> rtol,
   hessian_approx = Val(2),
   explicit_linear_constraints = false,
   convex_subproblem::Bool = false,
+  lagrange_bound::Real = 1 / sqrt(eps(T)),
   kwargs...,
 )
   return AlgoData(
@@ -102,11 +108,13 @@ function AlgoData(
     Δ,
     subproblem_solver,
     subpb_unbounded_threshold,
+    subsolver_max_iter,
     atol_sub,
     rtol_sub,
     hessian_approx,
     explicit_linear_constraints,
     convex_subproblem,
+    lagrange_bound,
   )
 end
 
@@ -241,21 +249,24 @@ Note:
 - `subproblem_solver` is not used.
 - the `qdsolver` is accessible from the dictionary `qdsolver_correspondence`.
 """
-mutable struct FPSSSolver{T <: Real, S, P, QDS <: QDSolver, US <: SubProblemSolver, FS, Pb <: AbstractNLPModel{T, S}, A <: Union{Val{1}, Val{2}}}
+mutable struct FPSSSolver{T <: Real, S, P, QDS <: QDSolver, US <: SubProblemSolver, FS, Pb <: AbstractNLPModel{T, S}, A <: Union{Val{1}, Val{2}}, Score, M, SRC, MStp, LoS}
   meta::AlgoData{T}
   workspace
   qdsolver::QDS
   subproblem_solver::US # should be a structure/named typle, with everything related to unconstrained
   feasibility_solver::FS
   model::FletcherPenaltyNLP{T, S, A, P, QDS, Pb}
+  sub_stp::NLPStopping{FletcherPenaltyNLP{T, S, A, P, QDS, Pb}, M, SRC, NLPAtX{Score, T, S}, MStp, LoS}
 end
 
-function FPSSSolver(nlp::AbstractNLPModel, ::Type{T}; qds_solver = :ldlt, kwargs...) where {T}
+function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) where {T}
+  nlp = stp.pb
+  x, y = get_x0(nlp), get_y0(nlp)
   meta = AlgoData(T; kwargs...)
   workspace = ()
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
   subproblem_solver = KnitroSolver()
-  feasibility_solver = GNSolver(nlp.meta.x0, nlp.meta.y0)
+  feasibility_solver = GNSolver(x, y)
   model = FletcherPenaltyNLP(
     nlp,
     meta.σ_0,
@@ -265,5 +276,27 @@ function FPSSSolver(nlp::AbstractNLPModel, ::Type{T}; qds_solver = :ldlt, kwargs
     explicit_linear_constraints = meta.explicit_linear_constraints,
     qds = qdsolver,
   )
-  return FPSSSolver(meta, workspace, qdsolver, subproblem_solver, feasibility_solver, model)
+  sub_state = if model.meta.ncon > 0
+    NLPAtX(x, model.meta.y0, Jx = jac(model, x), res = zeros(T, nlp.meta.nvar)) # eval Jx
+  else
+    NLPAtX(x, res = zeros(T, nlp.meta.nvar))
+  end
+  sub_stp = NLPStopping(
+    model,
+    sub_state,
+    main_stp = stp,
+    optimality_check = if model.meta.ncon > 0
+      KKT
+    elseif has_bounds(model)
+      optim_check_bounded
+    else
+      unconstrained_check
+    end,
+    max_iter = meta.subsolver_max_iter,
+    atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
+    rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
+    optimality0 = one(T),
+    unbounded_threshold = meta.subpb_unbounded_threshold,
+  )
+  return FPSSSolver(meta, workspace, qdsolver, subproblem_solver, feasibility_solver, model, sub_stp)
 end
