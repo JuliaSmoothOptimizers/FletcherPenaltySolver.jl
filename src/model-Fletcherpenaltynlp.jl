@@ -237,6 +237,13 @@ function FletcherPenaltyNLP(
     nln_nnzj = nln_nnzj,
   )
   counters = Counters()
+
+  if hessian_approx == Val(1)
+    Ss = Array{S, 2}(undef, npen, nlp.meta.nvar)
+  else
+    Ss = Array{S, 2}(undef, 0, 0)
+  end
+
   Aop = LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v)
   JtJ = Aop * Aop'
   return FletcherPenaltyNLP(
@@ -260,7 +267,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, npen),
-    Array{S, 2}(undef, npen, nlp.meta.nvar),
+    Ss,
     explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[],
     σ,
     ρ,
