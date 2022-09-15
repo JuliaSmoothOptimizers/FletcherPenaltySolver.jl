@@ -89,7 +89,7 @@ mutable struct FletcherPenaltyNLP{
   Sstw::T
   Jcρ::T
   Jv::T
-  Ss::Array{S, 2} # only when Val(1)
+  Ss::Array{S, 2} # only when Val(1) in `hess_coord`
   lag_mul::T # size `ncon` if explicit_linear_constraints
 
   # Problem parameter
@@ -149,6 +149,12 @@ function FletcherPenaltyNLP(
     nln_nnzj = nln_nnzj,
   )
 
+  if hessian_approx == Val(1)
+    Ss = Array{S, 2}(undef, npen, nlp.meta.nvar)
+  else
+    Ss = Array{S, 2}(undef, 0, 0)
+  end
+
   Aop = LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v)
   JtJ = Aop * Aop'
   return FletcherPenaltyNLP(
@@ -172,7 +178,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, npen),
-    Array{S, 2}(undef, npen, nlp.meta.nvar),
+    Ss,
     explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[], # pre-allocate for hess/hprod
     σ,
     zero(typeof(σ)),
@@ -231,6 +237,13 @@ function FletcherPenaltyNLP(
     nln_nnzj = nln_nnzj,
   )
   counters = Counters()
+
+  if hessian_approx == Val(1)
+    Ss = Array{S, 2}(undef, npen, nlp.meta.nvar)
+  else
+    Ss = Array{S, 2}(undef, 0, 0)
+  end
+
   Aop = LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v)
   JtJ = Aop * Aop'
   return FletcherPenaltyNLP(
@@ -254,7 +267,7 @@ function FletcherPenaltyNLP(
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, nlp.meta.nvar),
     Vector{S}(undef, npen),
-    Array{S, 2}(undef, npen, nlp.meta.nvar),
+    Ss,
     explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[],
     σ,
     ρ,
@@ -626,6 +639,7 @@ function hprod!(
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
   nlp.Hsv .= v .- p1 # Ptv = v - p1
+
   hprod_nln!(nlp, x, nlp.Jv, nlp.Hsv, nlp.v, obj_weight = one(T)) # HsPtv = hprod(nlp.nlp, x, -ys, Ptv, obj_weight = one(T))
 
   # PtHsv = nlp.Hsv - pt_sol2[1:nvar]
@@ -671,13 +685,13 @@ function hprod!(
   g = nlp.gx
   c = nlp.cx
 
-  hprod_nln!(nlp, x, -ys, v, nlp.Hsv, obj_weight = one(T))
+  nlp.Jv .= .-ys
+  hprod_nln!(nlp, x, nlp.Jv, v, nlp.Hsv, obj_weight = one(T))
 
   (p1, _, p2, _) = solve_two_least_squares(nlp, x, v, nlp.Hsv)
   nlp.Hsv .= v .- p1 # Ptv = v - p1
   # PtHsv = nlp.Hsv - p2
 
-  nlp.Jv .= .-ys
   # HsPtv = nlp.Jcρ
   hprod_nln!(nlp, x, nlp.Jv, nlp.Hsv, nlp.Jcρ, obj_weight = one(T))
 
