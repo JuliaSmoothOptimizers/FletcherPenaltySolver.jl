@@ -227,19 +227,19 @@ function fps_solve(
     end
   end #end of main loop
 
-  return GenericExecutionStats(
-    status_stopping_to_stats(stp),
-    stp.pb,
-    solution = stp.current_state.x,
-    objective = stp.current_state.fx,
-    primal_feas = norm(stp.current_state.cx - get_lcon(stp.pb), Inf),
-    dual_feas = sub_stp.current_state.current_score,
-    multipliers = stp.current_state.lambda,
-    multipliers_L = stp.current_state.mu,
-    iter = stp.meta.nb_of_stop,
-    elapsed_time = stp.current_state.current_time - stp.meta.start_time,
-    # solver_specific = Dict(:stp => stp, :restoration => restoration_phase),
-  )
+  stats = GenericExecutionStats(stp.pb)
+  set_status!(stats, status_stopping_to_stats(stp))
+  set_solution!(stats, stp.current_state.x)
+  set_objective!(stats, stp.current_state.fx)
+  set_residuals!(stats, norm(stp.current_state.cx - get_lcon(stp.pb), Inf), sub_stp.current_state.current_score)
+  set_constraint_multipliers!(stats, stp.current_state.lambda)
+  if has_bounds(stp.pb)
+    set_bounds_multipliers!(stats, max.(stp.current_state.mu, 0), min.(stp.current_state.mu, 0))
+  end
+  set_iter!(stats, stp.meta.nb_of_stop)
+  set_time!(stats, stp.current_state.current_time - stp.meta.start_time)
+  # solver_specific = Dict(:stp => stp, :restoration => restoration_phase),
+  stats
 end
 
 """
