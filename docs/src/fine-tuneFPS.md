@@ -45,9 +45,11 @@ stats = fps_solve(stp)
 The `FPSSSolver`, see [`FPSSSolver`](@ref), contains all the metadata and additional pre-allocated memory used by the algorithm.
 
 ```@example ex1
+using SolverCore
 stp = NLPStopping(nlp)
 data = FPSSSolver(stp, Float64)
-stats = fps_solve(stp, data)
+stats = GenericExecutionStats(nlp)
+stats = SolverCore.solve!(data, stp, stats)
 ```
 
 ## List of possible options
