@@ -1,7 +1,7 @@
 using LinearAlgebra, LinearOperators, Random, SparseArrays
 
 #JSO packages
-using ADNLPModels, Logging, NLPModels, NLPModelsIpopt, NLPModelsTest, SolverTest
+using ADNLPModels, Logging, NLPModels, NLPModelsIpopt, NLPModelsTest, SolverCore, SolverTest
 
 Random.seed!(1234)
 
@@ -30,7 +30,8 @@ end
   )
   stp = NLPStopping(nlp)
   meta = FPSSSolver(stp, Float64, qds_solver = :iterative)
-  @test_throws ErrorException("fps_solve only works for minimization problem") fps_solve(stp, meta)
+  stats = GenericExecutionStats(nlp)
+  @test_throws ErrorException("fps_solve only works for minimization problem") SolverCore.solve!(meta, stp, stats)
 end
 
 @testset "Problem using KKT optimality" begin

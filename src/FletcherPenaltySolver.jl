@@ -53,7 +53,7 @@ export AlgoData, FPSSSolver
 
 include("feasibility.jl")
 
-export fps_solve
+export fps_solve, solve!
 
 """
     fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; subsolver_verbose::Int = 0, kwargs...)
@@ -142,7 +142,8 @@ function fps_solve(
   )
 
   meta = FPSSSolver(stp, T; kwargs...)
-  stats = fps_solve(stp, meta; subsolver_verbose = subsolver_verbose)
+  stats = GenericExecutionStats(nlp)
+  SolverCore.solve!(meta, stp, stats; subsolver_verbose = subsolver_verbose)
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
@@ -186,7 +187,8 @@ function fps_solve(stp::NLPStopping; subsolver_verbose::Int = 0, kwargs...)
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)
 
-  return fps_solve(stp, meta; subsolver_verbose = subsolver_verbose)
+  stats = GenericExecutionStats(nlp)
+  SolverCore.solve!(meta, stp, stats; subsolver_verbose = subsolver_verbose)
 end
 
 include("algo.jl")

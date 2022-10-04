@@ -1,11 +1,13 @@
-function fps_solve(
+function SolverCore.solve!(
+  fpssolver::FPSSSolver{T, QDS, US},
   stp::NLPStopping,
-  fpssolver::FPSSSolver{T, QDS, US};
+  stats::GenericExecutionStats;
   verbose::Int = 0,
   subsolver_verbose::Int = 0,
 ) where {T, QDS, US}
   meta = fpssolver.meta
   feasibility_solver = fpssolver.feasibility_solver
+  reset!(stats)
   if !(stp.pb.meta.minimize)
     error("fps_solve only works for minimization problem")
   end
@@ -227,11 +229,14 @@ function fps_solve(
     end
   end #end of main loop
 
-  stats = GenericExecutionStats(stp.pb)
   set_status!(stats, status_stopping_to_stats(stp))
   set_solution!(stats, stp.current_state.x)
   set_objective!(stats, stp.current_state.fx)
-  set_residuals!(stats, norm(stp.current_state.cx - get_lcon(stp.pb), Inf), sub_stp.current_state.current_score)
+  set_residuals!(
+    stats,
+    norm(stp.current_state.cx - get_lcon(stp.pb), Inf),
+    sub_stp.current_state.current_score,
+  )
   set_constraint_multipliers!(stats, stp.current_state.lambda)
   if has_bounds(stp.pb)
     set_bounds_multipliers!(stats, max.(stp.current_state.mu, 0), min.(stp.current_state.mu, 0))
