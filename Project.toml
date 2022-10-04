@@ -26,7 +26,7 @@ NLPModels = "0.18, 0.19"
 NLPModelsModifiers = "0.5, 0.6"
 SolverCore = "0.3"
 Stopping = "0.6"
-StoppingInterface = "0.3"
+StoppingInterface = "0.4"
 julia = "^1.6.0"
 
 [extras]
