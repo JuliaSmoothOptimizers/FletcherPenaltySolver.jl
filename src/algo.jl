@@ -233,9 +233,9 @@ function fps_solve(
   set_objective!(stats, stp.current_state.fx)
   set_residuals!(stats, norm(stp.current_state.cx - get_lcon(stp.pb), Inf), sub_stp.current_state.current_score)
   set_constraint_multipliers!(stats, stp.current_state.lambda)
-  @show stp.current_state.mu
-  set_bounds_multipliers!(stats, max.(stp.current_state.mu, 0), min.(stp.current_state.mu, 0))
-  @show stats.multipliers_L, stats.multipliers_U
+  if has_bounds(stp.pb)
+    set_bounds_multipliers!(stats, max.(stp.current_state.mu, 0), min.(stp.current_state.mu, 0))
+  end
   set_iter!(stats, stp.meta.nb_of_stop)
   set_time!(stats, stp.current_state.current_time - stp.meta.start_time)
   # solver_specific = Dict(:stp => stp, :restoration => restoration_phase),
