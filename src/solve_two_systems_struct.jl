@@ -176,7 +176,7 @@ function solve_least_square(
   b,
   λ,
 ) where {T, S, SS1, SS2, SS3, It}
-  solve!(
+  Krylov.solve!(
     qdsolver.solver_struct_least_square,
     A,
     b,
@@ -262,7 +262,7 @@ function solve_least_norm(
 ) where {T, S, SS1, SS2, SS3, It}
   ncon = length(b)
   if δ != 0
-    solve!(
+    Krylov.solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,
@@ -272,7 +272,7 @@ function solve_least_norm(
       itmax = qdsolver.ln_itmax,
     )
   else
-    solve!(
+    Krylov.solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,

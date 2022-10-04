@@ -147,8 +147,8 @@ function fps_solve(
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
     stats = GenericExecutionStats(
-      stats.status,
       nlp.model,
+      status = stats.status,
       solution = stats.solution[1:nnvar],
       objective = stats.objective,
       primal_feas = stats.primal_feas,
@@ -163,8 +163,8 @@ function fps_solve(
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
     stats = GenericExecutionStats(
-      stats.status,
       nlp.model,
+      status = stats.status,
       solution = stats.solution[1:nnvar],
       objective = stats.objective,
       primal_feas = stats.primal_feas,

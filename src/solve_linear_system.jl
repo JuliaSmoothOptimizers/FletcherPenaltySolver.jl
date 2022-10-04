@@ -57,7 +57,7 @@ function solve_two_extras(
 
   JtJ = nlp.Aop * nlp.Aop' # this allocates
   # (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
-  solve!(
+  Krylov.solve!(
     nlp.qdsolver.solver_struct_pinv,
     JtJ,
     rhs2,
