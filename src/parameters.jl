@@ -217,6 +217,7 @@ The keyword arguments may include:
 - `workspace`: allocated space for the solver itself;
 - `qdsolver`: solver structure for the linear algebra part, contains allocation for this part. By default a `LDLtSolver`, but an alternative is `IterativeSolver` ;
 - `subproblem_solver::AbstractOptimizationSolver`: by default a `subproblem_solver_correspondence[Symbol(meta.subproblem_solver)]`;
+- `sub_stats::GenericExecutionStats`: stats structure for the result of `subproblem_solver`;
 - `feasibility_solver`: by default a `GNSolver`, see [`GNSolver`](@ref);
 
 Note:
@@ -242,6 +243,7 @@ mutable struct FPSSSolver{
   workspace
   qdsolver::QDS
   subproblem_solver::US # should be a structure/named typle, with everything related to unconstrained
+  sub_stats::GenericExecutionStats{T, S}
   feasibility_solver::FS
   model::FletcherPenaltyNLP{T, S, A, P, QDS, Pb}
   sub_stp::NLPStopping{
@@ -270,6 +272,7 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
     explicit_linear_constraints = meta.explicit_linear_constraints,
     qds = qdsolver,
   )
+  sub_stats = GenericExecutionStats(model)
   subproblem_solver = eval(subproblem_solver_correspondence[Symbol(meta.subproblem_solver)])(model)
   sub_state = if model.meta.ncon > 0
     NLPAtX(x, model.meta.y0, Jx = jac(model, x), res = zeros(T, nlp.meta.nvar)) # eval Jx
@@ -298,6 +301,7 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
     workspace,
     qdsolver,
     subproblem_solver,
+    sub_stats,
     feasibility_solver,
     model,
     sub_stp,
