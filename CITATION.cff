@@ -9,7 +9,7 @@ message: >-
 type: software
 authors:
   - given-names: Tangi
-    family-names: ' Migot'
+    family-names: Migot
     email: tangi.migot@gmail.com
     orcid: 'https://orcid.org/0000-0001-7729-2513'
   - given-names: Abel
