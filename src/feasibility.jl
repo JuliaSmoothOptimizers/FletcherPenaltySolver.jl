@@ -26,7 +26,8 @@ function feasibility_step(
   normcx::T,
   Jx::Union{LinearOperator{T}, AbstractMatrix{T}},
   ρ::T,
-  ctol::AbstractFloat;
+  ctol::AbstractFloat,
+  verbose;
   η₁::AbstractFloat = feasibility_solver.η₁,
   η₂::AbstractFloat = feasibility_solver.η₂,
   σ₁::AbstractFloat = feasibility_solver.σ₁,
@@ -96,7 +97,7 @@ function feasibility_step(
       end
     end
 
-    @info log_row(
+    verbose > 0 && @info log_row(
       Any[
         "F",
         feas_iter,
@@ -141,7 +142,7 @@ function feasibility_step(
         #should we increase the iteration limit if we busted it?
         #Adding regularization might be more efficient
       end
-      @info log_row(
+      verbose > 0 && @info log_row(
         Any[
           "F-safe",
           feas_iter,

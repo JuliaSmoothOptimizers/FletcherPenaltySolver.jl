@@ -165,7 +165,7 @@ function SolverCore.solve!(
           #or an undetected unbounded problem
           feasibility_phase = true
           unbounded_subpb = 0
-          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
+          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx, verbose)
 
           stalling, unsuccessful_subpb = 0, 0
           go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R", verbose)
@@ -184,7 +184,7 @@ function SolverCore.solve!(
           #or an undetected unbounded problem
           feasibility_phase = true
           unbounded_subpb = 0
-          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
+          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx, verbose)
 
           stalling, unsuccessful_subpb = 0, 0
           go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R", verbose)
@@ -212,7 +212,7 @@ function SolverCore.solve!(
           #or an undetected unbounded problem
           feasibility_phase = true
           unsuccessful_subpb = 0
-          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
+          restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx, verbose)
 
           stalling, unsuccessful_subpb = 0, 0
           go_log(stp, sub_stp, state.fx, norm(state.cx - get_lcon(stp.pb)), "R", verbose)
@@ -248,11 +248,11 @@ function SolverCore.solve!(
 end
 
 """
-    restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
+    restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx, verbose)
 
 Try to find a feasible point, see [`feasibility_step`](@ref).
 """
-function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx)
+function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_tol, ncx, verbose)
   # by default, we just want a feasible point
   ϵ_feas = feas_tol
   Jx = jac_op(stp.pb, stp.current_state.x)
@@ -265,6 +265,7 @@ function restoration_feasibility!(feasibility_solver, meta, stp, sub_stp, feas_t
     Jx,
     ϵ_feas,
     feas_tol,
+    verbose,
   )
   if status_feas == :success
     Stopping.update!(stp.current_state, x = z, cx = cz)
