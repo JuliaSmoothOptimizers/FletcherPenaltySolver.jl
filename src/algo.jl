@@ -75,6 +75,7 @@ function SolverCore.solve!(
   while !OK
     reinit!(sub_stp) #reinit the sub-stopping.
     #Solve the subproblem
+    sub_stp.meta.max_time = max(stp.meta.max_time - (time() - stp.meta.start_time), 0.0)
     sub_stp = meta.subproblem_solver(sub_stp, subsolver_verbose = subsolver_verbose)
 
     unbounded_lagrange_multiplier = norm(sub_stp.pb.ys, Inf) ≥ meta.lagrange_bound
