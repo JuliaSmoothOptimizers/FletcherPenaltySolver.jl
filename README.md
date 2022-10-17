@@ -1,6 +1,6 @@
 # FletcherPenaltySolver.jl - Fletcher's Penalty Method
 
-[![docs-stable][docs-stable-img]][docs-stable-url] [![docs-dev][docs-dev-img]][docs-dev-url] [![build-ci][build-ci-img]][build-ci-url] [![codecov][codecov-img]][codecov-url] [![release][release-img]][release-url]
+[![docs-stable][docs-stable-img]][docs-stable-url] [![docs-dev][docs-dev-img]][docs-dev-url] [![build-ci][build-ci-img]][build-ci-url] [![codecov][codecov-img]][codecov-url] [![release][release-img]][release-url] [![doi][doi-img]][doi-url]
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-stable-url]: https://JuliaSmoothOptimizers.github.io/FletcherPenaltySolver.jl/stable
@@ -12,6 +12,8 @@
 [codecov-url]: https://codecov.io/gh/JuliaSmoothOptimizers/FletcherPenaltySolver.jl
 [release-img]: https://img.shields.io/github/v/release/JuliaSmoothOptimizers/FletcherPenaltySolver.jl.svg?style=flat-square
 [release-url]: https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl/releases
+[doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.7153564.svg
+[doi-url]: https://doi.org/10.5281/zenodo.7153564
 
 FPS is a solver for equality-constrained nonlinear problems, i.e.,
 optimization problems of the form
@@ -42,7 +44,7 @@ If you use FletcherPenaltySolver.jl in your work, please cite using the format g
 
 ## Installation
 
-`pkg> add https://github.com/JuliaSmoothOptimizers/FletcherPenaltySolver.jl`
+`pkg> add FletcherPenaltySolver`
 
 ## Example
 
