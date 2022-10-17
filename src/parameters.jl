@@ -197,8 +197,8 @@ end
 const qdsolver_correspondence = Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 
 const subproblem_solver_correspondence = Dict(
-  :R2 => :R2Solver, 
-  :lbfgs => :LBFGSSolver, 
+  :R2 => :R2Solver,
+  :lbfgs => :LBFGSSolver,
   :tron => :TronSolver,
   :trunk => :TrunkSolver,
   :ipopt => :IpoptSolver,
