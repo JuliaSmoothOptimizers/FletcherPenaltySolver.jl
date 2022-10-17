@@ -121,41 +121,6 @@ end
 AlgoData(; kwargs...) = AlgoData(Float64; kwargs...)
 
 """
-    SubProblemSolver
-
-Abstract structure used for the subproblem solve.
-"""
-abstract type SubProblemSolver end
-
-"""
-    KnitroSolver <: SubProblemSolver
-
-Structure used for the subproblem solve with `knitro`.
-"""
-mutable struct KnitroSolver <: SubProblemSolver end
-
-"""
-    IpoptSolver <: SubProblemSolver
-
-Structure used for the subproblem solve with `ipopt`.
-"""
-mutable struct IpoptSolver <: SubProblemSolver end
-
-"""
-    LBFGSolver <: SubProblemSolver
-
-Structure used for the subproblem solve with `lbfgs`.
-"""
-mutable struct LBFGSSolver <: SubProblemSolver end
-
-"""
-    TronSolver <: SubProblemSolver
-
-Structure used for the subproblem solve with `tron`.
-"""
-mutable struct TronSolver <: SubProblemSolver end
-
-"""
     GNSolver(x, y; kwargs...)
 
 Structure containing all the parameters used in the feasibility step.
@@ -231,6 +196,15 @@ end
 
 const qdsolver_correspondence = Dict(:iterative => IterativeSolver, :ldlt => LDLtSolver)
 
+const subproblem_solver_correspondence = Dict(
+  :R2 => :R2Solver, 
+  :lbfgs => :LBFGSSolver, 
+  :tron => :TronSolver,
+  :trunk => :TrunkSolver,
+  :ipopt => :IpoptSolver,
+  :knitro => :KnitroSolver,
+)
+
 """
     FPSSSolver(nlp, ::Type{T}; kwargs...)
 
@@ -242,11 +216,12 @@ The keyword arguments may include:
 - `meta::AlgoData{T}`: see [`AlgoData`](@ref);
 - `workspace`: allocated space for the solver itself;
 - `qdsolver`: solver structure for the linear algebra part, contains allocation for this part. By default a `LDLtSolver`, but an alternative is `IterativeSolver` ;
-- `subproblem_solver::SubProblemSolver`: by default a `KnitroSolver`, options: `IpoptSolver`, `TronSolver`, `LBFGSSolver`;
+- `subproblem_solver::AbstractOptimizationSolver`: by default a `subproblem_solver_correspondence[Symbol(meta.subproblem_solver)]`;
+- `sub_stats::GenericExecutionStats`: stats structure for the result of `subproblem_solver`;
 - `feasibility_solver`: by default a `GNSolver`, see [`GNSolver`](@ref);
 
 Note:
-- `subproblem_solver` is not used.
+- `subproblem_solver` is accessible from the `subproblem_solver_correspondence::Dict`.
 - the `qdsolver` is accessible from the dictionary `qdsolver_correspondence`.
 """
 mutable struct FPSSSolver{
@@ -254,7 +229,7 @@ mutable struct FPSSSolver{
   S,
   P,
   QDS <: QDSolver,
-  US <: SubProblemSolver,
+  US <: AbstractOptimizationSolver,
   FS,
   Pb <: AbstractNLPModel{T, S},
   A <: Union{Val{1}, Val{2}},
@@ -268,6 +243,7 @@ mutable struct FPSSSolver{
   workspace
   qdsolver::QDS
   subproblem_solver::US # should be a structure/named typle, with everything related to unconstrained
+  sub_stats::GenericExecutionStats{T, S}
   feasibility_solver::FS
   model::FletcherPenaltyNLP{T, S, A, P, QDS, Pb}
   sub_stp::NLPStopping{
@@ -286,7 +262,6 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
   meta = AlgoData(T; kwargs...)
   workspace = ()
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
-  subproblem_solver = KnitroSolver()
   feasibility_solver = GNSolver(x, y)
   model = FletcherPenaltyNLP(
     nlp,
@@ -297,6 +272,8 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
     explicit_linear_constraints = meta.explicit_linear_constraints,
     qds = qdsolver,
   )
+  sub_stats = GenericExecutionStats(model)
+  subproblem_solver = eval(subproblem_solver_correspondence[Symbol(meta.subproblem_solver)])(model)
   sub_state = if model.meta.ncon > 0
     NLPAtX(x, model.meta.y0, Jx = jac(model, x), res = zeros(T, nlp.meta.nvar)) # eval Jx
   else
@@ -324,6 +301,7 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
     workspace,
     qdsolver,
     subproblem_solver,
+    sub_stats,
     feasibility_solver,
     model,
     sub_stp,

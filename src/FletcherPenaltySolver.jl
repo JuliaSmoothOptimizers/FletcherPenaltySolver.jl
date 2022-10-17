@@ -4,6 +4,7 @@ using FastClosures, LinearAlgebra, Logging, SparseArrays
 
 # JSO packages
 using Krylov, LinearOperators, LDLFactorizations, NLPModels, NLPModelsModifiers, SolverCore
+using JSOSolvers, NLPModelsIpopt, NLPModelsKnitro
 using Stopping, StoppingInterface
 
 include("model-Fletcherpenaltynlp.jl")

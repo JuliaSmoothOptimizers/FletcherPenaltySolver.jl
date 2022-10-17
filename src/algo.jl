@@ -33,6 +33,8 @@ function SolverCore.solve!(
   end
   #Prepare the subproblem-stopping for the subproblem minimization.
   sub_stp = fpssolver.sub_stp
+  subsolver = fpssolver.subproblem_solver
+  sub_stats = fpssolver.sub_stats
 
   nc0 = norm(state.cx, Inf)
   feas_tol = stp.meta.atol # norm(stp.meta.tol_check(stp.meta.atol, stp.meta.rtol, stp.meta.optimality0), Inf)
@@ -74,9 +76,10 @@ function SolverCore.solve!(
 
   while !OK
     reinit!(sub_stp) #reinit the sub-stopping.
+    SolverCore.reset!(subsolver, sub_stp.pb)
     #Solve the subproblem
     sub_stp.meta.max_time = max(stp.meta.max_time - (time() - stp.meta.start_time), 0.0)
-    sub_stp = meta.subproblem_solver(sub_stp, subsolver_verbose = subsolver_verbose)
+    SolverCore.solve!(subsolver, sub_stp, sub_stats, subsolver_verbose = subsolver_verbose)
 
     unbounded_lagrange_multiplier = norm(sub_stp.pb.ys, Inf) ≥ meta.lagrange_bound
 
