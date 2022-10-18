@@ -17,7 +17,7 @@ In the following example, we use `tron` from [`JSOSolvers.jl`](https://github.co
 using ADNLPModels, FletcherPenaltySolver, JSOSolvers
 T = Float32
 nlp = ADNLPModel(x -> (1 - x[1])^2, T[-1.2; 1.0], x -> [10 * (x[2] - x[1]^2)], T[0.0], T[0.0])
-stats = fps_solve(nlp, hessian_approx = Val(2), subproblem_solver = tron, rtol = T(1e-6))
+stats = fps_solve(nlp, hessian_approx = Val(2), subproblem_solver = tron, rtol = T(1e-4), verbose = 1)
 (stats.dual_feas, stats.primal_feas, stats.status, typeof(stats.solution))
 ```
 
