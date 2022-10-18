@@ -206,7 +206,7 @@ const subproblem_solver_correspondence = Dict(
 )
 
 """
-    FPSSSolver(nlp::AbstractNLPModel; kwargs...)
+    FPSSSolver(nlp::AbstractNLPModel [, x0 = nlp.meta.x0]; kwargs...)
     FPSSSolver(stp::NLPStopping; kwargs...)
 
 Structure regrouping all the structure used during the `fps_solve` call. It returns a `FPSSSolver` structure.
@@ -214,12 +214,15 @@ Structure regrouping all the structure used during the `fps_solve` call. It retu
 # Arguments
 The keyword arguments may include:
 
+- `stp::NLPStopping`: `Stopping` structure for this algorithm workflow;
 - `meta::AlgoData{T}`: see [`AlgoData`](@ref);
 - `workspace`: allocated space for the solver itself;
 - `qdsolver`: solver structure for the linear algebra part, contains allocation for this part. By default a `LDLtSolver`, but an alternative is `IterativeSolver` ;
 - `subproblem_solver::AbstractOptimizationSolver`: by default a `subproblem_solver_correspondence[Symbol(meta.subproblem_solver)]`;
 - `sub_stats::GenericExecutionStats`: stats structure for the result of `subproblem_solver`;
 - `feasibility_solver`: by default a `GNSolver`, see [`GNSolver`](@ref);
+- `model::FletcherPenaltyNLP`: subproblem;
+- `sub_stp::NLPStopping`: `Stopping` structure for the subproblem.
 
 Note:
 - `subproblem_solver` is accessible from the `subproblem_solver_correspondence::Dict`.
@@ -240,10 +243,11 @@ mutable struct FPSSSolver{
   MStp,
   LoS,
 } <: AbstractOptimizationSolver
+  stp::NLPStopping{Pb}
   meta::AlgoData{T}
   workspace
   qdsolver::QDS
-  subproblem_solver::US # should be a structure/named typle, with everything related to unconstrained
+  subproblem_solver::US
   sub_stats::GenericExecutionStats{T, S}
   feasibility_solver::FS
   model::FletcherPenaltyNLP{T, S, A, P, QDS, Pb}
@@ -257,13 +261,38 @@ mutable struct FPSSSolver{
   }
 end
 
-function FPSSSolver(stp::NLPStopping; kwargs...)
-  nlp = stp.pb
-  return FPSSSolver(nlp; atol = stp.meta.atol, rtol = stp.meta.rtol, main_stp = stp, kwargs...)
+function FPSSSolver(nlp::AbstractNLPModel{T, S}, x0::AbstractVector{T} = nlp.meta.x0; kwargs...) where {T, S}
+  cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
+  #Tanj: how to handle stopping criteria where tol_check depends on the State?
+  Fptc(atol, rtol, opt0) =
+    rtol * vcat(ones(T, nlp.meta.ncon) .+ norm(cx0, Inf), ones(T, nlp.meta.nvar) .+ norm(gx0, Inf))
+  initial_state = NLPAtX(
+    x0,
+    zeros(T, nlp.meta.ncon),
+    Array{T, 1}(undef, nlp.meta.ncon + nlp.meta.nvar),
+    cx = cx0,
+    gx = gx0,
+    res = gx0,
+  )
+  stp = NLPStopping(
+    nlp,
+    initial_state,
+    optimality_check = Fletcher_penalty_optimality_check,
+    atol = T(1e-7), # really convert here ?
+    rtol = T(1e-7),
+    tol_check = Fptc;
+    # max_cntrs = Stopping.init_max_counters();
+    kwargs...,
+  )
+  return FPSSSolver(stp; kwargs...)
 end
 
-function FPSSSolver(nlp::AbstractNLPModel{T, S}; qds_solver = :ldlt, atol = T(1e-7), rtol = T(1e-7), main_stp = VoidStopping(), kwargs...) where {T, S}
+function FPSSSolver(stp::NLPStopping; qds_solver = :ldlt, kwargs...)
+  nlp = stp.pb
+  atol = stp.meta.atol
+  rtol = stp.meta.rtol
   x, y = get_x0(nlp), get_y0(nlp)
+  T = eltype(x)
   meta = AlgoData(T; kwargs...)
   workspace = ()
   qdsolver = qdsolver_correspondence[qds_solver](nlp, zero(T); kwargs...)
@@ -287,7 +316,7 @@ function FPSSSolver(nlp::AbstractNLPModel{T, S}; qds_solver = :ldlt, atol = T(1e
   sub_stp = NLPStopping(
     model,
     sub_state,
-    main_stp = main_stp,
+    main_stp = stp,
     optimality_check = if model.meta.ncon > 0
       KKT
     elseif has_bounds(model)
@@ -302,6 +331,7 @@ function FPSSSolver(nlp::AbstractNLPModel{T, S}; qds_solver = :ldlt, atol = T(1e
     unbounded_threshold = meta.subpb_unbounded_threshold,
   )
   return FPSSSolver(
+    stp,
     meta,
     workspace,
     qdsolver,
