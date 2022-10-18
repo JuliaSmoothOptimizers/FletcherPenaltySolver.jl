@@ -143,7 +143,7 @@ function fps_solve(
     kwargs...,
   )
 
-  meta = FPSSSolver(stp, T; kwargs...)
+  meta = FPSSSolver(stp; kwargs...)
   stats = GenericExecutionStats(nlp)
   SolverCore.solve!(meta, stp, stats; verbose = verbose, subsolver_verbose = subsolver_verbose)
   if ineq && stats.multipliers_L != []
@@ -183,8 +183,7 @@ end
 
 function fps_solve(stp::NLPStopping; verbose::Int = 0, subsolver_verbose::Int = 0, kwargs...)
   nlp = stp.pb
-  T = eltype(nlp.meta.x0)
-  meta = FPSSSolver(stp, T; kwargs...)
+  meta = FPSSSolver(stp; kwargs...)
   # Update the state
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)

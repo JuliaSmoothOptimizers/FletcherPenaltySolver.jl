@@ -47,7 +47,7 @@ The `FPSSSolver`, see [`FPSSSolver`](@ref), contains all the metadata and additi
 ```@example ex1
 using SolverCore
 stp = NLPStopping(nlp)
-data = FPSSSolver(stp, Float64)
+data = FPSSSolver(stp)
 stats = GenericExecutionStats(nlp)
 stats = SolverCore.solve!(data, stp, stats)
 ```

@@ -206,7 +206,8 @@ const subproblem_solver_correspondence = Dict(
 )
 
 """
-    FPSSSolver(nlp, ::Type{T}; kwargs...)
+    FPSSSolver(nlp::AbstractNLPModel; kwargs...)
+    FPSSSolver(stp::NLPStopping; kwargs...)
 
 Structure regrouping all the structure used during the `fps_solve` call. It returns a `FPSSSolver` structure.
 
@@ -256,7 +257,7 @@ mutable struct FPSSSolver{
   }
 end
 
-function FPSSSolver(stp::NLPStopping, ::Type{T}; kwargs...) where {T}
+function FPSSSolver(stp::NLPStopping; kwargs...)
   nlp = stp.pb
   return FPSSSolver(nlp; atol = stp.meta.atol, rtol = stp.meta.rtol, main_stp = stp, kwargs...)
 end
