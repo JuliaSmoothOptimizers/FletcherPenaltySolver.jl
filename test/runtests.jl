@@ -29,7 +29,7 @@ end
     zeros(1),
   )
   stp = NLPStopping(nlp)
-  meta = FPSSSolver(stp, Float64, qds_solver = :iterative)
+  meta = FPSSSolver(stp, qds_solver = :iterative)
   stats = GenericExecutionStats(nlp)
   @test_throws ErrorException("fps_solve only works for minimization problem") SolverCore.solve!(
     meta,
