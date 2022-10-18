@@ -238,7 +238,7 @@ mutable struct FPSSSolver{
   SRC,
   MStp,
   LoS,
-}
+} <: AbstractOptimizationSolver
   meta::AlgoData{T}
   workspace
   qdsolver::QDS
