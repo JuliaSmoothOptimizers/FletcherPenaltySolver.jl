@@ -120,32 +120,9 @@ function fps_solve(
     nlp = SlackModel(nlp)
   end
 
-  cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
-  #Tanj: how to handle stopping criteria where tol_check depends on the State?
-  Fptc(atol, rtol, opt0) =
-    rtol * vcat(ones(T, nlp.meta.ncon) .+ norm(cx0, Inf), ones(T, nlp.meta.nvar) .+ norm(gx0, Inf))
-  initial_state = NLPAtX(
-    x0,
-    zeros(T, nlp.meta.ncon),
-    Array{T, 1}(undef, nlp.meta.ncon + nlp.meta.nvar),
-    cx = cx0,
-    gx = gx0,
-    res = gx0,
-  )
-  stp = NLPStopping(
-    nlp,
-    initial_state,
-    optimality_check = Fletcher_penalty_optimality_check,
-    atol = T(1e-7), # really convert here ?
-    rtol = T(1e-7),
-    tol_check = Fptc;
-    # max_cntrs = Stopping.init_max_counters();
-    kwargs...,
-  )
-
-  meta = FPSSSolver(stp; kwargs...)
+  meta = FPSSSolver(nlp, x0; kwargs...)
   stats = GenericExecutionStats(nlp)
-  SolverCore.solve!(meta, stp, stats; verbose = verbose, subsolver_verbose = subsolver_verbose)
+  SolverCore.solve!(meta, meta.stp, stats; verbose = verbose, subsolver_verbose = subsolver_verbose)
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
