@@ -16,11 +16,9 @@ import NLPModels:
 include("solve_two_systems_struct.jl")
 
 """
-    FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
-    FletcherPenaltyNLP(nlp, σ, hessian_approx, x; qds = LDLtSolver(nlp, S(0)))
-    FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx; kwargs...)
-    FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx, x; qds = LDLtSolver(nlp, S(0)))
-    FletcherPenaltyNLP(nlp; σ_0::Real = one(eltype(nlp.meta.x0)), ρ_0::Real = zero(eltype(nlp.meta.x0)), δ_0::Real = zero(eltype(nlp.meta.x0)), hessian_approx = Val(2), x0 = nlp.meta.x0, kwargs...)
+    FletcherPenaltyNLP(nlp, σ, hessian_approx, [x0 = nlp.meta.x0]; qds = LDLtSolver(nlp, S(0)))
+    FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx, [x0 = nlp.meta.x0]; qds = LDLtSolver(nlp, S(0)))
+    FletcherPenaltyNLP(nlp; σ_0 = 1, ρ_0 = 0, δ_0 = 0, hessian_approx = Val(2), x0 = nlp.meta.x0, qds = LDLtSolver(nlp, S(0)))
 
 We consider here the implementation of Fletcher's exact penalty method for
 the minimization problem:
@@ -104,103 +102,13 @@ mutable struct FletcherPenaltyNLP{
   explicit_linear_constraints::Bool
 end
 
-function FletcherPenaltyNLP(nlp, σ, hessian_approx; kwargs...)
-  return FletcherPenaltyNLP(nlp, σ, hessian_approx, nlp.meta.x0; kwargs...)
-end
-
-function FletcherPenaltyNLP(
-  nlp,
-  σ,
-  hessian_approx,
-  x0::AbstractVector{S};
-  explicit_linear_constraints = false,
-  qds = LDLtSolver(nlp, S(0)),
-) where {S}
-  nvar = nlp.meta.nvar
-  if explicit_linear_constraints
-    lin = collect(1:(nlp.meta.nlin))
-    nnzj = nlp.meta.lin_nnzj
-    lin_nnzj = nlp.meta.lin_nnzj
-    nln_nnzj = 0
-    npen = nlp.meta.nnln
-  else
-    lin = Int[]
-    nnzj = 0
-    lin_nnzj = 0
-    nln_nnzj = 0
-    npen = nlp.meta.ncon
-  end
-  ncon = explicit_linear_constraints ? nlp.meta.nlin : 0
-  meta = NLPModelMeta{S, Vector{S}}(
-    nvar,
-    x0 = x0,
-    nnzh = nvar * (nvar + 1) / 2,
-    lvar = nlp.meta.lvar,
-    uvar = nlp.meta.uvar,
-    minimize = true,
-    islp = false,
-    name = "Fletcher penalization of $(nlp.meta.name)",
-    ncon = ncon,
-    lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
-    ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
-    lin = lin,
-    nnzj = nnzj,
-    lin_nnzj = lin_nnzj,
-    nln_nnzj = nln_nnzj,
-  )
-
-  if hessian_approx == Val(1)
-    Ss = Array{S, 2}(undef, npen, nlp.meta.nvar)
-  else
-    Ss = Array{S, 2}(undef, 0, 0)
-  end
-
-  Aop = LinearOperator{S}(npen, nlp.meta.nvar, false, false, v -> v, v -> v, v -> v)
-  JtJ = Aop * Aop'
-  return FletcherPenaltyNLP(
-    meta,
-    Counters(),
-    nlp,
-    zero(UInt64),
-    S(NaN),
-    Vector{S}(undef, npen),
-    Vector{S}(undef, nlp.meta.nvar),
-    Aop,
-    JtJ,
-    Vector{S}(undef, npen),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, npen),
-    Vector{S}(undef, nlp.meta.nvar + npen),
-    Vector{S}(undef, nlp.meta.nvar + npen),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, npen),
-    Ss,
-    explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[], # pre-allocate for hess/hprod
-    σ,
-    zero(typeof(σ)),
-    zero(typeof(σ)),
-    zero(typeof(σ)),
-    qds,
-    hessian_approx,
-    explicit_linear_constraints,
-  )
-end
-
-function FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx; kwargs...)
-  return FletcherPenaltyNLP(nlp, σ, ρ, δ, hessian_approx, nlp.meta.x0; kwargs...)
-end
-
 function FletcherPenaltyNLP(
   nlp,
   σ,
   ρ,
   δ,
   hessian_approx,
-  x0::AbstractVector{S};
+  x0::AbstractVector{S} = nlp.meta.x0;
   explicit_linear_constraints = false,
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
 ) where {S}
@@ -279,9 +187,9 @@ function FletcherPenaltyNLP(
   )
 end
 
-#Set of functions solving two linear systems with different rhs.
-# solve_two_extras, solve_two_least_squares, solve_two_mixed
-include("solve_linear_system.jl")
+function FletcherPenaltyNLP(nlp, σ::T, hessian_approx, x0 = nlp.meta.x0; kwargs...) where {T}
+  return FletcherPenaltyNLP(nlp, σ, zero(T), zero(T), hessian_approx, x0; kwargs...)
+end
 
 function FletcherPenaltyNLP(
   nlp::AbstractNLPModel{T, S};
@@ -294,6 +202,10 @@ function FletcherPenaltyNLP(
 ) where {T, S}
   return FletcherPenaltyNLP(nlp, σ_0, ρ_0, δ_0, hessian_approx, x0; kwargs...)
 end
+
+#Set of functions solving two linear systems with different rhs.
+# solve_two_extras, solve_two_least_squares, solve_two_mixed
+include("solve_linear_system.jl")
 
 """
     p1, q1, p2, q2 = linear_system2(nlp, x)
