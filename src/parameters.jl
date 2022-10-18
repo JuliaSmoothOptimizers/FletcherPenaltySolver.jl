@@ -261,7 +261,11 @@ mutable struct FPSSSolver{
   }
 end
 
-function FPSSSolver(nlp::AbstractNLPModel{T, S}, x0::AbstractVector{T} = nlp.meta.x0; kwargs...) where {T, S}
+function FPSSSolver(
+  nlp::AbstractNLPModel{T, S},
+  x0::AbstractVector{T} = nlp.meta.x0;
+  kwargs...,
+) where {T, S}
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
   #Tanj: how to handle stopping criteria where tol_check depends on the State?
   Fptc(atol, rtol, opt0) =
