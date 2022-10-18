@@ -121,8 +121,7 @@ function fps_solve(
   end
 
   meta = FPSSSolver(nlp, x0; kwargs...)
-  stats = GenericExecutionStats(nlp)
-  SolverCore.solve!(meta, meta.stp, stats; verbose = verbose, subsolver_verbose = subsolver_verbose)
+  stats = SolverCore.solve!(meta, meta.stp; verbose = verbose, subsolver_verbose = subsolver_verbose)
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
@@ -159,14 +158,12 @@ function fps_solve(
 end
 
 function fps_solve(stp::NLPStopping; verbose::Int = 0, subsolver_verbose::Int = 0, kwargs...)
-  nlp = stp.pb
   meta = FPSSSolver(stp; kwargs...)
   # Update the state
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)
 
-  stats = GenericExecutionStats(nlp)
-  SolverCore.solve!(meta, stp, stats; verbose = verbose, subsolver_verbose = subsolver_verbose)
+  SolverCore.solve!(meta, stp; verbose = verbose, subsolver_verbose = subsolver_verbose)
 end
 
 include("algo.jl")
