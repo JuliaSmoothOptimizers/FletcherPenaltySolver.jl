@@ -62,7 +62,7 @@ function SolverCore.solve!(
     Any[
       0,
       "Init",
-      NaN,
+      Float64,
       nc0,
       norm(state.current_score, Inf),
       σ,
@@ -70,7 +70,7 @@ function SolverCore.solve!(
       δ,
       :Initial,
       sub_stp.pb.η,
-      NaN, # sub_stp.pb.ys is undef
+      Float64, # sub_stp.pb.ys is undef
     ],
   )
 
