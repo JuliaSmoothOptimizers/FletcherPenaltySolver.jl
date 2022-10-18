@@ -256,8 +256,12 @@ mutable struct FPSSSolver{
   }
 end
 
-function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) where {T}
+function FPSSSolver(stp::NLPStopping, ::Type{T}; kwargs...) where {T}
   nlp = stp.pb
+  return FPSSSolver(nlp; atol = stp.meta.atol, rtol = stp.meta.rtol, main_stp = stp, kwargs...)
+end
+
+function FPSSSolver(nlp::AbstractNLPModel{T, S}; qds_solver = :ldlt, atol = T(1e-7), rtol = T(1e-7), main_stp = VoidStopping(), kwargs...) where {T, S}
   x, y = get_x0(nlp), get_y0(nlp)
   meta = AlgoData(T; kwargs...)
   workspace = ()
@@ -282,7 +286,7 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
   sub_stp = NLPStopping(
     model,
     sub_state,
-    main_stp = stp,
+    main_stp = main_stp,
     optimality_check = if model.meta.ncon > 0
       KKT
     elseif has_bounds(model)
@@ -291,8 +295,8 @@ function FPSSSolver(stp::NLPStopping, ::Type{T}; qds_solver = :ldlt, kwargs...) 
       unconstrained_check
     end,
     max_iter = meta.subsolver_max_iter,
-    atol = meta.atol_sub(stp.meta.atol), # max(0.1, stp.meta.atol),# stp.meta.atol / 100,
-    rtol = meta.rtol_sub(stp.meta.rtol), # max(0.1, stp.meta.rtol), #stp.meta.rtol / 100,
+    atol = meta.atol_sub(atol), # max(0.1, atol),# atol / 100,
+    rtol = meta.rtol_sub(rtol), # max(0.1, rtol), #rtol / 100,
     optimality0 = one(T),
     unbounded_threshold = meta.subpb_unbounded_threshold,
   )
