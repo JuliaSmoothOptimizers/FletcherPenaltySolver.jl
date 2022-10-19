@@ -121,7 +121,8 @@ function fps_solve(
   end
 
   meta = FPSSSolver(nlp, x0; kwargs...)
-  stats = SolverCore.solve!(meta, meta.stp; verbose = verbose, subsolver_verbose = subsolver_verbose)
+  stats =
+    SolverCore.solve!(meta, meta.stp; verbose = verbose, subsolver_verbose = subsolver_verbose)
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
