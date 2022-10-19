@@ -1,10 +1,35 @@
 function SolverCore.solve!(
+  fpssolver::FPSSSolver,
+  nlp::AbstractNLPModel{T,V},
+  stats::GenericExecutionStats{T,V};
+  x::V = nlp.meta.x0,
+  atol::T = √eps(T),
+  rtol::T = √eps(T),
+  max_time::Float64 = 300.0,
+  kwargs...,
+) where {T,V}
+  stp = fpssolver.stp
+  stp.meta.atol = atol
+  stp.meta.rtol = rtol
+  stp.meta.max_time = max_time
+  if x != stp.current_state.x
+    stp.current_state.lambda .= zero(T)
+    set_x!(stp.current_state, stp.current_state.x)
+    grad!(nlp, nlp.meta.x0, stp.current_state.gx)
+    cons!(nlp, nlp.meta.x0, stp.current_state.cx)
+    set_res!(stp.current_state, stp.current_state.gx)
+    # we would also need to reinit the `tol_check` function
+  end
+  return SolverCore.solve!(fpssolver, stp, stats; kwargs...)
+end
+
+function SolverCore.solve!(
   fpssolver::FPSSSolver{T, QDS, US},
   stp::NLPStopping,
-  stats::GenericExecutionStats;
+  stats::GenericExecutionStats{T, V};
   verbose::Int = 0,
   subsolver_verbose::Int = 0,
-) where {T, QDS, US}
+) where {T, QDS, US, V}
   meta = fpssolver.meta
   feasibility_solver = fpssolver.feasibility_solver
   reset!(stats)
@@ -33,6 +58,12 @@ function SolverCore.solve!(
   end
   #Prepare the subproblem-stopping for the subproblem minimization.
   sub_stp = fpssolver.sub_stp
+  set_x!(sub_stp.current_state, stp.current_state.x)
+  sub_stp.meta.atol = meta.atol_sub(stp.meta.atol) # max(0.1, atol),# atol / 100,
+  sub_stp.meta.rtol = meta.rtol_sub(stp.meta.rtol) # max(0.1, rtol), #rtol / 100,
+  sub_stp.meta.max_iter = meta.subsolver_max_iter
+  sub_stp.meta.unbounded_threshold = meta.subpb_unbounded_threshold
+
   subsolver = fpssolver.subproblem_solver
   sub_stats = fpssolver.sub_stats
 
@@ -117,7 +148,7 @@ function SolverCore.solve!(
     elseif sub_stp.meta.unbounded || sub_stp.meta.unbounded_pb || unbounded_lagrange_multiplier
       stalling, unsuccessful_subpb = 0, 0
       unbounded_subpb += 1
-      ncx = norm(sub_stp.pb.cx, Inf) # norm(sub_stp.pb.cx, Inf)
+      ncx = norm(sub_stp.pb.cx, Inf)
       feas = ncx < norm(feas_tol, Inf)
       if feas
         stp.meta.unbounded_pb = true
@@ -337,6 +368,7 @@ function update_parameters!(meta, sub_stp, feas)
   #reinitialize the State(s) as the problem changed
   reinit!(
     sub_stp.current_state,
+    # Tanj: should we keep x?
     cx = sub_stp.current_state.cx,
     Jx = sub_stp.current_state.Jx,
     res = sub_stp.current_state.res,

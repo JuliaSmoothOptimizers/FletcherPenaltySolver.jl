@@ -13,6 +13,8 @@ using Test
 #This package
 using FletcherPenaltySolver
 
+include("restart.jl")
+
 include("nlpmodelstest.jl")
 
 include("unit-test.jl")
