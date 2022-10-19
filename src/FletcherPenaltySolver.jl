@@ -104,12 +104,12 @@ julia> stats = fps_solve(nlp)
 ```
 """
 function fps_solve(
-  nlp::AbstractNLPModel{T,V},
+  nlp::AbstractNLPModel{T, V},
   x0::V = nlp.meta.x0;
   verbose::Int = 0,
   subsolver_verbose::Int = 0,
   kwargs...,
-) where {T,V}
+) where {T, V}
   if !(nlp.meta.minimize)
     error("fps_solve only works for minimization problem")
   end

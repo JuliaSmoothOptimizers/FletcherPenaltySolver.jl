@@ -1,13 +1,13 @@
 function SolverCore.solve!(
   fpssolver::FPSSSolver,
-  nlp::AbstractNLPModel{T,V},
-  stats::GenericExecutionStats{T,V};
+  nlp::AbstractNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
   x::V = nlp.meta.x0,
   atol::T = √eps(T),
   rtol::T = √eps(T),
   max_time::Float64 = 300.0,
   kwargs...,
-) where {T,V}
+) where {T, V}
   stp = fpssolver.stp
   stp.meta.atol = atol
   stp.meta.rtol = rtol
