@@ -346,3 +346,9 @@ function FPSSSolver(stp::NLPStopping; qds_solver = :ldlt, kwargs...)
     sub_stp,
   )
 end
+
+function SolverCore.reset!(solver::FPSSSolver)
+  reinit!(solver.stp)
+  reinit!(solver.sub_stp)
+  reset!(solver.model)
+end
