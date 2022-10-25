@@ -351,4 +351,15 @@ function SolverCore.reset!(solver::FPSSSolver)
   reinit!(solver.stp)
   reinit!(solver.sub_stp)
   reset!(solver.model)
+  solver
+end
+
+function SolverCore.reset!(solver::FPSSSolver, nlp::AbstractNLPModel)
+  @assert nlp.meta.nvar == solver.stp.pb.meta.nvar
+  @assert nlp.meta.ncon == solver.stp.pb.meta.ncon
+  reset!(solver)
+  solver.stp.pb = nlp
+  reinit!(solver.stp)
+  solver.model.nlp = nlp
+  solver
 end
