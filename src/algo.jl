@@ -14,7 +14,7 @@ function SolverCore.solve!(
   stp.meta.max_time = max_time
   if x != stp.current_state.x
     stp.current_state.lambda .= zero(T)
-    set_x!(stp.current_state, stp.current_state.x)
+    set_x!(stp.current_state, x)
     grad!(nlp, nlp.meta.x0, stp.current_state.gx)
     cons!(nlp, nlp.meta.x0, stp.current_state.cx)
     set_res!(stp.current_state, stp.current_state.gx)
