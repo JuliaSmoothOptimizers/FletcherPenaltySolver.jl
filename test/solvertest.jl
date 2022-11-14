@@ -22,7 +22,7 @@
           nlp,
           nlp.meta.x0,
           hessian_approx = Val(1),
-          subproblem_solver = StoppingInterface.tron;
+          subproblem_solver = tron;
           kwargs...,
         ),
         ptype,
@@ -37,7 +37,7 @@
           nlp,
           nlp.meta.x0,
           hessian_approx = Val(2),
-          subproblem_solver = StoppingInterface.tron;
+          subproblem_solver = tron;
           kwargs...,
         ),
         ptype,

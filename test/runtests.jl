@@ -1,7 +1,8 @@
 using LinearAlgebra, LinearOperators, Random, SparseArrays
 
 #JSO packages
-using ADNLPModels, Logging, NLPModels, NLPModelsIpopt, NLPModelsTest, SolverCore, SolverTest
+using ADNLPModels, Logging, NLPModels, NLPModelsTest, SolverCore, SolverTest
+using JSOSolvers, NLPModelsIpopt, NLPModelsKnitro
 
 Random.seed!(1234)
 
