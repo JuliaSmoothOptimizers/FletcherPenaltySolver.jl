@@ -87,7 +87,7 @@ The metadata is defined in a `AlgoData` structure at the initialization of `FPSS
 | `η_update` | `Real` | `one(T)` | Update subproblem's parameter η | 
 | `yM` | `Real` | `typemax(T)` |  bound on the Lagrange multipliers | 
 | `Δ` | `Real` | `T(0.95)` | expected decrease in feasibility between two iterations | 
-| `subproblem_solver` | `Function` | `StoppingInterface.is_knitro_installed ? NLPModelsKnitro.knitro : ipopt` | solver used for the subproblem, see also [`JSOSolvers.jl`](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl) | 
+| `subproblem_solver` | `Function` | `KNITRO.has_knitro() ? NLPModelsKnitro.knitro : ipopt` | solver used for the subproblem, see also [`JSOSolvers.jl`](https://github.com/JuliaSmoothOptimizers/JSOSolvers.jl) | 
 | `subpb_unbounded_threshold` | `Real` | `1 / √eps(T)` | below the opposite of this value, the subproblem is unbounded | 
 | `atol_sub` | `Function` | `atol -> atol` | absolute tolerance for the subproblem in function of `atol` | 
 | `rtol_sub` | `Function` | `rtol -> rtol` | relative tolerance for the subproblem in function of `rtol` | 
