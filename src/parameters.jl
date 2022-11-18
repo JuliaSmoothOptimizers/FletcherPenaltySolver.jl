@@ -81,7 +81,7 @@ function AlgoData(
   η_update::Real = one(T),
   yM::Real = typemax(T),
   Δ::Real = T(0.95),
-  subproblem_solver::Function = ipopt,
+  subproblem_solver::Function = T ==Float64 ? ipopt : tron,
   subpb_unbounded_threshold::Real = 1 / √eps(T),
   subsolver_max_iter::Int = 20000,
   atol_sub::Function = atol -> atol,
