@@ -64,8 +64,6 @@ function solve_two_extras(
     λ = τ,
     atol = nlp.qdsolver.ne_atol,
     rtol = nlp.qdsolver.ne_rtol,
-    ratol = nlp.qdsolver.ne_ratol,
-    rrtol = nlp.qdsolver.ne_rrtol,
     etol = nlp.qdsolver.ne_etol,
     itmax = nlp.qdsolver.ne_itmax,
     conlim = nlp.qdsolver.ne_conlim,
