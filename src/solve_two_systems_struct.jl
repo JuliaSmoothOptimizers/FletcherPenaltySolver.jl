@@ -108,8 +108,8 @@ function IterativeSolver(
   ln_itmax::Integer = 5 * (
     (explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon) + nlp.meta.nvar
   ),
-  ne_atol::T = √eps(T) / 100,
-  ne_rtol::T = √eps(T) / 100,
+  ne_atol::T = √eps(T),
+  ne_rtol::T = √eps(T),
   ne_etol::T = √eps(T),
   ne_itmax::Int = 0,
   ne_conlim::T = 1 / √eps(T),
@@ -125,7 +125,7 @@ function IterativeSolver(
   ),
   solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
-    nlp.meta.nvar,
+    explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     Vector{T},
   ),
   kwargs...,
