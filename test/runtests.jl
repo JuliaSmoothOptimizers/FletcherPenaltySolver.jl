@@ -33,7 +33,7 @@ using FletcherPenaltySolver
     end
   end
   stats = with_logger(NullLogger()) do
-    fps_solve(nlp, σ_0 = 1., ρ_0 = 0.0, callback = cb)
+    fps_solve(nlp, σ_0 = 1.0, ρ_0 = 0.0, callback = cb)
   end
   @test stats.iter == 4
 end
