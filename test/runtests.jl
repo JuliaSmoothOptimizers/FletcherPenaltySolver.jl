@@ -14,6 +14,30 @@ using Test
 #This package
 using FletcherPenaltySolver
 
+@testset "Test callback" begin
+  nlp = ADNLPModel(
+    x -> (x[1] - x[2])^2 + (x[2] - x[3])^4,
+    [-2.6; 2.0; 2.0],
+    x -> [(1 + x[2]^2) * x[1] + x[3]^4 - 3],
+    [0.0],
+    [0.0],
+  )
+  X = [nlp.meta.x0[1]]
+  Y = [nlp.meta.x0[2]]
+  function cb(nlp, solver, stats)
+    x = stats.solution
+    push!(X, x[1])
+    push!(Y, x[2])
+    if stats.iter == 4
+      stats.status = :user
+    end
+  end
+  stats = with_logger(NullLogger()) do
+    fps_solve(nlp, σ_0 = 1., ρ_0 = 0.0, callback = cb)
+  end
+  @test stats.iter == 4
+end
+
 include("restart.jl")
 
 include("nlpmodelstest.jl")
