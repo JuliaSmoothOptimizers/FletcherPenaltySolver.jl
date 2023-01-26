@@ -142,8 +142,13 @@ function fps_solve(
   end
 
   meta = FPSSSolver(nlp, x0; kwargs...)
-  stats =
-    SolverCore.solve!(meta, meta.stp; verbose = verbose, subsolver_verbose = subsolver_verbose, callback = callback)
+  stats = SolverCore.solve!(
+    meta,
+    meta.stp;
+    verbose = verbose,
+    subsolver_verbose = subsolver_verbose,
+    callback = callback,
+  )
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
@@ -179,13 +184,25 @@ function fps_solve(
   return stats
 end
 
-function fps_solve(stp::NLPStopping; verbose::Int = 0, subsolver_verbose::Int = 0, callback = (args...) -> nothing, kwargs...)
+function fps_solve(
+  stp::NLPStopping;
+  verbose::Int = 0,
+  subsolver_verbose::Int = 0,
+  callback = (args...) -> nothing,
+  kwargs...,
+)
   meta = FPSSSolver(stp; kwargs...)
   # Update the state
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)
 
-  SolverCore.solve!(meta, stp; verbose = verbose, subsolver_verbose = subsolver_verbose, callback = callback)
+  SolverCore.solve!(
+    meta,
+    stp;
+    verbose = verbose,
+    subsolver_verbose = subsolver_verbose,
+    callback = callback,
+  )
 end
 
 include("algo.jl")
