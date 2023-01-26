@@ -29,6 +29,7 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T, V};
   verbose::Int = 0,
   subsolver_verbose::Int = 0,
+  callback = (args...) -> nothing,
 ) where {T, QDS, US, V}
   meta = fpssolver.meta
   feasibility_solver = fpssolver.feasibility_solver
@@ -105,7 +106,9 @@ function SolverCore.solve!(
     ],
   )
 
-  while !OK
+  callback(nlp, fpssolver, stats)
+
+  while !OK && (stats.status != :user)
     reinit!(sub_stp) #reinit the sub-stopping.
     SolverCore.reset!(subsolver, sub_stp.pb)
     #Solve the subproblem
@@ -262,22 +265,24 @@ function SolverCore.solve!(
       end
       nc0 = copy(ncx)
     end
+
+    set_status!(stats, status_stopping_to_stats(stp))
+    set_solution!(stats, stp.current_state.x)
+    set_objective!(stats, stp.current_state.fx)
+    set_residuals!(
+      stats,
+      norm(stp.current_state.cx - get_lcon(stp.pb), Inf),
+      sub_stp.current_state.current_score,
+    )
+    set_constraint_multipliers!(stats, stp.current_state.lambda)
+    if has_bounds(stp.pb)
+      set_bounds_multipliers!(stats, max.(stp.current_state.mu, 0), min.(stp.current_state.mu, 0))
+    end
+    set_iter!(stats, stp.meta.nb_of_stop)
+    set_time!(stats, stp.current_state.current_time - stp.meta.start_time)
+    callback(nlp, fpssolver, stats)
   end #end of main loop
 
-  set_status!(stats, status_stopping_to_stats(stp))
-  set_solution!(stats, stp.current_state.x)
-  set_objective!(stats, stp.current_state.fx)
-  set_residuals!(
-    stats,
-    norm(stp.current_state.cx - get_lcon(stp.pb), Inf),
-    sub_stp.current_state.current_score,
-  )
-  set_constraint_multipliers!(stats, stp.current_state.lambda)
-  if has_bounds(stp.pb)
-    set_bounds_multipliers!(stats, max.(stp.current_state.mu, 0), min.(stp.current_state.mu, 0))
-  end
-  set_iter!(stats, stp.meta.nb_of_stop)
-  set_time!(stats, stp.current_state.current_time - stp.meta.start_time)
   # solver_specific = Dict(:stp => stp, :restoration => restoration_phase),
   stats
 end

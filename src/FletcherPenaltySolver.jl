@@ -95,6 +95,26 @@ If one define a `Stopping` before calling `fps_solve`, it is possible to access 
 - `stp.current_state.res` contains the gradient of Fletcher's penalty function.
 - `subproblem_solver` must take an `NLPStopping` as input, see `StoppingInterface.jl`.
 
+# Callback
+
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver`: see [`FPSSSolver`](@ref)
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.dual_feas`: norm of current gradient of the Lagrangian;
+  - `stats.primal_feas`: norm of current feasibility;
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solution`: current iterate;
+  - `stats.multipliers`: current Lagrange multipliers estimate;
+  - `stats.multipliers_L` and `stats.multipliers_U`: current Lagrange multipliers estimate for the lower and upper bounds respectively;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.elapsed_time`: elapsed time in seconds.
+
 # Examples
 ```julia
 julia> using FletcherPenaltySolver, ADNLPModels
@@ -108,6 +128,7 @@ function fps_solve(
   x0::V = nlp.meta.x0;
   verbose::Int = 0,
   subsolver_verbose::Int = 0,
+  callback = (args...) -> nothing,
   kwargs...,
 ) where {T, V}
   if !(nlp.meta.minimize)
@@ -122,7 +143,7 @@ function fps_solve(
 
   meta = FPSSSolver(nlp, x0; kwargs...)
   stats =
-    SolverCore.solve!(meta, meta.stp; verbose = verbose, subsolver_verbose = subsolver_verbose)
+    SolverCore.solve!(meta, meta.stp; verbose = verbose, subsolver_verbose = subsolver_verbose, callback = callback)
   if ineq && stats.multipliers_L != []
     nnvar = nlp.model.meta.nvar
     # reshape the stats to fit the original problem
@@ -158,13 +179,13 @@ function fps_solve(
   return stats
 end
 
-function fps_solve(stp::NLPStopping; verbose::Int = 0, subsolver_verbose::Int = 0, kwargs...)
+function fps_solve(stp::NLPStopping; verbose::Int = 0, subsolver_verbose::Int = 0, callback = (args...) -> nothing, kwargs...)
   meta = FPSSSolver(stp; kwargs...)
   # Update the state
   x = stp.current_state.x
   fill_in!(stp, x, Hx = stp.current_state.Hx)
 
-  SolverCore.solve!(meta, stp; verbose = verbose, subsolver_verbose = subsolver_verbose)
+  SolverCore.solve!(meta, stp; verbose = verbose, subsolver_verbose = subsolver_verbose, callback = callback)
 end
 
 include("algo.jl")
