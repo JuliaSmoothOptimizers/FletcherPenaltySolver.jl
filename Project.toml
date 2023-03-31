@@ -22,7 +22,7 @@ StoppingInterface = "53949629-e8ff-437b-b6e7-14da1a85bf25"
 
 [compat]
 FastClosures = "0.2, 0.3"
-JSOSolvers = "0.9"
+JSOSolvers = "0.9, 0.10"
 Krylov = "0.8, 0.9"
 LDLFactorizations = "0.8, 0.9, 0.10"
 LinearOperators = "1, 2"
