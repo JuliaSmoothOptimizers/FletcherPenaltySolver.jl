@@ -275,7 +275,7 @@ function SolverCore.solve!(
       sub_stp.current_state.current_score,
     )
     set_constraint_multipliers!(stats, stp.current_state.lambda)
-    if has_bounds(stp.pb)
+    if has_bounds(stp.pb) && (stp.current_state.mu != [])
       set_bounds_multipliers!(stats, max.(stp.current_state.mu, 0), min.(stp.current_state.mu, 0))
     end
     set_iter!(stats, stp.meta.nb_of_stop)
