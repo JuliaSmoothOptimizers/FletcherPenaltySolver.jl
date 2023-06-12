@@ -38,7 +38,7 @@ function feasibility_step(
   max_eval::Int = 1_000,
   max_time::AbstractFloat = 60.0,
   max_feas_iter::Int = typemax(Int64),
-) where {T, S}
+) where {T}
   z = x
   cz = cx
   Jz = Jx
