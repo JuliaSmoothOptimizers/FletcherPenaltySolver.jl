@@ -655,10 +655,10 @@ function NLPModels.cons_lin!(
 end
 
 function NLPModels.jac_lin_structure!(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
+  nlp::FletcherPenaltyNLP,
   rows::AbstractVector{<:Integer},
   cols::AbstractVector{<:Integer},
-) where {T, S, Tt, V, P, QDS}
+)
   @lencheck nlp.meta.lin_nnzj rows cols
   return jac_lin_structure!(nlp.nlp, rows, cols)
 end
