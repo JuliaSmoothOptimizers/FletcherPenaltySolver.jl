@@ -54,6 +54,7 @@ export AlgoData, FPSSSolver
 
 include("feasibility.jl")
 
+import SolverCore.solve!
 export fps_solve, solve!
 
 """
