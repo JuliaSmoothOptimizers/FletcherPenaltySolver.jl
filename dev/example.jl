@@ -69,4 +69,3 @@ stats_ipopt.elapsed_time, stats_fps_solve.elapsed_time
 (stats_fps_solve.objective, stats_fps_solve.primal_feas, stats_fps_solve.dual_feas)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-
