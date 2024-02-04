@@ -23,7 +23,6 @@ identifiers:
   - description: Zenodo archive
     type: doi
     value: 10.5281/zenodo.7153564
-date-released: 2022-10-06
 keywords:
   - Nonlinear Optimization
   - Julia
