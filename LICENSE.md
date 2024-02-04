@@ -1,4 +1,4 @@
-Copyright (c) 2015-2022: Tangi Migot
+Copyright (c) 2015-present: Tangi Migot
 
 FletcherPenaltySolver.jl is licensed under the [MPL version 2.0](https://www.mozilla.org/MPL/2.0/).
 
