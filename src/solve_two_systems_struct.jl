@@ -306,14 +306,14 @@ struct LDLtSolver{S, S2, Si, Str} <: QDSolver
 end
 
 function LDLtSolver(
-  nlp,
+  nlp::AbstractNLPModel{T, S},
   ::T;
   explicit_linear_constraints = false,
   ldlt_tol = √eps(T),
   ldlt_r1 = √eps(T),
   ldlt_r2 = -√eps(T),
   kwargs...,
-) where {T <: Number}
+) where {T <: Number, S}
   nnzj = explicit_linear_constraints ? nlp.meta.nln_nnzj : nlp.meta.nnzj
   nvar = nlp.meta.nvar
   ncon = explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon
@@ -321,12 +321,12 @@ function LDLtSolver(
   nnz = nvar + nnzj + ncon
   rows = zeros(Int, nnz)
   cols = zeros(Int, nnz)
-  vals = zeros(T, nnz)
+  vals = fill!(S(undef, nnz), 0)
 
   # I (1:nvar, 1:nvar)
   nnz_idx = 1:nvar
   rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
-  vals[nnz_idx] .= ones(T, nvar)
+  vals[nnz_idx] .= one(T)
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
   if explicit_linear_constraints

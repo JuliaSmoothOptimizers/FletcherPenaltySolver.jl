@@ -137,8 +137,8 @@ function FletcherPenaltyNLP(
     islp = false,
     name = "Fletcher penalization of $(nlp.meta.name)",
     ncon = ncon,
-    lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : zeros(S, 0),
-    ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : zeros(S, 0),
+    lcon = explicit_linear_constraints ? nlp.meta.lcon[nlp.meta.lin] : fill!(T(undef, 0), 0),
+    ucon = explicit_linear_constraints ? nlp.meta.ucon[nlp.meta.lin] : fill!(T(undef, 0), 0),
     lin = lin,
     nnzj = nnzj,
     lin_nnzj = lin_nnzj,
@@ -176,7 +176,7 @@ function FletcherPenaltyNLP(
     T(undef, nlp.meta.nvar),
     T(undef, npen),
     Ss,
-    explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[],
+    explicit_linear_constraints & (ncon > 0) ? fill!(T(undef, nlp.meta.ncon), 0) : S[],
     σ,
     ρ,
     δ,
@@ -217,7 +217,7 @@ function linear_system2(nlp::FletcherPenaltyNLP{T, S}, x::AbstractVector) where 
   c = nlp.cx
   σ = nlp.σ
   #rhs1 = vcat(g, T(σ) * c)
-  #rhs2 = vcat(zeros(T, nlp.meta.nvar), c)
+  #rhs2 = vcat(fill!(S(undef, nlp.meta.nvar), 0), c)
 
   (p1, q1, p2, q2) = solve_two_mixed(nlp, x, g, c)
   # nlp._sol1 .= _sol1
