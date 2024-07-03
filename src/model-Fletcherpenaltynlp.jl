@@ -38,7 +38,7 @@ where
 
 # Arguments
 - `nlp::AbstractNLPModel`: the model solved, see `NLPModels.jl`;
-- `x::AbstractVector`: Initial guess. If `x` is not specified, then `nlp.meta.x0` is used;
+- `x::S`: Initial guess. If `x` is not specified, then `nlp.meta.x0` is used;
 - `σ`, `ρ`, `δ` parameters of the subproblem;
 - `hessian_approx` either `Val(1)` or `Val(2)` for the hessian approximation.
 - `qds`: solver structure for the linear algebra computations, see [`LDLtSolver`](@ref) or [`IterativeSolver`](@ref).
@@ -103,15 +103,15 @@ mutable struct FletcherPenaltyNLP{
 end
 
 function FletcherPenaltyNLP(
-  nlp,
+  nlp::AbstractNLPModel{S, T},
   σ,
   ρ,
   δ,
   hessian_approx,
-  x0::AbstractVector{S} = nlp.meta.x0;
+  x0::T = nlp.meta.x0;
   explicit_linear_constraints = false,
   qds = LDLtSolver(nlp, S(0)), #IterativeSolver(nlp, S(NaN)),
-) where {S}
+) where {S, T}
   nvar = nlp.meta.nvar
   if explicit_linear_constraints
     lin = collect(1:(nlp.meta.nlin))
@@ -127,7 +127,7 @@ function FletcherPenaltyNLP(
     npen = nlp.meta.ncon
   end
   ncon = explicit_linear_constraints ? nlp.meta.nlin : 0
-  meta = NLPModelMeta{S, Vector{S}}(
+  meta = NLPModelMeta{S, T}(
     nvar,
     x0 = x0,
     nnzh = nvar * (nvar + 1) / 2,
@@ -160,21 +160,21 @@ function FletcherPenaltyNLP(
     nlp,
     zero(UInt64),
     S(NaN),
-    Vector{S}(undef, npen),
-    Vector{S}(undef, nlp.meta.nvar),
+    T(undef, npen),
+    T(undef, nlp.meta.nvar),
     Aop,
     JtJ,
-    Vector{S}(undef, npen),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, npen),
-    Vector{S}(undef, nlp.meta.nvar + npen),
-    Vector{S}(undef, nlp.meta.nvar + npen),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, nlp.meta.nvar),
-    Vector{S}(undef, npen),
+    T(undef, npen),
+    T(undef, nlp.meta.nvar),
+    T(undef, nlp.meta.nvar),
+    T(undef, nlp.meta.nvar),
+    T(undef, npen),
+    T(undef, nlp.meta.nvar + npen),
+    T(undef, nlp.meta.nvar + npen),
+    T(undef, nlp.meta.nvar),
+    T(undef, nlp.meta.nvar),
+    T(undef, nlp.meta.nvar),
+    T(undef, npen),
     Ss,
     explicit_linear_constraints & (ncon > 0) ? zeros(S, nlp.meta.ncon) : S[],
     σ,
@@ -212,7 +212,7 @@ include("solve_linear_system.jl")
 
 Call to `solve_two_mixed(nlp, x, nlp.gx, nlp.cx)`, see [`solve_two_mixed`](@ref).
 """
-function linear_system2(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+function linear_system2(nlp::FletcherPenaltyNLP{T, S}, x::AbstractVector) where {T, S}
   g = nlp.gx
   c = nlp.cx
   σ = nlp.σ
@@ -231,7 +231,7 @@ end
 
 Compute the Lagrange multipliers and the gradient of the Lagrangian function in-place.
 """
-function _compute_ys_gs!(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T}
+function _compute_ys_gs!(nlp::FletcherPenaltyNLP{T, S}, x::AbstractVector) where {T, S}
   shahx = hash(x)
   if shahx != nlp.shahx
     nlp.shahx = shahx
@@ -285,13 +285,13 @@ end
 Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
 """
 function hprod_nln!(
-  nlp::FletcherPenaltyNLP,
-  x::AbstractVector{S},
+  nlp::FletcherPenaltyNLP{S, T},
+  x,
   y,
   v,
   Hv;
   obj_weight = one(S),
-) where {S}
+) where {S, T}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     nlp.lag_mul .= zero(S)
     nlp.lag_mul[nlp.meta.nln] .= y
@@ -307,12 +307,12 @@ end
 Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
 """
 function hess_nln_coord!(
-  nlp::FletcherPenaltyNLP,
-  x::AbstractVector{S},
+  nlp::FletcherPenaltyNLP{S, T},
+  x::AbstractVector,
   y,
   vals;
   obj_weight = one(S),
-) where {S}
+) where {S, T}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     nlp.lag_mul .= zero(S)
     nlp.lag_mul[nlp.meta.nln] .= y
@@ -327,7 +327,7 @@ end
 
 Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
 """
-function hess_nln(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y; obj_weight = one(S)) where {S}
+function hess_nln(nlp::FletcherPenaltyNLP{S, T}, x::AbstractVector, y; obj_weight = one(S)) where {S, T}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     nlp.lag_mul .= zero(S)
     nlp.lag_mul[nlp.meta.nln] .= y
@@ -342,7 +342,7 @@ end
 
 Redefine the NLPModel function `ghjvprod` to account for Lagrange multiplier of size < ncon.
 """
-function ghjvprod_nln!(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y, v, vals) where {S}
+function ghjvprod_nln!(nlp::FletcherPenaltyNLP{S, T}, x::AbstractVector, y, v, vals) where {S, T}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     ghjvprod!(nlp.nlp, x, y, v, nlp.lag_mul)
     vals .= nlp.lag_mul[nlp.nlp.meta.nln]
@@ -351,7 +351,7 @@ function ghjvprod_nln!(nlp::FletcherPenaltyNLP, x::AbstractVector{S}, y, v, vals
   end
 end
 
-function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: AbstractFloat}
+function obj(nlp::FletcherPenaltyNLP{T, S}, x::AbstractVector) where {T, S}
   nvar = get_nvar(nlp)
   @lencheck nvar x
   increment!(nlp, :neval_obj)
@@ -372,10 +372,10 @@ function obj(nlp::FletcherPenaltyNLP, x::AbstractVector{T}) where {T <: Abstract
 end
 
 function grad!(
-  nlp::FletcherPenaltyNLP,
-  x::AbstractVector{T},
-  gx::AbstractVector{T},
-) where {T <: AbstractFloat}
+  nlp::FletcherPenaltyNLP{T, S},
+  x::AbstractVector,
+  gx::AbstractVector,
+) where {T, S}
   nvar = get_nvar(nlp)
   @lencheck nvar x gx
   increment!(nlp, :neval_grad)
@@ -407,10 +407,10 @@ function grad!(
 end
 
 function objgrad!(
-  nlp::FletcherPenaltyNLP,
-  x::AbstractVector{T},
-  gx::AbstractVector{T},
-) where {T <: AbstractFloat}
+  nlp::FletcherPenaltyNLP{T, S},
+  x::AbstractVector,
+  gx::AbstractVector,
+) where {T, S}
   nvar = get_nvar(nlp)
   @lencheck nvar x gx
   increment!(nlp, :neval_obj)
@@ -460,11 +460,11 @@ function hess_structure!(
 end
 
 function hess_coord!(
-  nlp::FletcherPenaltyNLP,
-  x::AbstractVector{T},
-  vals::AbstractVector{T};
+  nlp::FletcherPenaltyNLP{T, S},
+  x::AbstractVector,
+  vals::AbstractVector;
   obj_weight::Real = one(T),
-) where {T}
+) where {T, S}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nnzh vals
   increment!(nlp, :neval_hess)
@@ -529,12 +529,12 @@ function hess_coord!(
 end
 
 function hprod!(
-  nlp::FletcherPenaltyNLP{S, Tt, Val{2}, P, QDS},
-  x::AbstractVector{T},
+  nlp::FletcherPenaltyNLP{T, S, Val{2}, P, QDS},
+  x::AbstractVector,
   v::AbstractVector,
   Hv::AbstractVector;
   obj_weight = one(T),
-) where {T, S, Tt, P, QDS}
+) where {T, S, P, QDS}
   nvar = get_nvar(nlp)
   @lencheck nvar x v Hv
   increment!(nlp, :neval_hprod)
@@ -580,12 +580,12 @@ function hprod!(
 end
 
 function hprod!(
-  nlp::FletcherPenaltyNLP{S, Tt, Val{1}, P, QDS},
-  x::AbstractVector{T},
+  nlp::FletcherPenaltyNLP{T, S, Val{1}, P, QDS},
+  x::AbstractVector,
   v::AbstractVector,
   Hv::AbstractVector;
   obj_weight = one(T),
-) where {T, S, Tt, P, QDS}
+) where {T, S, P, QDS}
   nvar = get_nvar(nlp)
   @lencheck nvar x v Hv
   increment!(nlp, :neval_hprod)
@@ -644,10 +644,10 @@ function hprod!(
 end
 
 function NLPModels.cons_lin!(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector{T},
-  c::AbstractVector{T},
-) where {T, S, Tt, V, P, QDS}
+  nlp::FletcherPenaltyNLP{T, S, V, P, QDS},
+  x::AbstractVector,
+  c::AbstractVector,
+) where {T, S, V, P, QDS}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nlin c
   increment!(nlp, :neval_cons_lin)
@@ -664,10 +664,10 @@ function NLPModels.jac_lin_structure!(
 end
 
 function NLPModels.jac_lin_coord!(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector{T},
-  vals::AbstractVector{T},
-) where {T, S, Tt, V, P, QDS}
+  nlp::FletcherPenaltyNLP{T, S, V, P, QDS},
+  x::AbstractVector,
+  vals::AbstractVector,
+) where {T, S, V, P, QDS}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.lin_nnzj vals
   increment!(nlp, :neval_jac_lin)
@@ -675,11 +675,11 @@ function NLPModels.jac_lin_coord!(
 end
 
 function NLPModels.jprod_lin!(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector{T},
+  nlp::FletcherPenaltyNLP{T, S, V, P, QDS},
+  x::AbstractVector,
   v::AbstractVector,
   Jv::AbstractVector,
-) where {T, S, Tt, V, P, QDS}
+) where {T, S, V, P, QDS}
   @lencheck nlp.meta.nvar x v
   @lencheck nlp.meta.nlin Jv
   increment!(nlp, :neval_jprod_lin)
@@ -687,11 +687,11 @@ function NLPModels.jprod_lin!(
 end
 
 function NLPModels.jtprod_lin!(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector{T},
+  nlp::FletcherPenaltyNLP{T, S, V, P, QDS},
+  x::AbstractVector,
   v::AbstractVector,
   Jtv::AbstractVector,
-) where {T, S, Tt, V, P, QDS}
+) where {T, S, V, P, QDS}
   @lencheck nlp.meta.nvar x Jtv
   @lencheck nlp.meta.nlin v
   increment!(nlp, :neval_jtprod_lin)
@@ -699,23 +699,23 @@ function NLPModels.jtprod_lin!(
 end
 
 function NLPModels.hess(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector{T},
+  nlp::FletcherPenaltyNLP{T, S, V, P, QDS},
+  x::AbstractVector,
   y::AbstractVector;
-  obj_weight::Real = one(eltype(x)),
-) where {T, S, Tt, V, P, QDS}
+  obj_weight::Real = one(T),
+) where {T, S, V, P, QDS}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.ncon y
   return hess(nlp, x, obj_weight = obj_weight)
 end
 
 function NLPModels.hess_coord!(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector{T},
+  nlp::FletcherPenaltyNLP{T, S, V, P, QDS},
+  x::AbstractVector,
   y::AbstractVector,
   vals::AbstractVector;
-  obj_weight::Real = one(eltype(x)),
-) where {T, S, Tt, V, P, QDS}
+  obj_weight::Real = one(T),
+) where {T, S, V, P, QDS}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.ncon y
   @lencheck nlp.meta.nnzh vals
@@ -723,13 +723,13 @@ function NLPModels.hess_coord!(
 end
 
 function NLPModels.hprod!(
-  nlp::FletcherPenaltyNLP{S, Tt, V, P, QDS},
-  x::AbstractVector{T},
+  nlp::FletcherPenaltyNLP{T, S, V, P, QDS},
+  x::AbstractVector,
   y::AbstractVector,
   v::AbstractVector,
   Hv::AbstractVector;
-  obj_weight::Real = one(eltype(x)),
-) where {T, S, Tt, V, P, QDS}
+  obj_weight::Real = one(T),
+) where {T, S, V, P, QDS}
   @lencheck nlp.meta.nvar x v Hv
   @lencheck nlp.meta.ncon y
   return hprod!(nlp, x, v, Hv, obj_weight = obj_weight)

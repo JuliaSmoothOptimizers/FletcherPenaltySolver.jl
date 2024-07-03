@@ -44,9 +44,9 @@ function solve_two_mixed end
 
 function solve_two_extras(
   nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2, SS3, It}},
-  x::AbstractVector{T},
-  rhs1::AbstractVector, # size nvar
-  rhs2::AbstractVector, # size ncon
+  x::AbstractVector,
+  rhs1, # size nvar
+  rhs2, # size ncon
 ) where {T, S, A, P, SS1, SS2, SS3, It}
   τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
   # (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ)
@@ -78,9 +78,9 @@ end
 
 function solve_two_least_squares(
   nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2, SS3, It}},
-  x::AbstractVector{T},
-  rhs1::AbstractVector,
-  rhs2::AbstractVector,
+  x::AbstractVector,
+  rhs1,
+  rhs2,
 ) where {T, S, A, P, SS1, SS2, SS3, It}
   # We trust this one
   # nlp.Aop .= jac_op!(nlp.nlp, x, nlp.qdsolver.Jv, nlp.qdsolver.Jtv)
@@ -106,9 +106,9 @@ end
 
 function solve_two_mixed(
   nlp::FletcherPenaltyNLP{T, S, A, P, IterativeSolver{T, S, SS1, SS2, SS3, It}},
-  x::AbstractVector{T},
-  rhs1::AbstractVector,
-  rhs2::AbstractVector,
+  x::AbstractVector,
+  rhs1,
+  rhs2,
 ) where {T, S, A, P, SS1, SS2, SS3, It}
   # rhs1 is of size nlp.meta.nvar
   # rhs2 is of size nlp.meta.ncon
@@ -140,11 +140,11 @@ function solve_two_mixed(
 end
 
 function solve_two_extras(
-  nlp::FletcherPenaltyNLP{S, Tt, A, P, LDLtSolver{Tt, S2, Si, Str}},
-  x::AbstractVector{T},
-  rhs1::AbstractVector,
-  rhs2::AbstractVector,
-) where {T, S, Tt, A, P, S2, Si, Str}
+  nlp::FletcherPenaltyNLP{T, S, A, P, LDLtSolver{S, S2, Si, Str}},
+  x::AbstractVector,
+  rhs1,
+  rhs2,
+) where {S, T, A, P, S2, Si, Str}
   τ = T(max(nlp.δ, 1e-14)) # should be a parameter in the solver structure
   if nlp.explicit_linear_constraints
     nlp.Aop = jac_nln_op(nlp.nlp, x)
@@ -159,10 +159,10 @@ function solve_two_extras(
 end
 
 function solve_two_least_squares(
-  nlp::FletcherPenaltyNLP{S, Tt, A, P, LDLtSolver{Tt, S2, Si, Str}},
-  x::AbstractVector{T},
-  rhs1::AbstractVector,
-  rhs2::AbstractVector,
+  nlp::FletcherPenaltyNLP{T, S, A, P, LDLtSolver{S, S2, Si, Str}},
+  x::AbstractVector,
+  rhs1,
+  rhs2,
 ) where {T, S, Tt, A, P, S2, Si, Str}
   #set the memory for the matrix in the FletcherPenaltyNLP
   nvar = nlp.nlp.meta.nvar
@@ -204,11 +204,11 @@ function solve_two_least_squares(
 end
 
 function solve_two_mixed(
-  nlp::FletcherPenaltyNLP{S, Tt, A, P, LDLtSolver{Tt, S2, Si, Str}},
-  x::AbstractVector{T},
-  rhs1::AbstractVector,
-  rhs2::AbstractVector,
-) where {T, S, Tt, A, P, S2, Si, Str}
+  nlp::FletcherPenaltyNLP{T, S, A, P, LDLtSolver{S, S2, Si, Str}},
+  x::AbstractVector,
+  rhs1,
+  rhs2,
+) where {T, S, A, P, S2, Si, Str}
   # set the memory for the matrix in the FletcherPenaltyNLP
   nnzj = nlp.explicit_linear_constraints ? nlp.nlp.meta.nln_nnzj : nlp.nlp.meta.nnzj
   nvar = nlp.nlp.meta.nvar

@@ -58,7 +58,7 @@ import SolverCore.solve!
 export fps_solve, solve!
 
 """
-    fps_solve(nlp::AbstractNLPModel, x0::AbstractVector{T} = nlp.meta.x0; subsolver_verbose::Int = 0, kwargs...)
+    fps_solve(nlp::AbstractNLPModel{T, S}, x0::S = nlp.meta.x0; subsolver_verbose::Int = 0, kwargs...)
 
 Compute a local minimum of a bound and equality-constrained optimization problem using Fletcher's penalty function and the implementation described in
 

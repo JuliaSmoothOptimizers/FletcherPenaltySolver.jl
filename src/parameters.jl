@@ -263,7 +263,7 @@ end
 
 function FPSSSolver(
   nlp::AbstractNLPModel{T, S},
-  x0::AbstractVector{T} = nlp.meta.x0;
+  x0::S = nlp.meta.x0;
   kwargs...,
 ) where {T, S}
   cx0, gx0 = cons(nlp, x0), grad(nlp, x0)
@@ -272,8 +272,8 @@ function FPSSSolver(
     rtol * vcat(ones(T, nlp.meta.ncon) .+ norm(cx0, Inf), ones(T, nlp.meta.nvar) .+ norm(gx0, Inf))
   initial_state = NLPAtX(
     x0,
-    zeros(T, nlp.meta.ncon),
-    Array{T, 1}(undef, nlp.meta.ncon + nlp.meta.nvar),
+    fill!(S(undef, nlp.meta.ncon), 0),
+    S(undef, nlp.meta.ncon + nlp.meta.nvar),
     cx = cx0,
     gx = gx0,
     res = gx0,
