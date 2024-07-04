@@ -63,13 +63,13 @@ struct IterativeSolver{
   solver_struct_pinv::SS3
   # allocation of the linear operator, only one as the matrix is symmetric
   # ToDo: Il faudrait faire le tri ici car tout n'est pas utilisé
-  opr::Vector{T}
-  Jv::Vector{T}
-  Jtv::Vector{T}
-  p1::Vector{T} # part 1: solution of 1st LS
-  q1::Vector{T} # part 2: solution of 1st LS
-  p2::Vector{T} # part 1: solution of 2nd LS
-  q2::Vector{T} # part 2: solution of 2nd LS
+  opr::S
+  Jv::S
+  Jtv::S
+  p1::S # part 1: solution of 1st LS
+  q1::S # part 2: solution of 1st LS
+  p2::S # part 1: solution of 2nd LS
+  q2::S # part 2: solution of 2nd LS
 end
 
 # import Krylov.LsqrSolver
@@ -92,7 +92,7 @@ end
 =#
 
 function IterativeSolver(
-  nlp::AbstractNLPModel,
+  nlp::AbstractNLPModel{T, S},
   ::T;
   explicit_linear_constraints = false,
   # M = opEye(),
@@ -116,17 +116,17 @@ function IterativeSolver(
   solver_struct_least_square::KrylovSolver{T, T, S} = LsqrSolver(
     nlp.meta.nvar,
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
-    Vector{T},
+    S,
   ),
   solver_struct_least_norm::KrylovSolver{T, T, S} = CraigSolver( # LnlqSolver(
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     nlp.meta.nvar,
-    Vector{T},
+    S,
   ),
   solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
-    Vector{T},
+    S,
   ),
   kwargs...,
 ) where {T, S}
@@ -149,13 +149,13 @@ function IterativeSolver(
     solver_struct_least_square,
     solver_struct_least_norm,
     solver_struct_pinv,
-    Vector{T}(undef, ncon + nlp.meta.nvar),
-    Vector{T}(undef, ncon),
-    Vector{T}(undef, nlp.meta.nvar),
-    Vector{T}(undef, nlp.meta.nvar),
-    Vector{T}(undef, ncon),
-    Vector{T}(undef, nlp.meta.nvar),
-    Vector{T}(undef, ncon),
+    S(undef, ncon + nlp.meta.nvar),
+    S(undef, ncon),
+    S(undef, nlp.meta.nvar),
+    S(undef, nlp.meta.nvar),
+    S(undef, ncon),
+    S(undef, nlp.meta.nvar),
+    S(undef, ncon),
   )
 end
 
@@ -306,14 +306,14 @@ struct LDLtSolver{S, S2, Si, Str} <: QDSolver
 end
 
 function LDLtSolver(
-  nlp,
+  nlp::AbstractNLPModel{T, S},
   ::T;
   explicit_linear_constraints = false,
   ldlt_tol = √eps(T),
   ldlt_r1 = √eps(T),
   ldlt_r2 = -√eps(T),
   kwargs...,
-) where {T <: Number}
+) where {T <: Number, S}
   nnzj = explicit_linear_constraints ? nlp.meta.nln_nnzj : nlp.meta.nnzj
   nvar = nlp.meta.nvar
   ncon = explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon
@@ -321,12 +321,12 @@ function LDLtSolver(
   nnz = nvar + nnzj + ncon
   rows = zeros(Int, nnz)
   cols = zeros(Int, nnz)
-  vals = zeros(T, nnz)
+  vals = fill!(S(undef, nnz), 0)
 
   # I (1:nvar, 1:nvar)
   nnz_idx = 1:nvar
   rows[nnz_idx], cols[nnz_idx] = 1:nvar, 1:nvar
-  vals[nnz_idx] .= ones(T, nvar)
+  vals[nnz_idx] .= one(T)
   # J (nvar .+ 1:ncon, 1:nvar)
   nnz_idx = nvar .+ (1:nnzj)
   if explicit_linear_constraints

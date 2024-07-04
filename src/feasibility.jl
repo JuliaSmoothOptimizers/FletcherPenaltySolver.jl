@@ -20,11 +20,11 @@ Approximately solves `min ‖c(x) - l‖`, where l is nlp.meta.lcon, using a tru
 """
 function feasibility_step(
   feasibility_solver::GNSolver,
-  nlp::AbstractNLPModel,
-  x::AbstractVector{T},
-  cx::AbstractVector{T},
+  nlp::AbstractNLPModel{T, S},
+  x::S,
+  cx::S,
   normcx::T,
-  Jx::Union{LinearOperator{T}, AbstractMatrix{T}},
+  Jx, #::Union{LinearOperator{T}, AbstractMatrix{T}},
   ρ::T,
   ctol::AbstractFloat,
   verbose;
@@ -38,7 +38,7 @@ function feasibility_step(
   max_eval::Int = 1_000,
   max_time::AbstractFloat = 60.0,
   max_feas_iter::Int = typemax(Int64),
-) where {T}
+) where {T, S}
   z = x
   cz = cx
   Jz = Jx
@@ -207,12 +207,12 @@ using `lsmr` method from `Krylov.jl`.
 """
 function TR_lsmr(
   solver,
-  cz::AbstractVector{T},
-  Jz::Union{LinearOperator{T}, AbstractMatrix{T}},
+  cz,
+  Jz,
   ctol::AbstractFloat,
   Δ::T,
   normcz::AbstractFloat,
-  Jd::AbstractVector{T},
+  Jd,
 ) where {T}
   Krylov.solve!(
     solver,
