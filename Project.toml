@@ -1,7 +1,7 @@
 name = "FletcherPenaltySolver"
 uuid = "e59f0261-166d-4fee-8bf3-5e50457de5db"
 authors = ["tmigot <tangi.migot@gmail.com>"]
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 FastClosures = "9aa1b823-49e4-5ca5-8b0f-3971ec8bab6a"
