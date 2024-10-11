@@ -1,15 +1,9 @@
-using LinearAlgebra, LinearOperators, Random, SparseArrays
+using LinearAlgebra, Logging, Random, SparseArrays, Stopping, Test
 
 #JSO packages
-using ADNLPModels, Logging, NLPModels, NLPModelsTest, SolverCore, SolverTest
-using JSOSolvers, NLPModelsIpopt, NLPModelsKnitro
+using ADNLPModels, JSOSolvers, NLPModels, NLPModelsTest, SolverCore, SolverTest
 
 Random.seed!(1234)
-
-using Stopping, StoppingInterface
-
-#For Test only
-using Test
 
 #This package
 using FletcherPenaltySolver
