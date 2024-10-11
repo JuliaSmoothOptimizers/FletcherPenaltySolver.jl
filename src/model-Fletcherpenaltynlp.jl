@@ -284,14 +284,7 @@ end
 
 Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
 """
-function hprod_nln!(
-  nlp::FletcherPenaltyNLP{S, T},
-  x,
-  y,
-  v,
-  Hv;
-  obj_weight = one(S),
-) where {S, T}
+function hprod_nln!(nlp::FletcherPenaltyNLP{S, T}, x, y, v, Hv; obj_weight = one(S)) where {S, T}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     nlp.lag_mul .= zero(S)
     nlp.lag_mul[nlp.meta.nln] .= y
@@ -327,7 +320,12 @@ end
 
 Redefine the NLPModel function `hprod` to account for Lagrange multiplier of size < ncon.
 """
-function hess_nln(nlp::FletcherPenaltyNLP{S, T}, x::AbstractVector, y; obj_weight = one(S)) where {S, T}
+function hess_nln(
+  nlp::FletcherPenaltyNLP{S, T},
+  x::AbstractVector,
+  y;
+  obj_weight = one(S),
+) where {S, T}
   return if nlp.explicit_linear_constraints & (nlp.meta.ncon > 0)
     nlp.lag_mul .= zero(S)
     nlp.lag_mul[nlp.meta.nln] .= y
@@ -371,11 +369,7 @@ function obj(nlp::FletcherPenaltyNLP{T, S}, x::AbstractVector) where {T, S}
   return fx
 end
 
-function grad!(
-  nlp::FletcherPenaltyNLP{T, S},
-  x::AbstractVector,
-  gx::AbstractVector,
-) where {T, S}
+function grad!(nlp::FletcherPenaltyNLP{T, S}, x::AbstractVector, gx::AbstractVector) where {T, S}
   nvar = get_nvar(nlp)
   @lencheck nvar x gx
   increment!(nlp, :neval_grad)
@@ -406,11 +400,7 @@ function grad!(
   return gx
 end
 
-function objgrad!(
-  nlp::FletcherPenaltyNLP{T, S},
-  x::AbstractVector,
-  gx::AbstractVector,
-) where {T, S}
+function objgrad!(nlp::FletcherPenaltyNLP{T, S}, x::AbstractVector, gx::AbstractVector) where {T, S}
   nvar = get_nvar(nlp)
   @lencheck nvar x gx
   increment!(nlp, :neval_obj)
