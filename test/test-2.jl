@@ -286,3 +286,39 @@ CUTEst FLT problem
   @test primal < 1e-6 * max(norm(nlp.meta.x0), 1.0)
   @test status == :first_order
 end
+
+@testset "Problems with explicit linear constraints" begin
+  nlp = ADNLPModels.ADNLPModel(
+    x -> 0.0,
+    [-1.2; 1.0],
+    [1],
+    [1],
+    [-1.0],
+    x -> [10 * (x[2] - x[1]^2)],
+    [-1.0, 0.0],
+    [-1.0, 0.0],
+    name = "mgh01feas";
+  )
+  stats = fps_solve(nlp, explicit_linear_constraints = true)
+  @test norm(cons(nlp, stats.solution) - get_lcon(nlp)) ≤ 1e-10
+  @test stats.dual_feas ≤ 1e-10
+  @test stats.primal_feas ≤ 1e-10
+  @test stats.status == :first_order
+
+  nlp = ADNLPModels.ADNLPModel(
+    x -> 0.0,
+    [-1.2; 1.0],
+    [1],
+    [1],
+    [-1.0],
+    x -> [10 * (x[2] - x[1]^2)],
+    [-1.0, 1.0],
+    [-1.0, 1.0],
+    name = "mgh01feas-bis";
+  )
+  stats = fps_solve(nlp, explicit_linear_constraints = true)
+  @test norm(cons(nlp, stats.solution) - get_lcon(nlp)) ≤ 1e-10
+  @test stats.dual_feas ≤ 1e-10
+  @test stats.primal_feas ≤ 1e-10
+  @test stats.status == :first_order
+end
