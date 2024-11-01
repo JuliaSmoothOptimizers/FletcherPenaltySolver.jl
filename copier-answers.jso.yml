@@ -1,0 +1,8 @@
+PackageName: "FletcherPenaltySolver"
+PackageOwner: "JuliaSmoothOptimizers"
+PackageUUID: "e59f0261-166d-4fee-8bf3-5e50457de5db"
+_src_path: "https://github.com/JuliaSmoothOptimizers/JSOBestieTemplate.jl"
+_commit: "v0.13.0"
+AddBreakage: true
+AddBenchmark: false
+AddBenchmarkCI: true
