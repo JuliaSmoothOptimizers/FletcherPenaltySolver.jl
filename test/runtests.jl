@@ -71,14 +71,14 @@ end
     x0 = T[-1.2; 1.0]
     ℓ, u = zeros(T, 2), 2 * ones(T, 2)
     nlp = ADNLPModel(f, x0, ℓ, u, c, zeros(1), zeros(1))
-  
+
     ϵ = eps(T)^T(1 / 4)
-  
+
     ng0 = norm(grad(nlp, nlp.meta.x0))
-  
+
     stp = NLPStopping(nlp)
     stats = fps_solve(stp)
-  
+
     @test eltype(stats.solution) == T
     @test stats.objective isa T
     @test stats.dual_feas isa T

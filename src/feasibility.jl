@@ -205,15 +205,7 @@ using `lsmr` method from `Krylov.jl`.
 - `infeasible`: `true` if the problem is infeasible.
 - `solved`: `true` if the problem has been successfully solved.
 """
-function TR_lsmr(
-  solver,
-  cz,
-  Jz,
-  ctol::AbstractFloat,
-  Δ::T,
-  normcz::AbstractFloat,
-  Jd,
-) where {T}
+function TR_lsmr(solver, cz, Jz, ctol::AbstractFloat, Δ::T, normcz::AbstractFloat, Jd) where {T}
   Krylov.solve!(
     solver,
     Jz,
