@@ -33,7 +33,7 @@ function SolverCore.solve!(
 ) where {T, QDS, US, V}
   meta = fpssolver.meta
   feasibility_solver = fpssolver.feasibility_solver
-  reset!(stats)
+  SolverCore.reset!(stats)
   if !(stp.pb.meta.minimize)
     error("fps_solve only works for minimization problem")
   end
