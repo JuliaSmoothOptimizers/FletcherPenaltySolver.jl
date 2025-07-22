@@ -117,7 +117,7 @@ function feasibility_step(
     # Safeguard: aggressive normal step
     if normcz > ρ && (consecutive_bad_steps ≥ bad_steps_lim || failed_step_comp)
       Hz = hess_op(nlp, z, cz, obj_weight = zero(T))
-      Krylov.solve!(feasibility_solver.aggressive_step, Hz + Jz' * Jz, Jz' * cz)
+      krylov_solve!(feasibility_solver.aggressive_step, Hz + Jz' * Jz, Jz' * cz)
       d = feasibility_solver.aggressive_step.x
       stats = feasibility_solver.aggressive_step.stats
       if !stats.solved
@@ -206,7 +206,7 @@ using `lsmr` method from `Krylov.jl`.
 - `solved`: `true` if the problem has been successfully solved.
 """
 function TR_lsmr(solver, cz, Jz, ctol::AbstractFloat, Δ::T, normcz::AbstractFloat, Jd) where {T}
-  Krylov.solve!(
+  krylov_solve!(
     solver,
     Jz,
     -cz,
