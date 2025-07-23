@@ -108,5 +108,5 @@ The metadata for the feasibility procedure is defined in a `GNSolver` structure 
 | `Δ₀`                | `Real`                          | `1.0`                                                | Feasibility step: initial radius.                                                                         |
 | `feas_expected_decrease` | `Real`                          | `0.95`                                               | Feasibility step: bad steps are when ‖c(z)‖ / ‖c(x)‖ >feas_expected_decrease.                             |
 | `bad_steps_lim`          | `Integer`                                 | `3`                                                  | Feasibility step: consecutive bad steps before using a second order step.                                 |
-| `TR_compute_step`        | `KrylovSolver`                                  | `LsmrSolver`                                           | Compute the direction in feasibility step.                                           |
-| `aggressive_step` | `KrylovSolver` | `CgSolver` | Compute the (aggressive) direction in feasibility step. |
+| `TR_compute_step`        | `KrylovWorkspace`                                  | `LsmrWorkspace`                                           | Compute the direction in feasibility step.                                           |
+| `aggressive_step` | `KrylovWorkspace` | `CgWorkspace` | Compute the (aggressive) direction in feasibility step. |

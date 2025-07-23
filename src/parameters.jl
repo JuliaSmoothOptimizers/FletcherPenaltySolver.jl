@@ -137,8 +137,8 @@ The keyword arguments may include:
 - `Δ₀::T=one(T)`: Feasibility step: initial radius.
 - `bad_steps_lim::Integer=3`: Feasibility step: consecutive bad steps before using a second order step.
 - `feas_expected_decrease::T=T(0.95)`: Feasibility step: bad steps are when `‖c(z)‖ / ‖c(x)‖ >feas_expected_decrease`.
-- `TR_compute_step = LsmrSolver(length(y0), length(x0), S)`: Compute the direction in feasibility step.
-- `aggressive_step = CgSolver(length(x0), length(x0), S)`: Compute the direction in feasibility step in agressive mode.
+- `TR_compute_step = LsmrWorkspace(length(y0), length(x0), S)`: Compute the direction in feasibility step.
+- `aggressive_step = CgWorkspace(length(x0), length(x0), S)`: Compute the direction in feasibility step in agressive mode.
 """
 mutable struct GNSolver
   # Parameters
@@ -158,8 +158,8 @@ mutable struct GNSolver
   workspace_Jtv
 
   # Compute TR-step
-  TR_compute_step # ::KrylovSolver{eltype(S), S}
-  aggressive_step # ::KrylovSolver{eltype(S), S}
+  TR_compute_step # ::KrylovWorkspace{eltype(S), S}
+  aggressive_step # ::KrylovWorkspace{eltype(S), S}
 end
 
 function GNSolver(
@@ -172,8 +172,8 @@ function GNSolver(
   Δ₀::AbstractFloat = one(eltype(S)),
   bad_steps_lim::Integer = 3,
   feas_expected_decrease::AbstractFloat = eltype(S)(0.95),
-  TR_compute_step = LsmrSolver(length(y0), length(x0), S),
-  aggressive_step = CgSolver(length(x0), length(x0), S),
+  TR_compute_step = LsmrWorkspace(length(y0), length(x0), S),
+  aggressive_step = CgWorkspace(length(x0), length(x0), S),
 ) where {S}
   n, m = length(x0), length(y0)
   return GNSolver(

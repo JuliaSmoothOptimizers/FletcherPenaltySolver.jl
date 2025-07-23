@@ -23,9 +23,9 @@ It uses `Krylov.jl` methods to solve least-squares and least-norm problems.
 struct IterativeSolver{
   T <: AbstractFloat,
   S,
-  SS1 <: KrylovSolver{T, T, S},
-  SS2 <: KrylovSolver{T, T, S},
-  SS3 <: KrylovSolver{T, T, S},
+  SS1 <: KrylovWorkspace{T, T, S},
+  SS2 <: KrylovWorkspace{T, T, S},
+  SS3 <: KrylovWorkspace{T, T, S},
   It <: Integer,
 } <: QDSolver
   # parameters for least-square solve
@@ -72,15 +72,15 @@ struct IterativeSolver{
   q2::S # part 2: solution of 2nd LS
 end
 
-# import Krylov.LsqrSolver
+# import Krylov.LsqrWorkspace
 #=
-mutable struct LsqrSolver2{T,S} <: KrylovSolver{T,S}
+mutable struct LsqrWorkspace2{T,S} <: KrylovWorkspace{T,S}
   x  :: S
   Nv :: S
   w  :: S
   Mu :: S
 
-  function LsqrSolver2(n, m, S, T)
+  function LsqrWorkspace2(n, m, S, T)
     x  = S(undef, m)
     Nv = S(undef, m)
     w  = S(undef, m)
@@ -113,17 +113,17 @@ function IterativeSolver(
   ne_etol::T = √eps(T),
   ne_itmax::Int = 0,
   ne_conlim::T = 1 / √eps(T),
-  solver_struct_least_square::KrylovSolver{T, T, S} = LsqrSolver(
+  solver_struct_least_square::KrylovWorkspace{T, T, S} = LsqrWorkspace(
     nlp.meta.nvar,
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     S,
   ),
-  solver_struct_least_norm::KrylovSolver{T, T, S} = CraigSolver( # LnlqSolver(
+  solver_struct_least_norm::KrylovWorkspace{T, T, S} = CraigWorkspace( # LnlqSolver(
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     nlp.meta.nvar,
     S,
   ),
-  solver_struct_pinv::KrylovSolver{T, T, S} = MinresSolver(
+  solver_struct_pinv::KrylovWorkspace{T, T, S} = MinresWorkspace(
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     explicit_linear_constraints ? nlp.meta.nnln : nlp.meta.ncon,
     S,
@@ -170,7 +170,7 @@ function solve_least_square(
   b,
   λ,
 ) where {T, S, SS1, SS2, SS3, It}
-  Krylov.solve!(
+  krylov_solve!(
     qdsolver.solver_struct_least_square,
     A,
     b,
@@ -212,7 +212,7 @@ function solve_least_norm(
   A,
   b,
   δ,
-) where {T, S, SS1, SS2 <: CraigSolver, SS3, It}
+) where {T, S, SS1, SS2 <: CraigWorkspace, SS3, It}
   if δ != 0
     craig!(
       qdsolver.solver_struct_least_norm,
@@ -256,7 +256,7 @@ function solve_least_norm(
 ) where {T, S, SS1, SS2, SS3, It}
   ncon = length(b)
   if δ != 0
-    Krylov.solve!(
+    krylov_solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,
@@ -266,7 +266,7 @@ function solve_least_norm(
       itmax = qdsolver.ln_itmax,
     )
   else
-    Krylov.solve!(
+    krylov_solve!(
       qdsolver.solver_struct_least_norm,
       A,
       b,

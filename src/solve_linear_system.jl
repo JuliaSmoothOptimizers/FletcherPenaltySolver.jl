@@ -57,7 +57,7 @@ function solve_two_extras(
 
   JtJ = nlp.Aop * nlp.Aop' # this allocates
   # (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ)
-  Krylov.solve!(
+  krylov_solve!(
     nlp.qdsolver.solver_struct_pinv,
     JtJ,
     rhs2,
@@ -151,10 +151,10 @@ function solve_two_extras(
   else
     nlp.Aop = jac_op(nlp.nlp, x)
   end
-  (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ) # use Krylov.solve!
+  (invJtJJv, invJtJJvstats) = cgls(nlp.Aop', rhs1, λ = τ) # use krylov_solve!
 
   JtJ = nlp.Aop * nlp.Aop'
-  (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ) # use Krylov.solve!
+  (invJtJSsv, stats) = minres(JtJ, rhs2, λ = τ) # use krylov_solve!
   return invJtJJv, invJtJSsv
 end
 
@@ -163,7 +163,7 @@ function solve_two_least_squares(
   x::AbstractVector,
   rhs1,
   rhs2,
-) where {T, S, Tt, A, P, S2, Si, Str}
+) where {T, S, A, P, S2, Si, Str}
   #set the memory for the matrix in the FletcherPenaltyNLP
   nvar = nlp.nlp.meta.nvar
   ncon = nlp.explicit_linear_constraints ? nlp.nlp.meta.nnln : nlp.nlp.meta.ncon
