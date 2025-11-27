@@ -1,4 +1,4 @@
-# FletcherPenaltySolver.jl - Fletcher's Penalty Method
+# FletcherPenaltySolver.jl - Fletcher's Penalty Method [TMP]
 
 [![docs-stable][docs-stable-img]][docs-stable-url] [![docs-dev][docs-dev-img]][docs-dev-url] [![build-ci][build-ci-img]][build-ci-url] [![codecov][codecov-img]][codecov-url] [![release][release-img]][release-url] [![doi][doi-img]][doi-url]
 
