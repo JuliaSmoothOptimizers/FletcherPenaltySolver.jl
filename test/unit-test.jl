@@ -10,7 +10,6 @@ function test_memoization(fpnlp)
     @test tmp == tmp2
   end
   =#
-
 end
 
 @testset "Unit test: FletcherPenaltyNLP with 1st hessian approximation" begin
